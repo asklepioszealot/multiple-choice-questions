@@ -61,3 +61,15 @@ Dosyadaki `const questions` dizisine aşağıdaki formatta yeni soru nesneleri e
 - **HTML5** + **CSS3** + **Vanilla JavaScript**
 - Harici bağımlılık yok — tek dosya, sıfır kurulum
 - `localStorage` ile veri kalıcılığı
+
+## Depo Erişimi ve Gizlilik
+
+Depo gizliye (private) alındığında yalnızca yetkili kullanıcılar (depo sahibi ve eklenmiş iş birlikçiler) erişebilir. **GitHub Copilot Pro üyeliği**, özel bir depoya erişim için kimlik doğrulama gereksinimini ortadan kaldırmaz; yalnızca AI destekli kodlama özelliklerini etkinleştirir.
+
+Yetkili bir kullanıcı olarak **her yerden** `git pull` / `git clone` yapabilirsiniz; bunun için aşağıdaki yöntemlerden birini kullanmanız gerekir:
+
+- **SSH anahtarı** — GitHub hesabınıza kayıtlı bir SSH anahtarıyla doğrudan kimlik doğrulama.
+- **Kişisel erişim belirteci (PAT)** — HTTPS üzerinden kullanıcı adı + PAT kombinasyonu.
+- **GitHub CLI** (`gh auth login`) — Tarayıcı veya jeton tabanlı oturum açma.
+
+Kısaca: depoyu gizliye almak erişimi kısıtlar, ancak kimliğinizi doğruladıktan sonra her yerden (ev, ofis, farklı cihaz vb.) çekme/klonlama işlemi yapabilirsiniz.
