@@ -1,63 +1,93 @@
-# Çoktan Seçmeli Test Şablonu
+# Çoktan Seçmeli Test Şablonu (Dinamik Set Yönetimli)
 
-Sınav odaklı, tek dosyalı (single-file) çoktan seçmeli test uygulaması. Soruları interaktif biçimde çözmenizi, açıklamalarıyla birlikte incelemenizi ve ilerlemenizi takip etmenizi sağlar.
-
-## Ekran Görünümü
-
-Uygulama açık ve koyu tema desteği sunar. Her soru kartında 5 şık, doğru/yanlış geri bildirimi ve detaylı açıklama bölümü yer alır.
+Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzere) çoktan seçmeli sorularla pratik yapmayı sağlayan, **tamamen lokal**, tarayıcı üzerinde çalışan ve JSON dosyalarıyla dinamik olarak genişletilebilen bir test uygulamasıdır.
 
 ## Özellikler
 
-- **5 şıklı sorular** — Her soruda A–E arası seçenekler ve detaylı açıklama
-- **Açık / Koyu tema** — Tek tuşla geçiş, tercih `localStorage`'da saklanır
-- **Konu filtresi** — Dropdown ile belirli bir konuya ait soruları filtreleme
-- **Soru karıştırma** — Soruları rastgele sıraya dizme
-- **Yanlışları tekrar çözme** — Yalnızca yanlış cevaplanmış soruları yeniden çözme
-- **Soru numarasına atlama** — İstenen soru numarasına doğrudan gitme
-- **Skor takibi** — Doğru, yanlış ve yüzde başarı oranı anlık gösterim
-- **İlerleme kaydetme** — Cevaplar ve mevcut konum `localStorage` ile otomatik kaydedilir
-- **JSON export** — Tüm soru verilerini `.json` olarak dışa aktarma
-- **Yazdırma** — Cevap anahtarı ve açıklamalarıyla birlikte yazıcı dostu çıktı
-- **Klavye kısayolları** — `A`–`E` şık seçimi, `S` çözüm göster/gizle, `←` `→` önceki/sonraki soru
-- **Responsive tasarım** — Mobil ve masaüstü uyumlu
+1. **Dinamik Soru Seti Yükleme (`Set Yönetimi`)**:
+   - `data/` klasöründeki veya dışarıdan indirdiğiniz `.json` uzantılı soru setlerini tek tıkla uygulamaya yükleyebilirsiniz.
+   - Birden fazla seti aynı anda seçip harmanlayarak veya ayrı ayrı filtreleyerek çözme imkanı sağlar.
+2. **Kişiselleştirilmiş Öğrenme ve İlerleme Takibi**:
+   - Girdiğiniz cevaplar (doğru, yanlış, seçilmemiş) tarayıcı önbelleğinde (`localStorage`) güvende tutulur.
+   - Soru setini silseniz dahi, aynı seti tekrar yüklediğinizde uygulamadaki ilerlemeniz kaldığı yerden devam eder (Sorular metin tabanlı hash'lenerek akıllıca tanınır).
+   - "Yanlışları Çöz" butonuyla sadece hata yaptığınız soruları ayıklayıp tekrar çözebilirsiniz.
+3. **Kapsamlı Konu Filtresi & Karıştırma**:
+   - Yüklediğiniz setlerdeki sorular "Konu" başlıklarına göre otomatik olarak filtre seçeneklerine dahil olur.
+   - İstediğiniz an soruları karıştırarak (`Karıştır` butonu) ezberi kırabilirsiniz.
+4. **Hızlı Kısayollar ve Yazdırma Desteği**:
+   - `Klavyedeki A, B, C, D, E` tuşlarıyla şıkları güvenle işaretleyin.
+   - `S` tuşuyla açıklamaları görün, Yön tuşlarıyla sorular arasında gezinin.
+   - Testleri temiz bir A4 formatında PDF olarak kaydedin veya doğrudan yazdırın.
+5. **Modern Arayüz ve Karanlık Tema**:
+   - Göz yormayan, animasyonlu arayüz ve kalıcı Karanlık/Aydınlık mod seçeneği.
 
-## Kullanım
+---
 
-1. `Çoktan Seçmeli Test Şablon.html` dosyasını herhangi bir tarayıcıda açın.
-2. Soruları cevaplayın; doğru/yanlış anında görüntülenir.
-3. **Çözümü Göster** butonuyla açıklamayı inceleyin.
-4. Üst menüden konu filtresi, karıştırma ve diğer araçlara erişin.
+## Veri Seti Oluşturma (AI ile Hızlı Soru Üretme)
 
-## Yeni Soru Ekleme
+Yapay zeka asistanlarını (ChatGPT, Claude vb.) kullanarak kendi `.json` test setlerinizi çok hızlı bir şekilde üretebilirsiniz. Hızlı ve tutarlı bir JSON paketi hazırlamak için aşağıdaki iki yöntemden birini seçin:
 
-Dosyadaki `const questions` dizisine aşağıdaki formatta yeni soru nesneleri ekleyin:
+### Yöntem 1: AI'dan Doğrudan JSON Çıktısı Almak
 
-```javascript
-{
-    q: "Soru metni (<strong> kullanılabilir)",
-    options: [
-        "A şıkkı",
-        "B şıkkı",
-        "C şıkkı",
-        "D şıkkı",
-        "E şıkkı"
-    ],
-    correct: 0,  // 0=A, 1=B, 2=C, 3=D, 4=E
-    explanation: "Detaylı açıklama metni",
-    subject: "Konu Adı"
-}
+Aşağıdaki komutu yapay zekaya kopyalayıp, doğrudan test verisini talep edebilirsiniz:
+
+> Aşağıdaki konuya ilişkin zorlayıcı çoktan seçmeli sorular yaz (1 doğru, 4 güçlü çeldirici). Çıktıyı tam olarak ekteki JSON formatında ver, lütfen formatın dışına çıkma. Her soruya ait detaylı ve öğretici bir Türkçe `explanation` yaz. Vurgulanmasını istediğin kritik noktalarda `<strong>` etiketini kullan.
+> Konu: [ÇALIŞMAK İSTEDİĞİNİZ KONU]
+> 
+> ```json
+> {
+>   "setName": "Konu Adı Testi",
+>   "questions": [
+>     {
+>       "q": "Konuya ilişkin detaylı soru metni burada yer alacak?",
+>       "options": [
+>         "A şıkkı formunda metin",
+>         "B şıkkı formunda metin",
+>         "C",
+>         "D",
+>         "E"
+>       ],
+>       "correct": 0,
+>       "explanation": "<strong>Doğru cevap A'dır.</strong> Çünkü kritik detay budur.<br>B şıkkı şundan dolayı yanlıştır.",
+>       "subject": "Spesifik Alt Konu Başlığı"
+>     }
+>   ]
+> }
+> ```
+> *Not: "correct" anahtarı için 0=A, 1=B, 2=C, 3=D, 4=E'dir.*
+
+Yapay zekanın verdiği JSON blok kodunu kopyalayıp örneğin `yenitest.json` dosyası olarak kaydedin ve uygulamadaki `JSON Dosyası Yükle` butonundan uygulamaya tanıtın.
+
+### Yöntem 2: Düz Metin Üzerinden Dönüştürücü (text2json.js) Kullanmak
+
+Eğer AI'dan düz metin (text/markdown) olarak çıktı almak istiyorsanız, proje içindeki `tools/text2json.js` Node.js aracını kullanabilirsiniz.
+
+**Beklenen Metin Şablonu:**
+```text
+## Test Seti Adı
+
+### Konu: Alt Konu Adı
+
+Soru: Örnek soru **burada kalın bir vurgu** içerebilir. Hangi seçenek doğrudur?
+A) Yanlış seçenek 1
+B) Doğru seçenek
+C) Yanlış seçenek 2
+D) Yanlış seçenek 3
+E) Yanlış seçenek 4
+Doğru Cevap: B
+Açıklama: Açıklama metni **vurgu** içeriyor. İkinci satır.
 ```
 
-### Açıklama Vurgu Hiyerarşisi
+**Kullanım Komutu:**
+```bash
+node tools/text2json.js data/input.txt data/cikti_seti.json
+```
 
-| Seviye    | Kullanım                           | HTML                                              |
-| --------- | ---------------------------------- | ------------------------------------------------- |
-| 🔴 Kritik | Dozlar, sayılar, kesin kriterler   | `<strong class='highlight-critical'>...</strong>` |
-| 🟡 Dikkat | Tuzaklar, uyarılar, ayırıcı tanı   | `<span class='highlight-important'>⚠️ ...</span>` |
-| ⚪ Normal | Bölüm başlıkları, liste başlıkları | `<strong>...</strong>`                            |
+---
 
-## Teknolojiler
+## Kurulum ve Kullanım
 
-- **HTML5** + **CSS3** + **Vanilla JavaScript**
-- Harici bağımlılık yok — tek dosya, sıfır kurulum
-- `localStorage` ile veri kalıcılığı
+Uygulamanın çalışması için herhangi bir sunucuya, veritabanına ya da kuruluma ihtiyacınız yoktur.
+1. `index.html` dosyasını tarayıcınızda (Chrome, Safari, Firefox) sürükleyip bırakarak (veya çift tıklayarak) açın.
+2. Karşınıza çıkan **Set Yöneticisi** ekranından `data/akut_bronsiolit.json` gibi bir örneği veya kendi ürettiğiniz JSON dosyasını yükleyin.
+3. Listeden çalışmak istediğiniz testleri seçip `Başla` butonuna basın!

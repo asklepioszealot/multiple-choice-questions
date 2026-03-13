@@ -1,0 +1,1355 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Çoktan Seçmeli Test</title>
+    <style>
+      :root {
+        --color-bg-primary: #fcfcf9;
+        --color-bg-secondary: #ffffff;
+        --color-text-primary: #134252;
+        --color-text-secondary: #626c71;
+        --color-accent: #218085;
+        --color-accent-hover: #1d7480;
+        --color-border: rgba(94, 82, 64, 0.2);
+        --color-correct: #34d399;
+        --color-correct-hover: #10b981;
+        --color-wrong: #ff5459;
+        --color-wrong-hover: #ef4444;
+      }
+
+      [data-theme="dark"] {
+        --color-bg-primary: #1f2121;
+        --color-bg-secondary: #262828;
+        --color-text-primary: #f5f5f9;
+        --color-text-secondary: #a7a9a9;
+        --color-accent: #32b8c6;
+        --color-accent-hover: #2da6b2;
+        --color-border: rgba(119, 124, 124, 0.3);
+        --color-correct: #34d399;
+        --color-correct-hover: #10b981;
+        --color-wrong: #ff5459;
+        --color-wrong-hover: #ef4444;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        line-height: 1.6;
+        padding: 20px;
+        min-height: 100vh;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .header-left h1 {
+        font-size: 32px;
+        margin-bottom: 5px;
+        color: var(--color-text-primary);
+      }
+
+      .header-left p {
+        color: var(--color-text-secondary);
+        font-size: 16px;
+      }
+
+      .header-left p span {
+        color: var(--color-text-primary);
+        opacity: 0.3;
+        margin: 0 10px;
+      }
+
+      .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+      }
+
+      select,
+      input[type="number"] {
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
+        background: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        font-size: 14px;
+        cursor: pointer;
+        min-width: 150px;
+      }
+
+      input[type="number"] {
+        max-width: 90px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: var(--color-accent);
+        color: white;
+      }
+
+      .btn:hover {
+        background: var(--color-accent-hover);
+      }
+
+      .btn-secondary {
+        background: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        border: 1px solid var(--color-border);
+      }
+
+      .btn-secondary:hover {
+        background: rgba(33, 128, 133, 0.1);
+      }
+
+      .btn-small {
+        padding: 8px 16px;
+        font-size: 13px;
+      }
+
+      .toggle-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 26px;
+      }
+
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--color-border);
+        transition: 0.3s;
+        border-radius: 26px;
+      }
+
+      .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+      }
+
+      input:checked + .toggle-slider {
+        background-color: var(--color-accent);
+      }
+
+      input:checked + .toggle-slider:before {
+        transform: translateX(24px);
+      }
+
+      .info-text {
+        background: var(--color-bg-secondary);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+        border: 1px solid var(--color-border);
+        text-align: center;
+        color: var(--color-text-secondary);
+        font-size: 15px;
+      }
+
+      .navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .nav-btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: var(--color-accent);
+        color: white;
+        min-width: 120px;
+      }
+
+      .nav-btn:hover:not(:disabled) {
+        background: var(--color-accent-hover);
+      }
+
+      .nav-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .question-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+      }
+
+      .question-counter {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+      }
+
+      .subject-badge {
+        color: white;
+        font-size: 13px;
+        padding: 8px 20px;
+        background: var(--color-accent);
+        border-radius: 6px;
+        font-weight: 500;
+      }
+
+      .question-card {
+        background: var(--color-bg-secondary);
+        border-radius: 16px;
+        padding: 40px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--color-border);
+      }
+
+      .question-text {
+        font-size: 21px;
+        line-height: 1.6;
+        margin-bottom: 30px;
+        color: var(--color-text-primary);
+      }
+
+      .options {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 25px;
+      }
+
+      .option {
+        padding: 18px 24px;
+        border: 2px solid var(--color-border);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: var(--color-bg-primary);
+        font-size: 17px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .option:hover {
+        border-color: var(--color-accent);
+        background: rgba(33, 128, 133, 0.05);
+      }
+
+      .option.selected {
+        border-color: var(--color-accent);
+        background: rgba(33, 128, 133, 0.1);
+      }
+
+      .option.correct {
+        border-color: var(--color-correct);
+        background: rgba(52, 211, 153, 0.15);
+      }
+
+      .option.wrong {
+        border-color: var(--color-wrong);
+        background: rgba(255, 84, 89, 0.15);
+      }
+
+      .option-label {
+        font-weight: 600;
+        color: var(--color-accent);
+        min-width: 30px;
+      }
+
+      .option.correct .option-label {
+        color: var(--color-correct);
+      }
+
+      .option.wrong .option-label {
+        color: var(--color-wrong);
+      }
+
+      .show-solution-btn {
+        padding: 12px 32px;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: var(--color-accent);
+        color: white;
+        margin-bottom: 20px;
+      }
+
+      .show-solution-btn:hover {
+        background: var(--color-accent-hover);
+      }
+
+      .show-solution-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .solution {
+        display: none;
+        background: var(--color-bg-primary);
+        border-radius: 12px;
+        padding: 25px;
+        border: 2px solid var(--color-accent);
+        margin-top: 20px;
+      }
+
+      .solution.visible {
+        display: block;
+      }
+
+      .solution-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--color-accent);
+        margin-bottom: 15px;
+        text-transform: uppercase;
+      }
+
+      .solution-content {
+        font-size: 17px;
+        line-height: 1.8;
+        color: var(--color-text-primary);
+      }
+
+      .solution-content strong {
+        color: #0d5f6b;
+        font-weight: 700;
+      }
+
+      [data-theme="dark"] .solution-content strong {
+        color: #4dd4e1;
+        font-weight: 700;
+      }
+
+      .highlight-critical {
+        color: #0d5f6b;
+        font-weight: 700;
+      }
+
+      [data-theme="dark"] .highlight-critical {
+        color: #4dd4e1;
+        font-weight: 700;
+      }
+
+      .highlight-important {
+        color: #0d5f6b;
+        font-weight: 400;
+      }
+
+      [data-theme="dark"] .highlight-important {
+        color: #4dd4e1;
+        font-weight: 400;
+      }
+
+      @media (max-width: 768px) {
+        .header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .header-controls {
+          width: 100%;
+        }
+
+        .question-card {
+          padding: 25px;
+        }
+
+        .question-text {
+          font-size: 18px;
+        }
+
+        .option {
+          padding: 15px 18px;
+          font-size: 15px;
+        }
+
+        .navigation {
+          flex-direction: column;
+        }
+
+        .nav-btn {
+          width: 100%;
+        }
+
+        .question-info {
+          flex-direction: column;
+          gap: 10px;
+        }
+      }
+
+      .score-display {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        padding: 6px 14px;
+        background: var(--color-bg-primary);
+        border-radius: 6px;
+        border: 1px solid var(--color-border);
+        white-space: nowrap;
+      }
+
+      .keyboard-hint {
+        text-align: center;
+        color: var(--color-text-secondary);
+        font-size: 12px;
+        opacity: 0.6;
+        margin-top: 15px;
+      }
+
+      /* --- SET MANAGER CSS --- */
+      .set-manager {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+        background: var(--color-bg-primary);
+      }
+      .set-manager-header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .set-manager-header h1 {
+        font-size: 32px;
+        color: var(--color-text-primary);
+        margin-bottom: 10px;
+      }
+      .set-manager-header p {
+        color: var(--color-text-secondary);
+        font-size: 16px;
+      }
+      .set-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+      .set-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        transition: all 0.2s ease;
+      }
+      .set-item:hover {
+        border-color: var(--color-accent);
+      }
+      .set-item-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        cursor: pointer;
+        flex-grow: 1;
+      }
+      .set-item-left input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: var(--color-accent);
+      }
+      .set-info {
+        display: flex;
+        flex-direction: column;
+      }
+      .set-name {
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--color-text-primary);
+      }
+      .set-stats {
+        font-size: 13px;
+        color: var(--color-text-secondary);
+        margin-top: 4px;
+      }
+      .delete-btn {
+        background: transparent;
+        border: none;
+        color: var(--color-wrong);
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: 6px;
+        transition: background 0.2s;
+      }
+      .delete-btn:hover {
+        background: rgba(255, 84, 89, 0.1);
+      }
+      .set-empty {
+        text-align: center;
+        padding: 40px;
+        background: var(--color-bg-secondary);
+        border: 1px dashed var(--color-border);
+        border-radius: 12px;
+        color: var(--color-text-secondary);
+      }
+      .set-actions {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+      }
+      .set-actions .btn {
+        font-size: 16px;
+        padding: 12px 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Set Yöneticisi -->
+    <div id="set-manager" class="set-manager">
+      <div class="set-manager-header">
+        <h1>📚 Çoktan Seçmeli Test Setleri</h1>
+        <p>Çalışmak istediğin soru setlerini yükle ve başla</p>
+        <div class="toggle-container" style="justify-content: center; margin-top: 15px;">
+          <span>☀️</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="theme-toggle-manager" onchange="toggleTheme(this)">
+            <span class="toggle-slider"></span>
+          </label>
+          <span>🌙</span>
+        </div>
+      </div>
+
+      <div class="set-list" id="set-list">
+        <div class="set-empty">
+          Henüz test seti yüklenmedi.<br />Aşağıdaki butondan JSON dosyası yükleyin.
+        </div>
+      </div>
+
+      <div class="set-actions">
+        <label class="btn" for="file-picker">📂 JSON Dosyası Yükle</label>
+        <input type="file" id="file-picker" accept=".json" multiple hidden onchange="handleFileSelect(event)" />
+        <button class="btn" id="start-btn" onclick="startStudy()" disabled>▶ Başla</button>
+      </div>
+    </div>
+
+    <!-- Ana Çalışma Ekranı -->
+    <div class="container" id="main-app" style="display: none;">
+      <div class="header">
+        <div class="header-left">
+          <h1>Çoktan Seçmeli Test</h1>
+          <p>
+            <button class="btn btn-small btn-secondary" onclick="showSetManager()" style="margin-right: 15px; padding: 4px 10px;">← Setlere Dön</button>
+            Dr. Ahmet Kara 🩺 <span>|</span> Çoktan seçmeli sorularla konunun
+            önemli noktalarını gözden geçirin.
+          </p>
+        </div>
+        <div class="header-controls">
+          <select id="topic-select" onchange="filterByTopic()">
+            <option value="hepsi">Tüm Başlıklar</option>
+          </select>
+
+          <input
+            type="number"
+            id="jump-input"
+            min="1"
+            max="20"
+            placeholder="Soru No"
+          />
+          <button class="btn btn-small" onclick="jumpToQuestion()">Git</button>
+
+          <div class="toggle-container">
+            <span>☀️</span>
+            <label class="toggle-switch">
+              <input
+                type="checkbox"
+                id="theme-toggle"
+                onchange="toggleTheme()"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+            <span>🌙</span>
+          </div>
+
+          <button
+            class="btn-secondary btn btn-small"
+            onclick="shuffleQuestions()"
+          >
+            🔀 Karıştır
+          </button>
+          <button
+            class="btn-secondary btn btn-small"
+            onclick="retryWrongAnswers()"
+          >
+            🔁 Yanlışları Çöz
+          </button>
+          <button
+            class="btn-secondary btn btn-small"
+            onclick="exportQuestions()"
+          >
+            📥 Export
+          </button>
+          <button
+            class="btn-secondary btn btn-small"
+            onclick="exportPrintable()"
+          >
+            🖨️ Yazdır
+          </button>
+          <button
+            class="btn-secondary btn btn-small"
+            onclick="resetQuiz()"
+            style="border-color: #dc2626; color: #dc2626"
+          >
+            🗑️ Sıfırla
+          </button>
+        </div>
+      </div>
+
+      <div class="navigation">
+        <button class="nav-btn" id="prev-btn" onclick="previousQuestion()">
+          ← Önceki
+        </button>
+        <div class="question-info">
+          <div class="question-counter" id="question-counter">Soru 1 / 20</div>
+          <div class="subject-badge" id="subject-badge">Kan Transfüzyonu</div>
+          <div class="score-display" id="score-display"></div>
+        </div>
+        <button class="nav-btn" id="next-btn" onclick="nextQuestion()">
+          Sonraki →
+        </button>
+      </div>
+
+      <div class="question-card">
+        <div class="question-text" id="question-text"></div>
+
+        <div class="options" id="options-container"></div>
+
+        <button
+          class="show-solution-btn"
+          id="show-solution-btn"
+          onclick="toggleSolution()"
+        >
+          Çözümü Göster
+        </button>
+
+        <div class="solution" id="solution">
+          <div class="solution-title">Açıklama</div>
+          <div class="solution-content" id="solution-content"></div>
+        </div>
+        <div class="keyboard-hint">
+          ⌨️ A-E: Şık seç &nbsp;|&nbsp; S: Çözüm göster &nbsp;|&nbsp; ←→:
+          Önceki/Sonraki
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /*
+        ═══════════════════════════════════════════════════════════════════════════════
+         AI PROMPT: YENİ SORU EKLEME KILAVUZU
+        ═══════════════════════════════════════════════════════════════════════════════
+        
+        [KONU]'ne ilişkin önemli kısımları sorgulayan sorular oluştur, bunlar bir html 
+        dosyasında const array içine ilave/enjekte edilebilir biçimde olmalı:
+        
+        1. SORU YAPISI:
+           - 1 doğru cevap
+           - 4 güçlü çeldirici (plausible distractors)
+           - Soru metni: TUS/USMLE sınavları tarzında sorular, high-yield noktaları 
+             sorgulayan sorular, konuya dair olmazsa olmazı içeren sorular ve daha fazlası
+           
+        2. AÇIKLAMA (explanation) İÇİN VURGU HİYERARŞİSİ:
+           
+           🔴 Seviye 1 - MUTLAKA EZBERLEME (çift vurgu: bold + renkli):
+           <strong class='highlight-critical'>3 ml/kg → Hb 1 g/dL</strong>
+           → Sayılar, dozlar, kesin kriterler, sınav favorisi bilgiler
+           
+           🟡 Seviye 2 - DİKKAT ET (sadece renk, bold yok):
+           <span class='highlight-important'>⚠️ Hb >10 g/dL'de transfüzyon gereksiz</span>
+           → Tuzaklar, "olmayan" durumlar, ayırıcı tanı ipuçları, uyarılar
+           
+           ⚪ Seviye 3 - NORMAL VURGU (sadece bold):
+           <strong>Endikasyonlar:</strong>
+           → Bölüm başlıkları, liste başlıkları, kategorik ayırımlar
+           
+        3. ÖRNEK PATTERN:
+        
+        {
+            q: "Eritrosit süspansiyonunda <strong>3 ml/kg</strong> verildiğinde Hb <strong>kaç g/dL artar?</strong>",
+            options: [
+                "0.5 g/dL",
+                "1 g/dL",
+                "2 g/dL",
+                "3 g/dL",
+                "5 g/dL"
+            ],
+            correct: 1,
+            explanation: "<strong class='highlight-critical'>3 ml/kg → Hb 1 g/dL</strong><br><br><span class='highlight-important'>⚠️ Tam kanda 7 ml/kg gerekir</span><br><br><strong>Diğer değerler:</strong><br>• Trombosit: 1 Ü → 5000-10000/mm³",
+            subject: "Kan Transfüzyonu"
+        }
+        
+        4. ZORUNLU ALANLAR:
+           - q: Soru metni (HTML <strong> kullanılabilir)
+           - options: [5 seçenek array'i]
+           - correct: 0-4 arası index (0=A, 1=B, 2=C, 3=D, 4=E)
+           - explanation: Vurgu hiyerarşisiyle açıklama
+           - subject: Konu adı (string)
+        
+        5. ÇELDİRİCİ TASARIMI:
+           - Yakın sayılar (42 gün yerine 35 gün)
+           - Karıştırılabilir kavramlar (TDP vs Trombosit)
+           - Gerçek ama yanlış bağlamda bilgiler
+           - "Tümü" veya "Hiçbiri" gibi mutlak ifadeler
+        
+        ═══════════════════════════════════════════════════════════════════════════════
+        */
+
+      
+
+      // --- YENİ SET YÖNETİMİ DEĞİŞKENLERİ ---
+      let loadedSets = {};
+      let selectedSets = new Set();
+      
+      // --- ESKİ DEĞİŞKENLER ---
+      let currentQuestionIndex = 0;
+      let allQuestions = [];
+      let filteredQuestions = [];
+      let questionOrder = [];
+      let selectedAnswers = {};
+      let solutionVisible = {};
+
+      function cardId(q) {
+        let hash = 0;
+        const text = q.q + (q.subject || "");
+        for (let i = 0; i < text.length; i++) {
+          const char = text.charCodeAt(i);
+          hash = (hash << 5) - hash + char;
+          hash = hash & hash;
+        }
+        return "mc_" + hash;
+      }
+
+      async function handleFileSelect(event) {
+        const files = event.target.files;
+        for (const file of files) {
+          try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            const setId = file.name.replace('.json', '');
+            
+            loadedSets[setId] = {
+              setName: data.setName || file.name,
+              questions: data.questions || [],
+              fileName: file.name
+            };
+            
+            saveSetsList();
+            localStorage.setItem("mc_set_" + setId, JSON.stringify(loadedSets[setId]));
+          } catch (e) {
+            console.error("Set okuma hatası:", e);
+            alert(file.name + " okunamadı. Geçerli bir JSON dosyası olmalı.");
+          }
+        }
+        
+        Object.keys(loadedSets).forEach(id => selectedSets.add(id));
+        renderSetList();
+      }
+
+      function saveSetsList() {
+        localStorage.setItem("mc_loaded_sets", JSON.stringify(Object.keys(loadedSets)));
+        localStorage.setItem("mc_selected_sets", JSON.stringify([...selectedSets]));
+      }
+
+      function renderSetList() {
+        const setListEl = document.getElementById("set-list");
+        const startBtn = document.getElementById("start-btn");
+        
+        if (Object.keys(loadedSets).length === 0) {
+          setListEl.innerHTML = '<div class="set-empty">Henüz test seti yüklenmedi.<br>Aşağıdaki butondan JSON dosyası yükleyin.</div>';
+          startBtn.disabled = true;
+          return;
+        }
+        
+        startBtn.disabled = selectedSets.size === 0;
+        setListEl.innerHTML = '';
+        
+        for (const [setId, setObj] of Object.entries(loadedSets)) {
+          const isSelected = selectedSets.has(setId);
+          
+          let solvedCount = 0;
+          setObj.questions.forEach(q => {
+            if (selectedAnswers[cardId(q)] !== undefined) {
+               solvedCount++;
+            }
+          });
+          
+          const markup = `
+            <div class="set-item">
+              <div class="set-item-left" onclick="toggleSetSelection('${setId}')">
+                <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSetSelection('${setId}')">
+                <div class="set-info">
+                  <div class="set-name">${setObj.setName}</div>
+                  <div class="set-stats">📚 ${setObj.questions.length} Soru | ✅ Çözülen: ${solvedCount}</div>
+                </div>
+              </div>
+              <button class="delete-btn" onclick="deleteSet('${setId}')">🗑️ Sil</button>
+            </div>
+          `;
+          setListEl.innerHTML += markup;
+        }
+      }
+
+      function toggleSetSelection(setId) {
+        if (selectedSets.has(setId)) {
+          selectedSets.delete(setId);
+        } else {
+          selectedSets.add(setId);
+        }
+        saveSetsList();
+        renderSetList();
+      }
+
+      function deleteSet(setId) {
+        if (!confirm("Bu seti silmek istediğinize emin misiniz?")) return;
+        delete loadedSets[setId];
+        selectedSets.delete(setId);
+        localStorage.removeItem("mc_set_" + setId);
+        saveSetsList();
+        renderSetList();
+      }
+
+      function startStudy() {
+        if (selectedSets.size === 0) return;
+        
+        allQuestions = [];
+        for (const setId of selectedSets) {
+          if (loadedSets[setId]) {
+            allQuestions.push(...loadedSets[setId].questions);
+          }
+        }
+        
+        filteredQuestions = [...allQuestions];
+        questionOrder = [...Array(filteredQuestions.length).keys()];
+        currentQuestionIndex = 0;
+        
+        document.getElementById("set-manager").style.display = "none";
+        document.getElementById("main-app").style.display = "block";
+        
+        populateTopicFilter();
+        updateScoreDisplay();
+        if(filteredQuestions.length > 0) {
+           displayQuestion();
+        }
+      }
+
+      function showSetManager() {
+        document.getElementById("set-manager").style.display = "block";
+        document.getElementById("main-app").style.display = "none";
+        renderSetList();
+      }
+
+      function filterByTopic() {
+        const selectedTopic = document.getElementById("topic-select").value;
+
+        if (selectedTopic === "hepsi") {
+          filteredQuestions = [...allQuestions];
+        } else {
+          filteredQuestions = allQuestions.filter(
+            (q) => q.subject === selectedTopic,
+          );
+        }
+
+        questionOrder = [...Array(filteredQuestions.length).keys()];
+        currentQuestionIndex = 0;
+
+        document
+          .getElementById("jump-input")
+          .setAttribute("max", filteredQuestions.length);
+
+        displayQuestion();
+      }
+
+      function displayQuestion() {
+        const q = filteredQuestions[questionOrder[currentQuestionIndex]];
+        const cid = cardId(q);
+
+        document.getElementById("question-text").innerHTML = q.q;
+        document.getElementById("question-counter").textContent =
+          `Soru ${currentQuestionIndex + 1} / ${filteredQuestions.length}`;
+        document.getElementById("subject-badge").textContent = q.subject;
+        document.getElementById("solution-content").innerHTML =
+          q.explanation.replace(/<br>/g, "<br>");
+
+        const optionsContainer = document.getElementById("options-container");
+        optionsContainer.innerHTML = "";
+
+        q.options.forEach((option, index) => {
+          const optionDiv = document.createElement("div");
+          optionDiv.className = "option";
+          optionDiv.innerHTML = `<span class="option-label">${String.fromCharCode(65 + index)}</span><span>${option}</span>`;
+
+          if (
+            selectedAnswers[cid] !== undefined &&
+            selectedAnswers[cid] !== null
+          ) {
+            if (index === q.correct) {
+              optionDiv.classList.add("correct");
+            } else if (index === selectedAnswers[cid]) {
+              optionDiv.classList.add("wrong");
+            }
+          } else if (selectedAnswers[cid] === index) {
+            optionDiv.classList.add("selected");
+          }
+
+          optionDiv.onclick = () => selectOption(index);
+          optionsContainer.appendChild(optionDiv);
+        });
+
+        const solution = document.getElementById("solution");
+        if (solutionVisible[cid]) {
+          solution.classList.add("visible");
+          document.getElementById("show-solution-btn").textContent =
+            "Çözümü Gizle";
+        } else {
+          solution.classList.remove("visible");
+          document.getElementById("show-solution-btn").textContent =
+            "Çözümü Göster";
+        }
+
+        document.getElementById("prev-btn").disabled =
+          currentQuestionIndex === 0;
+        document.getElementById("next-btn").disabled =
+          currentQuestionIndex === filteredQuestions.length - 1;
+        saveState();
+      }
+
+      function selectOption(index) {
+        const q = filteredQuestions[questionOrder[currentQuestionIndex]];
+        const cid = cardId(q);
+
+        selectedAnswers[cid] = index;
+
+        const options = document.querySelectorAll(".option");
+        options.forEach((opt, i) => {
+          opt.classList.remove("selected", "correct", "wrong");
+
+          if (i === q.correct) {
+            opt.classList.add("correct");
+          } else if (i === index && i !== q.correct) {
+            opt.classList.add("wrong");
+          }
+        });
+        saveState();
+        updateScoreDisplay();
+      }
+
+      function toggleSolution() {
+        const q = filteredQuestions[questionOrder[currentQuestionIndex]];
+        const cid = cardId(q);
+        solutionVisible[cid] = !solutionVisible[cid];
+
+        const solution = document.getElementById("solution");
+        const btn = document.getElementById("show-solution-btn");
+
+        if (solutionVisible[cid]) {
+          solution.classList.add("visible");
+          btn.textContent = "Çözümü Gizle";
+        } else {
+          solution.classList.remove("visible");
+          btn.textContent = "Çözümü Göster";
+        }
+        saveState();
+      }
+
+      function previousQuestion() {
+        if (currentQuestionIndex > 0) {
+          currentQuestionIndex--;
+          displayQuestion();
+        }
+      }
+
+      function nextQuestion() {
+        if (currentQuestionIndex < filteredQuestions.length - 1) {
+          currentQuestionIndex++;
+          displayQuestion();
+        }
+      }
+
+      function jumpToQuestion() {
+        const input = document.getElementById("jump-input");
+        const questionNum = parseInt(input.value);
+
+        if (questionNum >= 1 && questionNum <= filteredQuestions.length) {
+          currentQuestionIndex = questionNum - 1;
+          displayQuestion();
+          input.value = "";
+        } else {
+          alert(
+            `Lütfen 1 ile ${filteredQuestions.length} arasında bir sayı girin.`,
+          );
+        }
+      }
+
+      document
+        .getElementById("jump-input")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            jumpToQuestion();
+          }
+        });
+
+      document
+        .getElementById("jump-input")
+        .setAttribute("max", filteredQuestions.length);
+
+      function toggleTheme() {
+        const isDark = document.getElementById("theme-toggle").checked;
+        if (isDark) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+        }
+        localStorage.setItem("quiz-theme", isDark ? "dark" : "light");
+      }
+
+      function shuffleQuestions() {
+        if (filteredQuestions.length === 0) return;
+
+        for (let i = questionOrder.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [questionOrder[i], questionOrder[j]] = [
+            questionOrder[j],
+            questionOrder[i],
+          ];
+        }
+        currentQuestionIndex = 0;
+        displayQuestion();
+      }
+
+      function exportQuestions() {
+        const dataStr = JSON.stringify(allQuestions, null, 2);
+        const dataBlob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "kan-transfuzyonu-test.json";
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function exportPrintable() {
+        const printWindow = window.open("", "_blank");
+        let html =
+          '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kan Transfüzyonu - Test Çıktısı</title>';
+        html += "<style>";
+        html +=
+          'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #134252; line-height: 1.6; }';
+        html +=
+          ".question { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; page-break-inside: avoid; }";
+        html +=
+          ".q-num { font-weight: 700; color: #218085; margin-bottom: 8px; }";
+        html += ".q-text { font-size: 16px; margin-bottom: 12px; }";
+        html += ".option { padding: 4px 0; }";
+        html += ".option.correct { color: #059669; font-weight: 600; }";
+        html +=
+          ".explanation { margin-top: 12px; padding: 12px; background: #f0fdf4; border-radius: 6px; font-size: 14px; border-left: 3px solid #218085; }";
+        html += "h1 { text-align: center; color: #218085; }";
+        html += "@media print { .question { border: 1px solid #ccc; } }";
+        html += "</style></head><body><h1>Kan Transfüzyonu - Test</h1>";
+
+        allQuestions.forEach((q, i) => {
+          const labels = ["A", "B", "C", "D", "E"];
+          html += '<div class="question">';
+          html +=
+            '<div class="q-num">Soru ' + (i + 1) + " - " + q.subject + "</div>";
+          html += '<div class="q-text">' + q.q + "</div>";
+          q.options.forEach((opt, j) => {
+            const isCorrect = j === q.correct;
+            html +=
+              '<div class="option' +
+              (isCorrect ? " correct" : "") +
+              '">' +
+              labels[j] +
+              ") " +
+              opt +
+              (isCorrect ? " ✓" : "") +
+              "</div>";
+          });
+          html +=
+            '<div class="explanation">' +
+            q.explanation.replace(/<br>/g, "<br>") +
+            "</div>";
+          html += "</div>";
+        });
+
+        html += "</body></html>";
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.print();
+      }
+
+      function retryWrongAnswers() {
+        const wrongQuestions = allQuestions.filter((q, i) => {
+          const cid = cardId(q);
+          return (
+            selectedAnswers[cid] !== undefined && selectedAnswers[cid] !== q.correct
+          );
+        });
+
+        if (wrongQuestions.length === 0) {
+          alert("Yanlış cevaplanan soru bulunamadı. Önce soruları cevaplayın.");
+          return;
+        }
+
+        filteredQuestions = wrongQuestions;
+        wrongQuestions.forEach((q) => {
+          const cid = cardId(q);
+          delete selectedAnswers[cid];
+          delete solutionVisible[cid];
+        });
+
+        questionOrder = [...Array(filteredQuestions.length).keys()];
+        currentQuestionIndex = 0;
+        document.getElementById("topic-select").value = "hepsi";
+        document
+          .getElementById("jump-input")
+          .setAttribute("max", filteredQuestions.length);
+        saveState();
+        updateScoreDisplay();
+        displayQuestion();
+      }
+
+      function resetQuiz() {
+        if (
+          !confirm(
+            "Tüm cevaplarınız ve ilerlemeniz sıfırlanacak. Emin misiniz?",
+          )
+        )
+          return;
+        
+        // Sadece mevcut sorulardaki cevapları sil (diğer setleri etkileme)
+        allQuestions.forEach(q => {
+          const cid = cardId(q);
+          delete selectedAnswers[cid];
+          delete solutionVisible[cid];
+        });
+        
+        currentQuestionIndex = 0;
+        filteredQuestions = [...allQuestions];
+        questionOrder = [...Array(filteredQuestions.length).keys()];
+        document.getElementById("topic-select").value = "hepsi";
+        
+        const jumpInput = document.getElementById("jump-input");
+        if(jumpInput) jumpInput.setAttribute("max", filteredQuestions.length);
+        
+        saveState();
+        updateScoreDisplay();
+        displayQuestion();
+      }
+
+      function updateScoreDisplay() {
+        let correct = 0;
+        let wrong = 0;
+        let total = 0;
+
+        allQuestions.forEach((q) => {
+          const cid = cardId(q);
+          if (selectedAnswers[cid] !== undefined) {
+            total++;
+            if (selectedAnswers[cid] === q.correct) {
+              correct++;
+            } else {
+              wrong++;
+            }
+          }
+        });
+
+        const scoreEl = document.getElementById("score-display");
+        if (!scoreEl) return;
+        if (total === 0) {
+          scoreEl.textContent = "";
+          return;
+        }
+        const pct = Math.round((correct / total) * 100);
+        scoreEl.innerHTML =
+          "✅ " +
+          correct +
+          " &nbsp; ❌ " +
+          wrong +
+          " &nbsp; 📊 " +
+          total +
+          "/" +
+          allQuestions.length +
+          " (%" +
+          pct +
+          ")";
+      }
+
+      function saveState() {
+        try {
+          const sessionState = {
+            currentQuestionIndex: currentQuestionIndex,
+            selectedTopic: document.getElementById("topic-select").value
+          };
+          localStorage.setItem("mc_session", JSON.stringify(sessionState));
+          
+          const assessmentState = {
+            selectedAnswers: selectedAnswers,
+            solutionVisible: solutionVisible
+          };
+          localStorage.setItem("mc_assessments", JSON.stringify(assessmentState));
+        } catch (e) {
+          console.error("State saving error", e);
+        }
+      }
+
+      function loadState() {
+        try {
+          const savedTheme = localStorage.getItem("quiz-theme");
+          if (savedTheme === "dark") {
+            const themeToggle = document.getElementById("theme-toggle");
+            const themeToggleManager = document.getElementById("theme-toggle-manager");
+            if (themeToggle) themeToggle.checked = true;
+            if (themeToggleManager) themeToggleManager.checked = true;
+            document.documentElement.setAttribute("data-theme", "dark");
+          }
+
+          const savedAssessments = localStorage.getItem("mc_assessments");
+          if (savedAssessments) {
+            const state = JSON.parse(savedAssessments);
+            selectedAnswers = state.selectedAnswers || {};
+            solutionVisible = state.solutionVisible || {};
+          }
+          
+          const savedSession = localStorage.getItem("mc_session");
+          if (savedSession) {
+            const session = JSON.parse(savedSession);
+            currentQuestionIndex = session.currentQuestionIndex || 0;
+            const topic = session.selectedTopic || "hepsi";
+            const topicSelect = document.getElementById("topic-select");
+            if (topicSelect) {
+               topicSelect.value = topic;
+               filterByTopic();
+            }
+          }
+        } catch (e) {
+          console.error("State loading error", e);
+        }
+      }
+
+      function populateTopicFilter() {
+        const select = document.getElementById("topic-select");
+        if (!select) return;
+        const subjects = [...new Set(allQuestions.map((q) => q.subject))];
+        select.innerHTML = '<option value="hepsi">Tüm Başlıklar</option>';
+        subjects.forEach((subject) => {
+          const option = document.createElement("option");
+          option.value = subject;
+          option.textContent = subject;
+          select.appendChild(option);
+        });
+      }
+
+      // -- BAŞLATMA MANTIĞI --
+      document.addEventListener("keydown", function (e) {
+        if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")
+          return;
+
+        // Yalnızca main-app görünürse tuşlara izin ver
+        if (document.getElementById("main-app").style.display === "none") return;
+
+        if (e.key === "ArrowLeft") {
+          previousQuestion();
+        } else if (e.key === "ArrowRight") {
+          nextQuestion();
+        } else if (e.key === "s" || e.key === "S") {
+          toggleSolution();
+        } else if (e.key >= "a" && e.key <= "e") {
+          selectOption(e.key.charCodeAt(0) - 97);
+        } else if (e.key >= "A" && e.key <= "E") {
+          selectOption(e.key.charCodeAt(0) - 65);
+        }
+      });
+
+      // İlk yüklendiğinde set listesini localStorage'dan getir
+      function initApp() {
+        try {
+          const storedSets = localStorage.getItem("mc_loaded_sets");
+          const storedSelected = localStorage.getItem("mc_selected_sets");
+          
+          if (storedSets) {
+            const setIds = JSON.parse(storedSets);
+            setIds.forEach(id => {
+              const setData = localStorage.getItem("mc_set_" + id);
+              if (setData) {
+                loadedSets[id] = JSON.parse(setData);
+              }
+            });
+          }
+          
+          if (storedSelected) {
+            const selArray = JSON.parse(storedSelected);
+            selectedSets = new Set(selArray.filter(id => loadedSets[id]));
+          }
+        } catch(e) { console.error("Cache load error", e); }
+        
+        loadState();
+        renderSetList();
+      }
+
+      initApp();
+    </script>
+  </body>
+</html>
+
+
