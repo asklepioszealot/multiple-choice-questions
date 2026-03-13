@@ -1,4 +1,4 @@
-﻿{ "setName": "Akut BronÅŸiolit Testi", "questions": [
+{ "setName": "Akut Bronşiolit Testi", "questions": [
         {
 "q": "Akut bronşiolitin <strong>en sık</strong> etkeni aşağıdakilerden hangisidir?",
 "options": [
@@ -6,11 +6,11 @@
             "Rhinovirus",
             "Parainfluenza virus",
             "Human metapneumovirus",
-            "Adenovirus",
+            "Adenovirus"
           ],
 "correct": 0,
 "explanation": "<strong class='highlight-critical'>RSV, akut bronşiolit vakalarının %70-90'ından sorumludur.</strong><br><br>RSV özellikle ilk 2 yaşta en baskın etkendir. Rhinovirus ikinci sıklıkta görülür ve daha çok büyük infantlarda ön plana çıkar. Diğer etkenler: Parainfluenza, influenza, adenovirus, human metapneumovirus (hMPV), bocavirus, coronavirus.<br><br><span class='highlight-important'>⚠️ Adenovirus bronşioliti nadir görülür ancak obliteratif bronşiolit (Swyer-James sendromu) ile ilişkilidir — sınavlarda sık sorulan klasik ayrımdır!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -20,11 +20,11 @@
             "Rhinovirus",
             "Adenovirus",
             "Parainfluenza virus",
-            "İnfluenza virus",
+            "İnfluenza virus"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Adenovirus (özellikle tip 3, 7, 21) bronşiolitis obliterans ile en sık ilişkili viral etkendir.</strong><br><br>Obliteratif bronşiolit, küçük hava yollarının fibrozisle kalıcı tıkanmasıdır. Tek taraflı hiperlusent akciğer → <strong>Swyer-James/MacLeod sendromu</strong> ile sonuçlanabilir.<br><br><span class='highlight-important'>⚠️ RSV en sık bronşiolit etkenidir, ancak ciddi uzun dönem sekel açısından adenovirus çok daha tehlikelidir — bu ayrım sınavda sık sorulur.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -34,11 +34,11 @@
             "Coronavirus",
             "Human metapneumovirus",
             "Grup A beta-hemolitik streptokok",
-            "Rhinovirus",
+            "Rhinovirus"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Grup A beta-hemolitik streptokok (GAS) bakteriyel bir patojendir ve akut bronşiolit etyolojisinde yer almaz.</strong> GAS farenjit ve tonsillit etkenidir.<br><br>Bronşiolit etkenleri (tümü viral): RSV (%70-90), rhinovirus, parainfluenza, influenza, adenovirus, hMPV, bocavirus, coronavirus.<br><br><span class='highlight-important'>⚠️ Bronşiolit viral bir hastalıktır. Bakteriyel etkenler etyolojide yer almaz ancak sekonder bakteriyel süperenfeksiyon gelişebilir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -48,11 +48,11 @@
             "< 2 yaş",
             "2-5 yaş",
             "5-10 yaş",
-            "> 10 yaş",
+            "> 10 yaş"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Akut bronşiolit genellikle 2 yaşından küçük çocuklarda görülür; pik insidans 2-6 ay arasındadır.</strong><br><br>Küçük hava yollarının dar olması ve immatür immünite bu yaş grubunu hassas kılar.<br><br><span class='highlight-important'>⚠️ 2 yaş üzeri çocuklarda tekrarlayan hışıltı ataklarında bronşiolit yerine astım düşünülmelidir — yaş sınırı sınavda kritik bir ayrımdır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -62,11 +62,11 @@
             "Düşük sosyoekonomik durum",
             "Kalabalık ev ortamı",
             "Uzun süreli anne sütü ile beslenme",
-            "Yetersiz anne sütü alımı",
+            "Yetersiz anne sütü alımı"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Uzun süreli anne sütü ile beslenme risk faktörü değildir; aksine bronşiolite karşı koruyucudur.</strong><br><br>Risk faktörleri: Sigara teması, düşük sosyoekonomik durum, kalabalık ev ortamı, yetersiz anne sütü alımı, kış-bahar mevsimi.<br><br><span class='highlight-important'>⚠️ Anne sütündeki sekretuar IgA, RSV dahil birçok solunum yolu virüsüne karşı pasif bağışıklık sağlar.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -76,11 +76,11 @@
             "Yaz ve sonbahar aylarında",
             "Kış ve bahar aylarında",
             "Sadece ilkbahar aylarında",
-            "Mevsimsel dağılım göstermez",
+            "Mevsimsel dağılım göstermez"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>RSV bronşioliti kış ve bahar aylarında (Kasım–Mart) epidemik seyir gösterir.</strong><br><br>Ilıman iklim kuşağında salgınlar tipik olarak kasımda başlar, ocak-şubatta pik yapar.<br><br><span class='highlight-important'>⚠️ Palivizumab profilaksisi de bu mevsimselliğe uygun olarak Ekim–Mart aylarında aylık dozlarla (toplam 5 doz) uygulanır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -90,11 +90,11 @@
             "Direkt viral sitotoksik epitelyal hasar",
             "Bakteriyel süperenfeksiyon",
             "Otoimmün alveolit",
-            "Kompleman aracılı tip III reaksiyon",
+            "Kompleman aracılı tip III reaksiyon"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Bronşiolitin temel patogenezi direkt viral sitotoksik epitelyal hasardır.</strong><br><br>Virüs → küçük hava yolu epitelini enfekte eder → hücresel nekroz → ödem, artmış mukus, debris birikimi → lümen obstrüksiyonu.<br><br><span class='highlight-important'>⚠️ Bronşiolit IgE aracılı bir hastalık değildir — bu özellik onu astımdan ayıran en önemli patofizyolojik farktır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -104,11 +104,11 @@
             "Artmış mukus üretimi",
             "Hücresel debris birikimi",
             "Düz kas hipertrofisi ve bazal membran kalınlaşması",
-            "Azalmış bronşiyal mukosiliyer fonksiyon",
+            "Azalmış bronşiyal mukosiliyer fonksiyon"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Düz kas hipertrofisi ve bazal membran kalınlaşması akut bronşiolitin değil, kronik astıma özgü havayolu yeniden şekillenmesinin (remodeling) bulgularıdır.</strong><br><br>Bronşiolitteki obstrüksiyon mekanizmaları:<br>• Hiperemik ve ödemli mukozal membran<br>• Artmış mukus üretimi<br>• Azalmış mukosiliyer fonksiyon<br>• Hücresel nekroz ve debris birikimi<br><br><span class='highlight-important'>⚠️ Sonuç: Hiperinflasyon ve atelektazi birlikte görülür (ball-valve mekanizması).</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -118,11 +118,11 @@
             "Ball-valve (çek-valf) etkisi ile kısmi ve tam obstrüksiyon",
             "Plevral efüzyon",
             "Pnömotoraks",
-            "İnterstisyel fibrozis",
+            "İnterstisyel fibrozis"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Kısmi obstrüksiyon → inspiryumda hava girer ama ekspiryumda çıkamaz → air trapping → hiperinflasyon. Tam obstrüksiyon → distal hava rezorbe olur → atelektazi.</strong><br><br>Bu iki bulgunun birlikte görülmesi bronşiolitin karakteristik radyolojik bulgusudur.<br><br><span class='highlight-important'>⚠️ Surfaktan yetersizliği yenidoğanın RDS'sine (hyalen membran hastalığı) aittir; bronşiolitte surfaktan primer sorun değildir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -132,11 +132,11 @@
             "Yabancı cisim aspirasyonu",
             "Akut bronşiolit",
             "Bakteriyel pnömoni",
-            "Laringotrakeobronşit (krup)",
+            "Laringotrakeobronşit (krup)"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>< 2 yaş + viral ÜSYE prodromu (2-3 gün) + bilateral ekspiratuar hışıltı + takipne + retraksiyon → Akut bronşiolit</strong><br><br>Klasik seyir: Önce 2-3 gün ÜSYE semptomları (burun akıntısı, hafif ateş) → ardından alt solunum yolu bulguları (hışıltı, takipne, retraksiyon).<br><br><span class='highlight-important'>⚠️ Yabancı cisim aspirasyonu genellikle tek taraflıdır ve ani başlangıçlıdır. Krupta stridor baskındır, hışıltı değil. Astım tanısı < 5 yaşta zordur.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -146,11 +146,11 @@
             "Ekspiratuar hışıltı",
             "İnspiratuar stridor",
             "Hipoksemi",
-            "Apne",
+            "Apne"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>İnspiratuar stridor üst hava yolu obstrüksiyonunun (krup, epiglottit, laringomalazi) bulgusudur, bronşiolitin değildir.</strong><br><br>Bronşiolitin klinik bulguları: Ateş, burun akıntısı, öksürük, hışıltı (ekspiratuar), takipne, ral/ronküs, hipoksemi, apne, burun kanadı solunumu.<br><br><span class='highlight-important'>⚠️ Apne özellikle prematüre infantlarda ve < 2 ay bebeklerde bronşiolitin ilk ve tek bulgusu olabilir — bu hayatı tehdit eden bir durumdur!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -160,11 +160,11 @@
             "14-24/dak",
             "30-40/dak",
             "40-60/dak",
-            "50-70/dak",
+            "50-70/dak"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>3 ay – 2 yaş arası normal solunum hızı: 30-40/dak</strong><br><br>Yaşa göre normal solunum hızları:<br>• Yenidoğan: 40-60/dak<br>• 1 hafta – 3 ay: 30-50/dak<br>• 3 ay – 2 yaş: 30-40/dak<br>• 2-10 yaş: 14-24/dak<br>• > 10 yaş: 12-20/dak<br><br><span class='highlight-important'>⚠️ Bronşiolitte solunum hızı > 60-70/dak olması ağır hastalık göstergesidir ve hastaneye yatış gerektirir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -174,11 +174,11 @@
             "14-24/dak",
             "30-40/dak",
             "40-60/dak",
-            "60-80/dak",
+            "60-80/dak"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Yenidoğan normal solunum hızı: 40-60/dak</strong><br><br>Yaşa göre normal solunum hızları:<br>• Yenidoğan: 40-60/dak<br>• 1 hafta – 3 ay: 30-50/dak<br>• 3 ay – 2 yaş: 30-40/dak<br>• 2-10 yaş: 14-24/dak<br>• > 10 yaş: 12-20/dak<br><br><span class='highlight-important'>⚠️ Yenidoğanda solunum hızı > 60/dak ise takipne kabul edilir ve pnömoni, sepsis, metabolik asidoz gibi nedenler araştırılmalıdır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -188,11 +188,11 @@
             "8 puan – Orta",
             "10 puan – Ağır",
             "11 puan – Ağır",
-            "12 puan – Ağır",
+            "12 puan – Ağır"
           ],
 "correct": 4,
 "explanation": "<strong class='highlight-critical'>Skorlama:</strong><br>• Solunum hızı 55/dak (45-60 arası) → <strong class='highlight-critical'>2 puan</strong><br>• Ekspiratuar + inspiratuar hışıltı → <strong class='highlight-critical'>3 puan</strong><br>• Burun kanadı solunumu → <strong class='highlight-critical'>3 puan</strong><br>• Bilinç bulanıklığı → <strong class='highlight-critical'>3 puan</strong><br><br><strong class='highlight-critical'>Toplam: 2+3+3+3 = 11... Düzeltme: Kontrol edelim.</strong><br><br>Skor tablosu: Solunum hızı 45-60 → 2p; Hışıltı exp+insp → 3p; Çekilme: Burun kanadı sol. → 3p; Genel durum: Bilinç bulanıklığı → 3p. Toplam = 2+3+3+3 = <strong class='highlight-critical'>11 puan → AĞIR (9-12)</strong><br><br><span class='highlight-important'>⚠️ Skor aralıkları: Hafif 1-3, Orta 4-8, Ağır 9-12. Bu hasta maksimuma yakın ciddi bir tablodadır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -200,7 +200,7 @@
 "options": ["Normal", "Hafif", "Orta", "Ağır", "Çok ağır"],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Bronşiolit ağırlık skor aralıkları:</strong><br>• <strong>Hafif:</strong> 1-3 puan<br>• <strong>Orta:</strong> 4-8 puan<br>• <strong>Ağır:</strong> 9-12 puan<br><br>Skorlama 4 parametre üzerinden yapılır: Solunum hızı, hışıltı, çekilme (retraksiyon), genel durum. Her parametre 0-3 puan alır.<br><br><span class='highlight-important'>⚠️ Ağır skor (9-12) mutlaka hastaneye yatış ve yakın monitörizasyon gerektirir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -210,11 +210,11 @@
             "İnterkostal çekilme",
             "Suprasternal çekilme",
             "Burun kanadı solunumu",
-            "Subkostal çekilme",
+            "Subkostal çekilme"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Çekilme parametresi skor dağılımı:</strong><br>• 0 puan: Çekilme yok<br>• 1 puan: İnterkostal çekilme<br>• <strong class='highlight-critical'>2 puan: Suprasternal çekilme</strong><br>• 3 puan: Burun kanadı solunumu<br><br><span class='highlight-important'>⚠️ Dikkat: Burun kanadı solunumu çekilme parametresinin en ağır formu olarak 3 puan değerindedir. Subkostal çekilme bu skorlama sisteminde ayrı kategorize edilmemiştir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -224,11 +224,11 @@
             "Apne",
             "Siyanoz",
             "İştah artışı ve hiperaktivite",
-            "Göğüs duvarında retraksiyon",
+            "Göğüs duvarında retraksiyon"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>İştah artışı ve hiperaktivite ağır bronşiolit bulgusu değildir; aksine ağır bronşiolitte beslenme bozulur ve aktivite azalır.</strong><br><br>Ağır bronşiolit bulguları:<br>• Zayıf beslenme<br>• Aktivite azalması<br>• Apne<br>• Solunum hızı > 70/dak<br>• Burun kanadı solunumu<br>• Göğüs duvarında retraksiyon<br>• Siyanoz<br><br><span class='highlight-important'>⚠️ Beslenme güçlüğü hem ağır bronşiolit kriteri hem de hastaneye yatış endikasyonudur.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -238,11 +238,11 @@
             "< 3 ay yaş",
             "Konjenital kalp hastalığı",
             "Tam zamanında doğan sağlıklı term bebek",
-            "İmmün yetmezlik",
+            "İmmün yetmezlik"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Tam zamanında doğan sağlıklı bir term bebek ağır bronşiolit için risk faktörü taşımaz.</strong><br><br>Ağır bronşiolit risk faktörleri:<br>• Prematürite (< 37 hafta)<br>• < 3 ay yaş<br>• Konjenital kalp hastalığı<br>• İmmün yetmezlik<br>• Kronik akciğer hastalığı (BPD, kistik fibrozis)<br>• Nörolojik hastalık<br>• Sigara teması<br><br><span class='highlight-important'>⚠️ Bu risk faktörleri aynı zamanda Palivizumab profilaksisi endikasyonlarıyla da örtüşür.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -252,11 +252,11 @@
             "8 aylık aşılı bebek",
             "32 haftalık prematüre, 6 haftalık bebek",
             "18 aylık kreşe giden çocuk",
-            "10 aylık anne sütü almayan bebek",
+            "10 aylık anne sütü almayan bebek"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Prematürite + küçük yaş (< 2 ay) apne için en yüksek risk faktörleridir.</strong><br><br>32 haftalık prematüre ve 6 haftalık (< 3 ay) bir bebek apne açısından en riskli gruptur. Apne, bronşiolitin ilk ve tek prezentasyonu olabilir.<br><br><span class='highlight-important'>⚠️ Apne gelişen tüm bronşiolit hastaları hospitalize edilmeli ve sürekli monitörize edilmelidir — ani ölüm riski vardır!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -266,11 +266,11 @@
             "Tam kan sayımı ve CRP",
             "Klinik bulgular (anamnez + fizik muayene)",
             "Viral PCR testi",
-            "Kan kültürü",
+            "Kan kültürü"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Akut bronşiolit tanısı tipik olarak klinik bulgularla (anamnez + fizik muayene) konulur.</strong><br><br>Rutin laboratuvar tetkikleri ve görüntüleme gerekmez. Akciğer grafisi bakteriyel pnömoni ayrımı için düşünülebilir ancak tanı için şart değildir.<br><br><span class='highlight-important'>⚠️ AAP kılavuzu: Komplike olmayan bronşiolitte rutin viral test, kan tetkikleri ve akciğer grafisi önerilmez — gereksiz tetkikler gereksiz antibiyotik kullanımını artırır!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -280,11 +280,11 @@
             "Peribronşiyal kalınlaşma",
             "Atelektazi",
             "Plevral efüzyon",
-            "AP çap artışı",
+            "AP çap artışı"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Plevral efüzyon akut bronşiolitin tipik radyolojik bulgusu değildir.</strong> Plevral efüzyon daha çok bakteriyel pnömoni komplikasyonu (parapnömonik efüzyon/ampiyem) olarak düşünülmelidir.<br><br>Bronşiolitin X-ray bulguları:<br>• Hiperinflasyon<br>• Peribronşiyal kalınlaşma (bilateral, simetrik)<br>• Segmental/subsegmental/bant atelektazi<br>• Air trapping<br>• AP çap artışı<br><br><span class='highlight-important'>⚠️ Akciğer grafisi tanı için gerekli değildir (AAP). Ancak istendiğinde hiperinflasyon + atelektazi birlikteliği en karakteristik bulgudur.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -294,11 +294,11 @@
             "Tedavi planını doğrudan değiştirir",
             "Rutinde önerilmez ancak antibiyotik kullanımını azaltabilir",
             "Sadece yoğun bakım hastalarında kontrendikedir",
-            "Yalnızca influenza testi yapılmalıdır",
+            "Yalnızca influenza testi yapılmalıdır"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Viral PCR rutinde önerilmez ancak etkenin saptanması gereksiz antibiyotik kullanımını azaltabilir.</strong><br><br>RSV veya rhinovirus saptanması tedavi yaklaşımını doğrudan değiştirmez çünkü tedavi zaten destekleyicidir.<br><br><span class='highlight-important'>⚠️ Viral PCR'ın asıl faydası: Viral etiyoloji doğrulanırsa klinisyen antibiyotik başlama baskısından kurtulur → gereksiz antibiyotik kullanımı azalır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -308,11 +308,11 @@
             "Sadece ayaktan tedavi edilecek hastalarda",
             "Toksik görünüm, ciddi pnömoni veya sepsis şüphesinde",
             "Sadece RSV pozitif hastalarda",
-            "Sadece viral PCR negatif ise",
+            "Sadece viral PCR negatif ise"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Laboratuvar tetkikleri toksik görünüm, ciddi pnömoni veya sepsis şüphesinde istenmelidir; toksik görünümü olmayan hastalarda gerekli değildir.</strong><br><br>Rutin TKS, CRP, kan kültürü ve elektrolit, komplike olmayan bronşiolitte önerilmez.<br><br><span class='highlight-important'>⚠️ Yüksek ateş (> 39°C), toksik görünüm veya fokal akciğer bulgusu varsa bakteriyel süperenfeksiyon araştırılmalıdır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -322,11 +322,11 @@
             "Yabancı cisim aspirasyonu",
             "Kistik fibrozis",
             "Bronkopulmoner displazi",
-            "Konjenital kalp yetmezliği",
+            "Konjenital kalp yetmezliği"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Ani başlangıçlı + tek taraflı hışıltı + viral prodrom yok → yabancı cisim aspirasyonu öncelikle düşünülmelidir.</strong><br><br>Bronşiolitte bilateral hışıltı ve 2-3 günlük viral prodrom beklenir. Tek taraflı bulgular yabancı cisim, konjenital anomali veya vasküler halka gibi yapısal nedenleri düşündürür.<br><br><span class='highlight-important'>⚠️ Yabancı cisim aspirasyonu 6 ay-3 yaş arası çocuklarda en sık görülür. Acil bronkoskopi gerektirebilir!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -336,11 +336,11 @@
             "Son 1 yılda en az 2 hışıltı atağı",
             "Son 1 yılda en az 4 hışıltı atağı (1'i hekim tarafından doğrulanmış)",
             "Son 2 yılda en az 3 hışıltı atağı",
-            "Herhangi bir zamanda en az 6 hışıltı atağı",
+            "Herhangi bir zamanda en az 6 hışıltı atağı"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>mAPI için temel koşul: Son 1 yılda en az 4 hışıltı atak ve bunlardan en az 1'i hekim tarafından doğrulanmış olmalıdır.</strong><br><br>Bu koşula ek olarak: 1 majör VEYA 2 minör kriter gereklidir.<br><br><strong>Majör kriterler:</strong> Ebeveynde astım, atopik dermatit, aeroalerjen duyarlılığı<br><strong>Minör kriterler:</strong> Gıda alerjisi, soğuk algınlığı dışı hışıltı, eozinofili ≥ %4<br><br><span class='highlight-important'>⚠️ Pozitif indeks → %76-80 astım riski. Negatif indeks → %95 astım gelişmeyecek.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -350,11 +350,11 @@
             "Hekim tanılı atopik dermatit (egzema)",
             "Aeroalerjen duyarlılığı",
             "Gıda alerjisi (süt, yumurta, fıstık)",
-            "Astım aile öyküsü (2. derece)",
+            "Astım aile öyküsü (2. derece)"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Gıda alerjisi (süt, yumurta, fıstık) mAPI'de minör kriterdir.</strong><br><br><strong>Majör kriterler (1 tanesi yeterli):</strong><br>• Ebeveynde astım<br>• Hekim tanılı atopik dermatit<br>• Aeroalerjen duyarlılığı<br><br><strong>Minör kriterler (2 tanesi gerekli):</strong><br>• Gıda alerjisi (süt, yumurta, fıstık)<br>• Soğuk algınlığı dışında hışıltı<br>• Kan eozinofili ≥ %4<br><br><span class='highlight-important'>⚠️ Atopik dermatit MAJÖR kriterdir, gıda alerjisi ise MİNÖR — sınavda sık karıştırılır!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -362,7 +362,7 @@
 "options": ["24-48 saat", "3-7 gün", "2-4 hafta", "6-8 hafta", "3 ay"],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Akut bronşiolitte akut faz bulguları sıklıkla 3-7 günde düzelir; tam iyileşme yaklaşık 2 haftayı bulabilir.</strong><br><br>Hastalık seyri:<br>• Temastan ~1 hafta sonra semptomlar başlar<br>• ÜSYE prodromu: 2-3 gün<br>• Akut faz: 3-7 gün<br>• Tam düzelme: ~2 hafta<br><br><span class='highlight-important'>⚠️ Hastalık sıklıkla kendini sınırlar (self-limited). Öksürük 2-3 haftaya kadar devam edebilir ancak bu normal seyirdir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -372,11 +372,11 @@
             "Sistemik kortikosteroid",
             "Destek tedavisi (oksijen + sıvı desteği + beslenme)",
             "İnhale bronkodilator",
-            "Profilaktik antibiyotik",
+            "Profilaktik antibiyotik"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Akut bronşiolitin tedavisi ağırlıklı olarak destek tedavisine dayanır: oksijen desteği, yeterli hidrasyon ve beslenme.</strong><br><br>%100 etkili kanıtlanmış medikal bir tedavi yoktur. AAP kılavuzu destekleyici bakımı vurgularken, rutin bronkodilator, steroid ve antibiyotik kullanımını önermez.<br><br><span class='highlight-important'>⚠️ En önemli iki destek tedavisi: 1) Oksijen (SpO₂ < %90 ise) 2) Sıvı desteği ve beslenme (oral alamıyorsa nazogastrik veya IV)</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -384,7 +384,7 @@
 "options": ["< %98", "< %95", "< %92", "< %90", "< %85"],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>AAP kılavuzuna göre SpO₂ < %90 (5 dakikadan uzun süren) olduğunda oksijen desteği başlanmalıdır.</strong><br><br>Oksijen uygulanma yolları: Nazal kanül, maske veya yüksek akımlı nazal kanül (HFNC).<br><br><span class='highlight-important'>⚠️ SpO₂ < %85 herhangi bir anda saptanırsa acil oksijen desteği gereklidir. HFNC ve CPAP ağır vakalarda non-invaziv solunum desteği olarak kullanılabilir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -394,11 +394,11 @@
             "Nazogastrik tüp ile beslenme",
             "Total parenteral nütrisyon",
             "Rektal sıvı",
-            "Subkutan sıvı",
+            "Subkutan sıvı"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Oral alamayan bronşiolitli bebeklerde nazogastrik (NG) yol, ek hidrasyon için tercih edilen ilk yöntemdir.</strong><br><br>Güncel kılavuzlar (2025 Australasian Guideline): NG yol, bolus veya sürekli infüzyon şeklinde oral rehidratasyon solüsyonu/anne sütü/formüla ile kullanılabilir.<br><br><span class='highlight-important'>⚠️ Sıvı kısıtlaması (%50-66 arası) düşünülmelidir çünkü bronşiolitte uygunsuz ADH salınımına bağlı sıvı yüklenmesi riski vardır. Yüz ve göz kapağı ödemi sıvı yüklenmesi belirtisidir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -408,11 +408,11 @@
             "Etkinliği kesin olarak kanıtlanmıştır",
             "Etkisi tartışmalıdır; yatış süresini kısaltabileceğine dair sınırlı kanıt vardır",
             "Sadece ayaktan hastalarda kullanılır",
-            "Hipotonik salin ile aynı etkinliktedir",
+            "Hipotonik salin ile aynı etkinliktedir"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Nebulize %3 hipertonik salin tedavisinin etkinliği tartışmalıdır. Cochrane meta-analizi (2017): Yatış süresini kısaltabileceğine dair sınırlı kanıt vardır ancak rutin kullanım için yeterli kanıt yoktur.</strong><br><br>Etki mekanizması: Ozmotik gradyan oluşturarak mukozadan submukozaya su çeker → mukus visikozitesini azaltır → mukosiliyer klirensi artırır.<br><br><span class='highlight-important'>⚠️ AAP: Hipertonik salin rutin olarak önerilmez. Uzamış yatışı olan (> 3 gün) veya akut dekompansasyon gösteren hastalarda denenebilir. Bronkodilator ile birlikte verilmesi bronkospazm riskini azaltır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -422,11 +422,11 @@
             "Etkinliği kesin olarak kanıtlanmıştır",
             "Etkinliği kanıtlanmamıştır; rutin kullanım önerilmez",
             "Sadece RSV pozitif hastalara verilir",
-            "Sadece 2 yaş üstü hastalara verilir",
+            "Sadece 2 yaş üstü hastalara verilir"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Bronkodilator (salbutamol/albuterol) tedavisinin akut bronşiolitte etkinliği kanıtlanmamıştır ve AAP tarafından rutin kullanımı önerilmez.</strong><br><br>Bronşiolitin patofizyolojisi bronkospazm değil, mukozal ödem ve debris obstrüksiyonudur; bu nedenle bronkodilatorlar genellikle etkisizdir.<br><br><span class='highlight-important'>⚠️ Klinik pratikte bazı hekimler 'tedavi denemesi' (trial) yapabilir; yanıt alınırsa (responder) taburculukta evde kullanım düşünülebilir. Ancak bu yaklaşım da tartışmalıdır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -436,11 +436,11 @@
             "Tüm hospitalize hastalara rutin olarak",
             "Ağır bronşiolitte destek tedaviye yanıt alınamadığında",
             "Taburculuk sonrası idame tedavi olarak",
-            "Sadece RSV negatif hastalarda",
+            "Sadece RSV negatif hastalarda"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Nebulize epinefrin ağır bronşiolitli hastalarda denenebilir; özellikle yoğun bakım düzeyinde bakım gerektiren vakalarda düşünülmelidir.</strong><br><br>2025 Australasian Guideline: YBÜ seviyesinde bakım gerektiren ağır bronşiolitte glukokortikoid + epinefrin kombinasyonu düşünülebilir.<br><br><span class='highlight-important'>⚠️ Epinefrinin alfa-adrenerjik etkisi mukozal vazokonstrüksiyona → ödemi azaltmaya yardımcı olabilir. Ancak rutin kullanımı önerilmez ve etki geçicidir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -450,11 +450,11 @@
             "İnhale kortikosteroidler",
             "Nazogastrik beslenme",
             "Yüksek akımlı nazal kanül (HFNC)",
-            "Nazal aspirasyon",
+            "Nazal aspirasyon"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>İnhale kortikosteroidlerin akut bronşiolitte etkisiz olduğu gösterilmiştir.</strong><br><br>Bronşiolitin patofizyolojisi eozinofilik inflamasyon değil, viral sitotoksik hasardır; bu nedenle steroidler (inhale veya sistemik) etkisizdir.<br><br><span class='highlight-important'>⚠️ AAP kılavuzunda etkisiz/önerilmeyen tedaviler: Bronkodilator, kortikosteroid, antibiyotik (bakteriyel enfeksiyon yoksa), göğüs fizyoterapisi. Bunlar 'yapma' listesindedir!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -464,11 +464,11 @@
             "RSV pozitif tüm hastalarda",
             "Bakteriyel süperenfeksiyon (otit, pnömoni) şüphesinde",
             "Solunum hızı > 40/dak olan tüm hastalarda",
-            "Profilaktik olarak tüm yatan hastalarda",
+            "Profilaktik olarak tüm yatan hastalarda"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Antibiyotik sadece bakteriyel süperenfeksiyon (akut otitis media, bakteriyel pnömoni, sepsis) şüphesinde endikedir.</strong><br><br>Bronşiolit viral bir hastalıktır; antibiyotiklerin viral enfeksiyon üzerine hiçbir etkisi yoktur.<br><br><span class='highlight-important'>⚠️ Gereksiz antibiyotik kullanımı direnç gelişimini hızlandırır. Viral PCR pozitifliği saptanması, klinisyeni antibiyotik başlama baskısından kurtarır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -478,11 +478,11 @@
             "Yeterli hidrasyon sağlanması",
             "Oksijen satürasyonu monitörizasyonu",
             "Göğüs fizyoterapisi (chest physiotherapy)",
-            "Ateş için antipiretik kullanımı",
+            "Ateş için antipiretik kullanımı"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Göğüs fizyoterapisi (chest physiotherapy) akut bronşiolitte etkisiz bulunmuştur ve AAP kılavuzunda rutin olarak önerilmez.</strong><br><br>AAP'nin 'yapma' listesi: Rutin viral test, CXR, bronkodilator, kortikosteroid, antibiyotik, göğüs fizyoterapisi, hipertonik salin.<br><br><span class='highlight-important'>⚠️ Nazal aspirasyon ise önerilir — özellikle beslenme öncesi burun tıkanıklığını gidermek için en az invaziv yöntemle uygulanmalıdır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -492,11 +492,11 @@
             "Apne",
             "Beslenme güçlüğü",
             "Hafif burun akıntısı ve öksürük",
-            "< 3 ay yaş",
+            "< 3 ay yaş"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Hafif burun akıntısı ve öksürük (komplike olmayan ÜSYE semptomları) hastaneye yatış kriteri değildir.</strong><br><br>Hastaneye yatış kriterleri:<br>• SpO₂ < %90<br>• Ağır bronşiolit bulguları<br>• Beslenme güçlüğü<br>• Apne<br>• Kronik akciğer hastalığı<br>• Prematürite<br>• Konjenital kalp hastalığı<br>• < 3 ay yaş<br><br><span class='highlight-important'>⚠️ < 3 ay yaş başlı başına yatış endikasyonudur çünkü bu grupta apne ve hızlı kötüleşme riski yüksektir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -506,11 +506,11 @@
             "Sadece intübe edilecek hastalarda",
             "Ağır bronşiolit ve/veya yaklaşan solunum yetmezliğinde",
             "Taburculuk öncesi rutin olarak",
-            "Sadece > 2 yaş çocuklarda",
+            "Sadece > 2 yaş çocuklarda"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>HFNC ve CPAP, ağır bronşiolitli veya yaklaşan solunum yetmezliği (impending respiratory failure) olan infantlarda düşünülmelidir.</strong><br><br>2025 Australasian Guideline: CPAP, ağır hastalığı olan ve/veya yaklaşan solunum yetmezliği olan infantlarda koşullu olarak önerilir.<br><br><span class='highlight-important'>⚠️ HFNC standart oksijen tedavisine yanıt vermeyen hastalarda ilk basamak non-invaziv destek olarak kullanılır. Yetersiz kalırsa CPAP'a geçilir. İntübasyondan önce mutlaka denenmelidir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -520,11 +520,11 @@
             "RSV'ye karşı monoklonal antikordur ve profilaktik olarak kullanılır",
             "Tedavi amaçlı akut bronşiolitte kullanılır",
             "Tek doz ile ömür boyu bağışıklık sağlar",
-            "Tüm bebeklere doğumda rutin uygulanır",
+            "Tüm bebeklere doğumda rutin uygulanır"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Palivizumab, RSV'ye karşı geliştirilmiş humanize monoklonal bir antikordur ve yüksek riskli bebeklerde profilaktik olarak kullanılır.</strong><br><br>Aşı değildir, pasif immünizasyon sağlar. Tedavi amaçlı kullanılmaz.<br><br><span class='highlight-important'>⚠️ Palivizumab TEDAVİ değil PROFİLAKSİ amaçlıdır — akut bronşioliti olan hastaya verilmez. Bu ayrım sınavda sık sorulan bir tuzaktır!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -534,11 +534,11 @@
             "Ekim-Mart arası, 5 doz (aylık)",
             "Yılda tek doz, herhangi bir zamanda",
             "Ocak-Haziran arası, 6 doz",
-            "Doğumda tek doz",
+            "Doğumda tek doz"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Palivizumab, RSV sezonunda (Ekim–Mart) ayda bir kez olmak üzere toplam 5 doz IM olarak uygulanır.</strong><br><br>Doz: 15 mg/kg/doz, intramüsküler.<br><br><span class='highlight-important'>⚠️ Palivizumab pahalı bir ilaçtır ve sadece yüksek riskli gruplara verilir: prematürite (< 29 hafta), BPD, hemodinamik açıdan anlamlı konjenital kalp hastalığı.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -548,11 +548,11 @@
             "Hemodinamik anlamlı konjenital kalp hastalığı",
             "Prematürite (< 29 hafta)",
             "Sağlıklı, zamanında doğmuş 12 aylık bebek",
-            "İmmün yetmezlik durumları",
+            "İmmün yetmezlik durumları"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Sağlıklı, zamanında doğmuş 12 aylık bir bebek palivizumab endikasyonu taşımaz.</strong><br><br>Palivizumab endikasyonları:<br>• Prematürite (< 29 hafta, < 12 ay)<br>• BPD (son 1 yılda tedavi gerektiren)<br>• Hemodinamik anlamlı konjenital kalp hastalığı<br>• İmmün yetmezlik<br>• Nöromüsküler hastalık<br><br><span class='highlight-important'>⚠️ Palivizumab çok pahalıdır (~1000 USD/doz × 5 doz); bu nedenle maliyet-etkinlik açısından yalnızca yüksek riskli gruplara sınırlandırılmıştır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -562,11 +562,11 @@
             "Uzun etkili monoklonal antikordur ve tek dozla tüm RSV sezonu boyunca koruma sağlar",
             "Canlı atenüe RSV aşısıdır",
             "Sadece prematüre bebeklere uygulanabilir",
-            "Akut bronşiolit tedavisinde kullanılır",
+            "Akut bronşiolit tedavisinde kullanılır"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Nirsevimab, uzun etkili (long-acting) anti-RSV monoklonal antikordur ve tek doz ile tüm RSV sezonu boyunca (~5 ay) koruma sağlar.</strong><br><br>Palivizumab'dan farklı olarak aylık tekrar gerektirmez. 2024-2025 sezonundan itibaren birçok ülkede tüm yenidoğanlara evrensel profilaksi olarak uygulanmaya başlamıştır.<br><br><span class='highlight-important'>⚠️ Nirsevimab, RSV'ye bağlı hospitalizasyonları %51-85 oranında azalttığı gösterilmiştir. Palivizumab'a göre en büyük avantajı: tek doz yeterlidir ve tüm infantlara (sadece yüksek riskli değil) verilebilir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -576,11 +576,11 @@
             "Nirsevimab uygulaması",
             "Ribavirin tedavisi",
             "El hijyeni ve sigara temasından kaçınma",
-            "İnhale kortikosteroid",
+            "İnhale kortikosteroid"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>El hijyeni, sigara temasından kaçınma, anne sütü ile beslenmeyi teşvik ve aşılama primer korunma yöntemleridir.</strong><br><br>Primer korunma: Risk faktörlerini azaltmaya yönelik genel önlemler.<br>Sekonder korunma: Palivizumab / Nirsevimab gibi immünoprofilaksi.<br><br><span class='highlight-important'>⚠️ Palivizumab ve Nirsevimab sekonder korunmadır (immünoprofilaksi). Ribavirin ise tedavi amaçlıdır, korunma yöntemi değildir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -590,11 +590,11 @@
             "Bronşiolitte ekspiratuar hışıltı, krupta inspiratuar stridor duyulur",
             "Krup sadece yaz aylarında görülür",
             "Bronşiolit bakteriyel, krup ise viraldir",
-            "Krup sadece > 5 yaş çocuklarda görülür",
+            "Krup sadece > 5 yaş çocuklarda görülür"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Bronşiolitte alt hava yolu obstrüksiyonuna bağlı ekspiratuar hışıltı (wheezing), krupta ise üst hava yolu (subglottik) obstrüksiyona bağlı inspiratuar stridor duyulur.</strong><br><br>Her iki hastalık da viral etyolojilidir (krup: en sık parainfluenza virüs).<br><br><span class='highlight-important'>⚠️ Krup tipik olarak 6 ay-3 yaş arası, bronşiolit < 2 yaş. Krupta havlayan öksürük (barking cough) + ses kısıklığı + stridor triadı vardır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -604,11 +604,11 @@
             "Diyafragmada düzleşme ve interkostal aralıklarda genişleme",
             "Mediastinal genişleme",
             "Tek taraflı beyaz akciğer (white-out)",
-            "Kaviter lezyon",
+            "Kaviter lezyon"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Hiperinflasyonun radyolojik bulguları: Diyafragmada düzleşme, interkostal aralıklarda genişleme, AP çap artışı (lateral grafide), 6'dan fazla posterior kosta sayılması.</strong><br><br>Ek bulgular: Peribronşiyal kalınlaşma (bilateral, simetrik), segmental/subsegmental atelektazi, air trapping.<br><br><span class='highlight-important'>⚠️ Tek taraflı beyaz akciğer (white-out) masif plevral efüzyon veya total atelektaziyi düşündürür — bronşiolitin tipik bulgusu değildir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -618,11 +618,11 @@
             "Vasküler ring",
             "Kistik fibrozis",
             "Laringeal web",
-            "HIV enfeksiyonu",
+            "HIV enfeksiyonu"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Kistik fibrozis, kronik akciğer hastalığı kategorisinde yer alan ve bronşiolitin önemli bir ayırıcı tanısıdır.</strong><br><br>Ayırıcı tanı kategorileri:<br>• Kronik akciğer hast.: Bronkopulmoner displazi, kistik fibrozis<br>• Aspirasyon: GÖR, yabancı cisim, trakeoözofageal fistül<br>• Gelişimsel anomali: Trakeomalazi, laringeal web<br>• Eksternal bası: Vasküler ring, mediastinal kitle<br>• İmmün yetmezlik: HIV, primer humoral yetmezlik<br><br><span class='highlight-important'>⚠️ Tekrarlayan bronşiolit/hışıltı ataklarında + gelişme geriliği + steatore → kistik fibrozis mutlaka düşünülmelidir; ter testi istenmelidir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -632,11 +632,11 @@
             "Sadece rhinovirus bronşiolitinde etkilidir",
             "Rutin kullanımı önerilmez; immünsüprese hastalarda düşünülebilir",
             "Oral yolla uygulanan bir bronkodilatatördür",
-            "Palivizumab ile birlikte her zaman kombine edilir",
+            "Palivizumab ile birlikte her zaman kombine edilir"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Ribavirin antiviral bir ajandır ancak rutin kullanımı önerilmez. Etkinliği tartışmalıdır ve sağlık çalışanlarında teratojenite riski nedeniyle endişe yaratır.</strong><br><br>Sadece immünsüprese (immün yetmezlikli) hastalarda ağır RSV enfeksiyonunda düşünülebilir.<br><br><span class='highlight-important'>⚠️ Ribavirin nebulize (inhale) olarak uygulanır, oral değildir. Gebelikte kontrendikedir ve sağlık personeline aerosolize maruziyetten kaçınılmalıdır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -646,11 +646,11 @@
             "Sadece ekspiryum başlangıcında hışıltı",
             "Tüm ekspiryum boyunca hışıltı",
             "Ekspiratuar ve inspiratuar hışıltı",
-            "Sessiz akciğer (silent chest)",
+            "Sessiz akciğer (silent chest)"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Hışıltı skor dağılımı:</strong><br>• 0 puan: Hışıltı yok<br>• <strong class='highlight-critical'>1 puan: Sadece ekspiryum başlangıcında (end-expiratory) hışıltı</strong><br>• 2 puan: Tüm ekspiryum boyunca hışıltı<br>• 3 puan: Hem ekspiratuar hem inspiratuar hışıltı<br><br><span class='highlight-important'>⚠️ 'Sessiz akciğer (silent chest)' skorda yer almaz ancak paradoksik olarak en tehlikeli bulgudur — hava akımının tamamen durduğunu gösterir ve acil müdahale gerektirir!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -658,7 +658,7 @@
 "options": ["%50", "%65", "%75", "%85", "%95"],
 "correct": 4,
 "explanation": "<strong class='highlight-critical'>Negatif mAPI indeksi olan çocuklarda okul çağında astım gelişmeme olasılığı yaklaşık %95'tir.</strong><br><br>Pozitif indeks → %76-80 astım riski<br>Negatif indeks → %95 astım gelişmeyecek<br><br><span class='highlight-important'>⚠️ mAPI'nin negatif prediktif değeri (%95) pozitif prediktif değerinden (%76-80) daha yüksektir — yani indeks negatifse ailelere güvenle 'muhtemelen astım olmayacak' denebilir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -668,11 +668,11 @@
             "İnterkostal çekilme",
             "Burun kanadı solunumu",
             "Siyanoz",
-            "Subkostal çekilme",
+            "Subkostal çekilme"
           ],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Siyanoz, hipokseminin ileri düzeyde olduğunu gösteren geç bir bulgudur.</strong> SpO₂'nin belirgin düşmesi (genellikle < %85) gereklidir.<br><br>Solunum güçlüğü bulgularının tipik ilerleme sırası:<br>1. Takipne (en erken kompansatuvar yanıt)<br>2. İnterkostal / subkostal çekilme<br>3. Burun kanadı solunumu ve yardımcı kas kullanımı<br>4. <strong class='highlight-critical'>Siyanoz (en geç — dekompansasyon bulgusu)</strong><br><br><span class='highlight-important'>⚠️ Siyanoz görüldüğünde hasta dekompanse olmaya başlamıştır — acil oksijen ve ileri solunum desteği gereklidir. Anemik hastalarda Hb düşük olduğundan siyanoz geç veya hiç görülmeyebilir!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -682,11 +682,11 @@
             "Pulmoner fibrozis",
             "Tekrarlayan hışıltı atakları ve astım gelişimi",
             "Bronkopulmoner displazi",
-            "Pulmoner hipertansiyon",
+            "Pulmoner hipertansiyon"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>RSV bronşioliti geçiren infantların önemli bir kısmında ilerleyen yıllarda tekrarlayan hışıltı atakları ve astım gelişimi görülür.</strong><br><br>RSV enfeksiyonu havayolu hiperreaktivitesini artırır ve Th2 yönlü immün yanıtı tetikleyerek atopik duyarlılığa zemin hazırlayabilir.<br><br><span class='highlight-important'>⚠️ RSV bronşioliti astıma neden mi oluyor, yoksa astıma yatkın çocuklar mı RSV'den daha çok etkileniyor? Bu soru hâlâ tartışmalıdır (tavuk-yumurta ikilemi). Ancak epidemiyolojik ilişki güçlüdür.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -696,11 +696,11 @@
             "Ateşin 24 saattir olmaması",
             "Oda havasında SpO₂ ≥ %90 ve yeterli oral alımın sağlanması",
             "Akciğer grafisinin tamamen normal olması",
-            "Viral PCR'ın negatifleşmesi",
+            "Viral PCR'ın negatifleşmesi"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Taburculuk için en kritik koşullar: Oda havasında SpO₂ ≥ %90 (en az 4 saat stabil) ve yeterli oral beslenmenin sağlanmasıdır.</strong><br><br>Taburculuk kriterleri:<br>• Oksijensiz SpO₂ ≥ %90 (stabil)<br>• Yeterli oral alım (günlük ihtiyacın en az %75'i)<br>• Solunum güçlüğünün azalması<br>• Ailenin gözlem ve takip konusunda eğitilmesi<br><br><span class='highlight-important'>⚠️ Öksürük ve hafif hışıltı taburculuk sonrası 2-3 hafta devam edebilir — bu normal seyirdir ve taburculuğu engellemez. Akciğer grafisi normalleşmesini veya PCR negatifleşmesini beklemeye gerek yoktur!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -710,11 +710,11 @@
             "Hipoglisemi riski",
             "Sıvı yüklenmesi ve hiponatremi riski",
             "Hiperkalsemi riski",
-            "Metabolik alkaloz riski",
+            "Metabolik alkaloz riski"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Bronşiolitte uygunsuz ADH salınımı (SIADH) gelişebilir → su retansiyonu → dilüsyonel hiponatremi ve sıvı yüklenmesi riski vardır.</strong><br><br>Bu nedenle IV sıvı verilirken dikkatli olunmalı ve izotonik sıvılar tercih edilmelidir. Sıvı kısıtlaması (%60-80 idame) düşünülmelidir.<br><br><span class='highlight-important'>⚠️ Yüz ve göz kapağı ödemi sıvı yüklenmesinin erken klinik işaretleridir. Serum Na düzeyi ve sıvı dengesi yakından takip edilmelidir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -724,11 +724,11 @@
             "Palivizumab aylık 5 doz gerektirir; Nirsevimab tek dozla tüm sezonu kapsar",
             "Nirsevimab sadece prematürelere verilir",
             "Palivizumab tüm bebeklere, Nirsevimab sadece riskli gruba verilir",
-            "İkisi de aynı doz şemasına sahiptir",
+            "İkisi de aynı doz şemasına sahiptir"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Palivizumab: Aylık IM enjeksiyon × 5 doz (Ekim-Mart) — sadece yüksek riskli gruplara.<br>Nirsevimab: Tek doz IM enjeksiyon — tüm RSV sezonu (~5 ay) koruma, tüm infantlara uygulanabilir.</strong><br><br>Nirsevimab'ın yarı ömrü uzundur (~70 gün) çünkü Fc bölgesinde YTE mutasyonları taşır.<br><br><span class='highlight-important'>⚠️ 2024-2025 sezonundan itibaren birçok ülke Nirsevimab'ı evrensel profilaksi olarak kabul etmiştir. Palivizumab artık Nirsevimab bulunamadığında veya kontrendike olduğunda alternatif olarak konumlandırılmaktadır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -738,11 +738,11 @@
             "Trakeoözofageal fistül",
             "Vasküler ring",
             "Bronkopulmoner displazi",
-            "Silier diskinezi",
+            "Silier diskinezi"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Trakeoözofageal fistül (TÖF), aspirasyon kategorisinde yer alan bir ayırıcı tanıdır.</strong><br><br>Aspirasyon kategorisi:<br>• Disfonksiyonel yutma<br>• Laringeal kleft<br>• Yabancı cisim aspirasyonu<br>• <strong class='highlight-critical'>Trakeoözofageal fistül</strong><br>• Gastroözofageal reflü hastalığı (GÖRH)<br><br><span class='highlight-important'>⚠️ Kistik fibrozis → kronik akciğer hast. kategorisi. Vasküler ring → eksternal bası kategorisi. Silier diskinezi → immün yetmezlik kategorisi. Bu kategorilerin karıştırılması sınavda sık düşülen bir tuzaktır.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -752,11 +752,11 @@
             "1 puan",
             "2 puan",
             "3 puan",
-            "Skorlamada yer almaz",
+            "Skorlamada yer almaz"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Genel durum skor dağılımı:</strong><br>• 0 puan: Normal<br>• <strong class='highlight-critical'>1 puan: Ajite</strong><br>• 2 puan: Ajite + beslenme güçlüğü<br>• 3 puan: Bilinç bulanıklığı (letarji)<br><br><span class='highlight-important'>⚠️ Sadece ajitasyon → 1 puan. Ajitasyona beslenme güçlüğü eklenince → 2 puan. Bilinç bulanıklığı (letarji) en kötü tablo olup 3 puandır. Bilinç bulanıklığı olan hastada solunum yetmezliği yakındır!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -766,11 +766,11 @@
             "1-2 gün",
             "Yaklaşık 1 hafta (4-6 gün)",
             "2-3 hafta",
-            "4-6 hafta",
+            "4-6 hafta"
           ],
 "correct": 2,
 "explanation": "<strong class='highlight-critical'>Bronşiolit semptomları viral temastan yaklaşık 1 hafta (4-6 gün) sonra başlar.</strong><br><br>RSV'nin inkübasyon periyodu 4-6 gündür. Önce 2-3 gün ÜSYE prodromu (burun akıntısı, hafif ateş, öksürük), ardından alt solunum yolu bulguları (hışıltı, takipne, retraksiyon) eklenir.<br><br><span class='highlight-important'>⚠️ Akut faz bulguları 3-7 günde düzelir, tam iyileşme ~2 haftayı bulur. Öksürük 3 haftaya kadar sürebilir — bu normal seyirdir.</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -780,11 +780,11 @@
             "Chlamydia'da ateşsiz, stakkato öksürük ve konjonktivit öyküsü tipiktir",
             "Chlamydia sadece > 5 yaş çocuklarda görülür",
             "Bronşiolitte konjunktivit her zaman eşlik eder",
-            "İkisi klinik olarak ayrılamaz",
+            "İkisi klinik olarak ayrılamaz"
           ],
 "correct": 1,
 "explanation": "<strong class='highlight-critical'>Chlamydia trachomatis pnömonisi: Tipik olarak 1-3 aylık bebeklerde ateşsiz, stakkato (kesik kesik) öksürük + neonatal konjonktivit öyküsü ile karakterizedir.</strong><br><br>Eozinofilisi olabilir. Doğum kanalından bulaşır. Tedavi: Makrolid (azitromisin).<br><br><span class='highlight-important'>⚠️ Chlamydia pnömonisi bronşiolitin önemli bir ayırıcı tanısıdır. 'Ateşsiz pnömoni + konjonktivit öyküsü + 1-3 ay bebek' = Chlamydia düşün → makrolid başla!</span>",
-"subject": "Akut Bronşiolit",
+"subject": "Akut Bronşiolit"
         },
 
         {
@@ -792,6 +792,6 @@
 "options": ["0 puan", "1 puan", "2 puan", "3 puan", "4 puan"],
 "correct": 3,
 "explanation": "<strong class='highlight-critical'>Solunum hızı skor dağılımı:</strong><br>• 0 puan: < 30/dak<br>• 1 puan: 30-45/dak<br>• 2 puan: 45-60/dak<br>• <strong class='highlight-critical'>3 puan: > 60/dak</strong><br><br><span class='highlight-important'>⚠️ Solunum hızı > 70/dak ağır bronşiolit kriteri olarak ayrıca değerlendirilir ve tek başına hastaneye yatış endikasyonudur. Skor tablosunda > 60/dak maksimum 3 puandır.</span>",
-"subject": "Akut Bronşiolit",
-        },
+"subject": "Akut Bronşiolit"
+        }
       ] }
