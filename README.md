@@ -31,7 +31,7 @@ Yapay zeka asistanlarını (ChatGPT, Claude vb.) kullanarak kendi `.json` test s
 
 Aşağıdaki komutu yapay zekaya kopyalayıp, doğrudan test verisini talep edebilirsiniz:
 
-> Aşağıdaki konuya ilişkin zorlayıcı çoktan seçmeli sorular yaz (1 doğru, 4 güçlü çeldirici). Çıktıyı tam olarak aşağıdaki Markdown formatında ver, lütfen formatın dışına çıkma. Her soruya ait detaylı ve öğretici bir Türkçe açıklama yaz. 
+> Aşağıdaki konuya ilişkin zorlayıcı çoktan seçmeli sorular yaz (1 doğru, 4 güçlü çeldirici). Çıktıyı tam olarak aşağıdaki JSON formatında ver, lütfen formatın dışına çıkma. Her soruya ait detaylı ve öğretici bir Türkçe açıklama yaz. 
 > 
 > **Persona ve Kaynaklar:**
 > - Yazarken pediatri uzmanı bir hoca gibi düşün ve bir tıp öğrencisine bu konudan neleri sorardın, hangi cevapları beklerdin bunları kurgula.
@@ -71,7 +71,7 @@ Yapay zekanın verdiği JSON blok kodunu kopyalayıp örneğin `yenitest.json` d
 
 ### Yöntem 2: Düz Metin (Markdown) Yüklemek
 
-Uygulama artık `.md` veya `.txt` uzantılı düz metin dosyalarını da doğrudan destekliyor! Aşağıdaki şablonu kullanarak yapay zekadan düz metin olarak soru isteyebilir ve bunu bir `.md` dosyasına kaydederek doğrudan uygulamayaükleyebilirsiniz.
+Uygulama artık `.md` veya `.txt` uzantılı düz metin dosyalarını da doğrudan destekliyor! Aşağıdaki şablonu kullanarak yapay zekadan düz metin olarak soru isteyebilir ve bunu bir `.md` dosyasına kaydederek doğrudan uygulamaya yükleyebilirsiniz.
 
 **Beklenen Metin Şablonu:**
 ```text
