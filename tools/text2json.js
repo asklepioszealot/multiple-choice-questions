@@ -21,6 +21,7 @@ let currentQuestion = null;
 let currentSubject = "Genel";
 let capturingExplanation = false;
 let explanationLines = [];
+let awaitingQuestionText = false;
 
 function processFormatting(text) {
     return text
@@ -31,27 +32,39 @@ function processFormatting(text) {
 for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
+    const normalizedLine = line.replace(/^\*\*(.*?)\*\*$/, '$1').trim();
     
-    if (line.startsWith('## ')) {
-        result.setName = line.substring(3).trim();
+    const titleMatch = normalizedLine.match(/^#{1,6}\s+(.+)$/);
+    if (titleMatch) {
+        result.setName = titleMatch[1].trim();
+        continue;
+    }
+
+    if (/^[-*_]{3,}$/.test(normalizedLine)) {
         continue;
     }
     
-    if (line.startsWith('### Konu:')) {
-        currentSubject = line.substring(9).trim();
+    const konuMatch = normalizedLine.match(/^#{0,3}\s*Konu:\s*(.+)$/i);
+    if (konuMatch) {
+        currentSubject = konuMatch[1].trim();
         continue;
     }
     
-    if (line.startsWith('Soru:')) {
+    const soruInlineMatch = normalizedLine.match(/^Soru:\s*(.+)$/i);
+    const soruNumberedMatch = normalizedLine.match(/^Soru\s+\d+[.)]?\s*(?::\s*(.*))?$/i);
+
+    if (soruInlineMatch || soruNumberedMatch) {
         if (currentQuestion) {
             if (capturingExplanation) {
                 currentQuestion.explanation = explanationLines.join('<br>').trim();
             }
             result.questions.push(currentQuestion);
         }
+
+        const qText = (soruInlineMatch ? soruInlineMatch[1] : (soruNumberedMatch[1] || '')).trim();
         
         currentQuestion = {
-            q: processFormatting(line.substring(5).trim()),
+            q: processFormatting(qText),
             options: [],
             correct: -1,
             explanation: "",
@@ -59,32 +72,48 @@ for (let i = 0; i < lines.length; i++) {
         };
         capturingExplanation = false;
         explanationLines = [];
+        awaitingQuestionText = qText.length === 0;
         continue;
     }
     
-    const optionMatch = line.match(/^([A-E])\)\s+(.+)$/);
+    if (awaitingQuestionText && currentQuestion) {
+        currentQuestion.q = processFormatting(normalizedLine);
+        awaitingQuestionText = false;
+        continue;
+    }
+
+    const optionMatch = normalizedLine.match(/^([A-Ea-e])[).]\s+(.+)$/);
     if (optionMatch && currentQuestion && !capturingExplanation) {
         currentQuestion.options.push(processFormatting(optionMatch[2].trim()));
         continue;
     }
     
-    if (line.startsWith('Doğru Cevap:')) {
-        const correctChar = line.substring(12).trim().toUpperCase();
+    const correctMatch = normalizedLine.match(/^Doğru\s*Cevap:\s*([A-Ea-e])\b/i);
+    if (correctMatch) {
+        const correctChar = correctMatch[1].toUpperCase();
         if (currentQuestion) {
             currentQuestion.correct = correctChar.charCodeAt(0) - 65;
         }
         continue;
     }
     
-    if (line.startsWith('Açıklama:')) {
+    const explanationStartMatch = normalizedLine.match(/^Açıklama:\s*(.*)$/i);
+    if (explanationStartMatch) {
         capturingExplanation = true;
-        let expText = line.substring(9).trim();
+        let expText = explanationStartMatch[1].trim();
         explanationLines.push(processFormatting(expText));
+        continue;
+    }
+
+    const blockquoteMatch = line.match(/^>\s?(.*)$/);
+    if (blockquoteMatch && currentQuestion) {
+        capturingExplanation = true;
+        explanationLines.push(processFormatting(blockquoteMatch[1].trim()));
         continue;
     }
     
     if (capturingExplanation) {
-        explanationLines.push(processFormatting(line));
+        explanationLines.push(processFormatting(normalizedLine));
     }
 }
 
