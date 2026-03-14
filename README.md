@@ -5,7 +5,7 @@ Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzer
 ## Özellikler
 
 1. **Dinamik Soru Seti Yükleme (`Set Yönetimi`)**:
-   - `data/` klasöründeki veya dışarıdan indirdiğiniz `.json` uzantılı soru setlerini tek tıkla uygulamaya yükleyebilirsiniz.
+   - Dışarıdan indirdiğiniz veya kendiniz hazırladığınız `.json` uzantılı soru setlerini tek tıkla uygulamaya yükleyebilirsiniz.
    - Birden fazla seti aynı anda seçip harmanlayarak veya ayrı ayrı filtreleyerek çözme imkanı sağlar.
 2. **Kişiselleştirilmiş Öğrenme ve İlerleme Takibi**:
    - Girdiğiniz cevaplar (doğru, yanlış, seçilmemiş) tarayıcı önbelleğinde (`localStorage`) güvende tutulur.
@@ -32,7 +32,7 @@ npm run release
 
 Bu komut sırasıyla:
 
-1. `index.html` ve `data/` içeriğini `dist/` altında hazırlar.
+1. `index.html` dosyasını `dist/` altında hazırlar (varsa `data/` klasörünü de kopyalar).
 2. `npx tauri build --bundles nsis` ile kurulum dosyasını üretir.
 3. Portable (`app.exe`) ve kurulum (`*-setup.exe`) çıktılarını `release/` altında versiyon+commit adlarıyla saklar.
 4. İsteğe bağlı kök dosya adlarını da günceller (`MCQ_Test_Portable.exe`, `MCQ_Test_Kurulum.exe`).
@@ -112,7 +112,7 @@ Açıklama: Açıklama metni **vurgu** içeriyor. İkinci satır.
 ```
 
 Not: Elinizdeki `.txt` veya `.md` dosyalarını JSON'a çevirmek için terminalden isterseniz script de kullanabilirsiniz: 
-`node tools/text2json.js data/input.txt data/cikti.json`
+`node tools/text2json.js input.txt cikti.json`
 
 ---
 
@@ -120,5 +120,5 @@ Not: Elinizdeki `.txt` veya `.md` dosyalarını JSON'a çevirmek için terminald
 
 Uygulamanın çalışması için herhangi bir sunucuya, kurulu bir programa ya da veritabanına ihtiyacınız yoktur.
 1. `index.html` dosyasını tarayıcınızda (Chrome, Safari, Firefox vb.) açın.
-2. Karşınıza çıkan **Set Yöneticisi** ekranından `data/akut_bronsiolit.json` gibi bir örneği veya kendi ürettiğiniz `.json` ya da `.md` dosyasını seçin.
+2. Karşınıza çıkan **Set Yöneticisi** ekranından kendi ürettiğiniz `.json` ya da `.md` dosyasını seçin.
 3. Listeden çalışmak istediğiniz testleri seçip `Başla` butonuna basın!
