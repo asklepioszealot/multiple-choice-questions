@@ -535,6 +535,26 @@
       .delete-btn:hover {
         background: rgba(255, 84, 89, 0.1);
       }
+      .delete-btn-circle {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid var(--color-wrong);
+        background: transparent;
+        color: var(--color-wrong);
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+      .delete-btn-circle:hover {
+        background: rgba(255, 84, 89, 0.15);
+        transform: scale(1.05);
+      }
       .set-empty {
         text-align: center;
         padding: 40px;
@@ -543,14 +563,29 @@
         border-radius: 12px;
         color: var(--color-text-secondary);
       }
+      .set-list-tools {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+      }
       .set-actions {
         display: flex;
         justify-content: center;
         gap: 20px;
+        flex-wrap: wrap;
       }
       .set-actions .btn {
         font-size: 16px;
         padding: 12px 30px;
+      }
+      .btn-danger {
+        background: #c2392f;
+        color: white;
+      }
+      .btn-danger:hover {
+        background: #a72f26;
       }
     </style>
   </head>
@@ -582,6 +617,25 @@
           Henüz test seti yüklenmedi.<br />Aşağıdaki butondan JSON dosyası
           yükleyin.
         </div>
+      </div>
+      <div class="set-list-tools" id="set-list-tools" style="display: none">
+        <button class="btn btn-small btn-secondary" onclick="selectAllSets()">
+          Tümünü Seç
+        </button>
+        <button
+          class="btn btn-small btn-secondary"
+          onclick="clearSetSelection()"
+        >
+          Seçimi Kaldır
+        </button>
+        <button
+          class="btn btn-small btn-danger"
+          id="remove-selected-btn"
+          onclick="removeSelectedSets()"
+          disabled
+        >
+          Seçilileri Kaldır
+        </button>
       </div>
 
       <div class="set-actions">
@@ -932,15 +986,21 @@
       function renderSetList() {
         const setListEl = document.getElementById("set-list");
         const startBtn = document.getElementById("start-btn");
+        const setToolsEl = document.getElementById("set-list-tools");
+        const removeSelectedBtn = document.getElementById("remove-selected-btn");
 
         if (Object.keys(loadedSets).length === 0) {
           setListEl.innerHTML =
             '<div class="set-empty">Henüz test seti yüklenmedi.<br>Aşağıdaki butondan JSON dosyası yükleyin.</div>';
           startBtn.disabled = true;
+          setToolsEl.style.display = "none";
+          if (removeSelectedBtn) removeSelectedBtn.disabled = true;
           return;
         }
 
         startBtn.disabled = selectedSets.size === 0;
+        setToolsEl.style.display = "flex";
+        if (removeSelectedBtn) removeSelectedBtn.disabled = selectedSets.size === 0;
         setListEl.innerHTML = "";
 
         for (const [setId, setObj] of Object.entries(loadedSets)) {
@@ -962,7 +1022,7 @@
                   <div class="set-stats">📚 ${setObj.questions.length} Soru | ✅ Çözülen: ${solvedCount}</div>
                 </div>
               </div>
-              <button class="delete-btn" onclick="deleteSet('${setId}')">🗑️ Sil</button>
+              <button class="delete-btn-circle" title="Seti kaldır" onclick="deleteSet('${setId}')">-</button>
             </div>
           `;
           setListEl.innerHTML += markup;
@@ -980,10 +1040,33 @@
       }
 
       function deleteSet(setId) {
-        if (!confirm("Bu seti silmek istediğinize emin misiniz?")) return;
         delete loadedSets[setId];
         selectedSets.delete(setId);
         localStorage.removeItem("mc_set_" + setId);
+        saveSetsList();
+        renderSetList();
+      }
+
+      function selectAllSets() {
+        selectedSets = new Set(Object.keys(loadedSets));
+        saveSetsList();
+        renderSetList();
+      }
+
+      function clearSetSelection() {
+        selectedSets.clear();
+        saveSetsList();
+        renderSetList();
+      }
+
+      function removeSelectedSets() {
+        if (selectedSets.size === 0) return;
+        const idsToRemove = [...selectedSets];
+        idsToRemove.forEach((setId) => {
+          delete loadedSets[setId];
+          localStorage.removeItem("mc_set_" + setId);
+        });
+        selectedSets.clear();
         saveSetsList();
         renderSetList();
       }
