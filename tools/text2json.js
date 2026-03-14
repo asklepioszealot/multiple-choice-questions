@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const fs = require('fs');
+const path = require('path');
 
 if (process.argv.length < 4) {
     console.log("Kullanım: node text2json.js <girdi_metni.txt> <cikti_dosyasi.json>");
@@ -124,9 +125,9 @@ if (currentQuestion) {
     result.questions.push(currentQuestion);
 }
 
-const dir = outputFile.substring(0, outputFile.lastIndexOf('/'));
-if (dir && !fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+const outputDir = path.dirname(path.resolve(outputFile));
+if (outputDir && !fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
 }
 
 fs.writeFileSync(outputFile, JSON.stringify(result, null, 2), 'utf-8');
