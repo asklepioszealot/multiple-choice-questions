@@ -821,6 +821,8 @@
       </div>
     </div>
 
+    <script src="./src/core/storage.js"></script>
+    <script src="./src/ui/theme.js"></script>
     <script>
       // --- YENİ SET YÖNETİMİ DEĞİŞKENLERİ ---
       let loadedSets = {};
@@ -837,6 +839,7 @@
       let questionOrder = [];
       let selectedAnswers = {};
       let solutionVisible = {};
+      const storage = window.AppStorage;
 
       function cardId(q) {
         let hash = 0;
@@ -1011,7 +1014,7 @@
             };
 
             saveSetsList();
-            localStorage.setItem(
+            storage.setItem(
               "mc_set_" + setId,
               JSON.stringify(loadedSets[setId]),
             );
@@ -1026,11 +1029,11 @@
       }
 
       function saveSetsList() {
-        localStorage.setItem(
+        storage.setItem(
           "mc_loaded_sets",
           JSON.stringify(Object.keys(loadedSets)),
         );
-        localStorage.setItem(
+        storage.setItem(
           "mc_selected_sets",
           JSON.stringify([...selectedSets]),
         );
@@ -1153,7 +1156,7 @@
           delete loadedSets[setId];
           selectedSets.delete(setId);
           removeCandidateSets.delete(setId);
-          localStorage.removeItem("mc_set_" + setId);
+          storage.removeItem("mc_set_" + setId);
         });
         if (removed.length === 0) return;
         lastRemovedSets = removed;
@@ -1220,7 +1223,7 @@
         if (!lastRemovedSets || lastRemovedSets.length === 0) return;
         lastRemovedSets.forEach((entry) => {
           loadedSets[entry.setId] = entry.setData;
-          localStorage.setItem("mc_set_" + entry.setId, JSON.stringify(entry.setData));
+          storage.setItem("mc_set_" + entry.setId, JSON.stringify(entry.setData));
           if (entry.wasSelected) {
             selectedSets.add(entry.setId);
           }
@@ -1422,25 +1425,13 @@
         .setAttribute("max", filteredQuestions.length);
 
       function toggleTheme(isChecked) {
-        let isDark;
-        if (typeof isChecked === "boolean") {
-          isDark = isChecked;
-          if (document.getElementById("theme-toggle"))
-            document.getElementById("theme-toggle").checked = isDark;
-          if (document.getElementById("theme-toggle-manager"))
-            document.getElementById("theme-toggle-manager").checked = isDark;
-        } else {
-          isDark = document.getElementById("theme-toggle").checked;
-          if (document.getElementById("theme-toggle-manager"))
-            document.getElementById("theme-toggle-manager").checked = isDark;
-        }
-
-        if (isDark) {
-          document.documentElement.setAttribute("data-theme", "dark");
-        } else {
-          document.documentElement.removeAttribute("data-theme");
-        }
-        localStorage.setItem("quiz-theme", isDark ? "dark" : "light");
+        window.ThemeManager.toggleTheme({
+          isChecked: isChecked,
+          primaryToggleId: "theme-toggle",
+          managerToggleId: "theme-toggle-manager",
+          storageApi: storage,
+          storageKey: "quiz-theme",
+        });
       }
 
       function shuffleQuestions() {
@@ -1623,13 +1614,13 @@
             currentQuestionIndex: currentQuestionIndex,
             selectedTopic: document.getElementById("topic-select").value,
           };
-          localStorage.setItem("mc_session", JSON.stringify(sessionState));
+          storage.setItem("mc_session", JSON.stringify(sessionState));
 
           const assessmentState = {
             selectedAnswers: selectedAnswers,
             solutionVisible: solutionVisible,
           };
-          localStorage.setItem(
+          storage.setItem(
             "mc_assessments",
             JSON.stringify(assessmentState),
           );
@@ -1640,25 +1631,21 @@
 
       function loadState() {
         try {
-          const savedTheme = localStorage.getItem("quiz-theme");
-          if (savedTheme === "dark") {
-            const themeToggle = document.getElementById("theme-toggle");
-            const themeToggleManager = document.getElementById(
-              "theme-toggle-manager",
-            );
-            if (themeToggle) themeToggle.checked = true;
-            if (themeToggleManager) themeToggleManager.checked = true;
-            document.documentElement.setAttribute("data-theme", "dark");
-          }
+          window.ThemeManager.initThemeFromStorage({
+            primaryToggleId: "theme-toggle",
+            managerToggleId: "theme-toggle-manager",
+            storageApi: storage,
+            storageKey: "quiz-theme",
+          });
 
-          const savedAssessments = localStorage.getItem("mc_assessments");
+          const savedAssessments = storage.getItem("mc_assessments");
           if (savedAssessments) {
             const state = JSON.parse(savedAssessments);
             selectedAnswers = state.selectedAnswers || {};
             solutionVisible = state.solutionVisible || {};
           }
 
-          const savedSession = localStorage.getItem("mc_session");
+          const savedSession = storage.getItem("mc_session");
           if (savedSession) {
             const session = JSON.parse(savedSession);
             currentQuestionIndex = session.currentQuestionIndex || 0;
@@ -1712,13 +1699,13 @@
       // İlk yüklendiğinde set listesini localStorage'dan getir
       function initApp() {
         try {
-          const storedSets = localStorage.getItem("mc_loaded_sets");
-          const storedSelected = localStorage.getItem("mc_selected_sets");
+          const storedSets = storage.getItem("mc_loaded_sets");
+          const storedSelected = storage.getItem("mc_selected_sets");
 
           if (storedSets) {
             const setIds = JSON.parse(storedSets);
             setIds.forEach((id) => {
-              const setData = localStorage.getItem("mc_set_" + id);
+              const setData = storage.getItem("mc_set_" + id);
               if (setData) {
                 loadedSets[id] = JSON.parse(setData);
               }
@@ -1741,3 +1728,4 @@
     </script>
   </body>
 </html>
+
