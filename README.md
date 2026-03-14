@@ -122,3 +122,25 @@ Uygulamanın çalışması için herhangi bir sunucuya, kurulu bir programa ya d
 1. `index.html` dosyasını tarayıcınızda (Chrome, Safari, Firefox vb.) açın.
 2. Karşınıza çıkan **Set Yöneticisi** ekranından kendi ürettiğiniz `.json` ya da `.md` dosyasını seçin.
 3. Listeden çalışmak istediğiniz testleri seçip `Başla` butonuna basın!
+
+## Smoke Test (Playwright)
+
+Temel duman testlerini calistirmak icin:
+
+```powershell
+npm run test:smoke
+```
+
+Ilk kurulumda tarayici binary'si lazimsa:
+
+```powershell
+npm run test:smoke:install
+```
+
+## Buyume Icin Klasor Standarti
+
+- `src/`: modulerlesme icin hedef kaynak klasoru
+- `tests/smoke/`: kritik akis smoke testleri
+- `docs/RELEASE_CHECKLIST.md`: release adimlari
+- `docs/MODULARIZATION_PLAN.md`: index.html -> moduler yapi gecis plani
+- `CHANGELOG.md`: degisiklik kaydi
