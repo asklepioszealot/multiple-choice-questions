@@ -10,6 +10,7 @@
       const DRIVE_API_KEY = "AIzaSyCUvy3PvFNpAVL9FYvLF22lzUPJ9xZHWrw";
       const DRIVE_APP_ID = "102976125468";
       const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+      const ANSWER_LOCK_KEY = "mc_answer_lock";
       let driveTokenClient = null;
       let driveAccessToken = null;
       let drivePickerApiLoaded = false;
@@ -23,6 +24,7 @@
       let solutionVisible = {};
       let pendingSession = null;
       let isFullscreen = false;
+      let answerLockEnabled = false;
       const storage = window.AppStorage;
 
       function buildQuestionKey(setId, question, index) {
@@ -640,6 +642,25 @@
         }
       }
 
+      function syncAnswerLockToggleUI() {
+        const toggle = document.getElementById("answer-lock-toggle-manager");
+        if (toggle) {
+          toggle.checked = answerLockEnabled;
+        }
+        const status = document.getElementById("answer-lock-status");
+        if (status) {
+          status.textContent = answerLockEnabled
+            ? "Cevapları kilitle: Açık"
+            : "Cevapları kilitle: Kapalı";
+        }
+      }
+
+      function setAnswerLock(isEnabled) {
+        answerLockEnabled = Boolean(isEnabled);
+        storage.setItem(ANSWER_LOCK_KEY, answerLockEnabled ? "1" : "0");
+        syncAnswerLockToggleUI();
+      }
+
       function toggleFullscreen() {
         const questionCard = document.getElementById("question-card");
         const toggleBtn = document.getElementById("fullscreen-toggle-btn");
@@ -865,6 +886,10 @@
         const q = filteredQuestions[questionOrder[currentQuestionIndex]];
         const cid = cardId(q);
         const currentAnswer = selectedAnswers[cid];
+
+        if (answerLockEnabled && currentAnswer !== undefined) {
+          return;
+        }
 
         if (currentAnswer === index) {
           delete selectedAnswers[cid];
@@ -1219,6 +1244,11 @@
                 : {};
           }
 
+          const storedAnswerLock = storage.getItem(ANSWER_LOCK_KEY);
+          if (storedAnswerLock === "0" || storedAnswerLock === "1") {
+            answerLockEnabled = storedAnswerLock === "1";
+          }
+
           const savedSession = storage.getItem("mc_session");
           pendingSession = null;
           if (savedSession) {
@@ -1240,6 +1270,7 @@
         } catch (e) {
           console.error("State loading error", e);
         }
+        syncAnswerLockToggleUI();
       }
 
       function populateTopicFilter() {

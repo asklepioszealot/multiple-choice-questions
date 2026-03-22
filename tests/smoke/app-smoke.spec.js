@@ -85,9 +85,11 @@ test.describe("MCQ smoke", () => {
     const setManagerHint = setManager.locator(".kbd-hint");
     const driveButton = page.locator("#drive-upload-btn");
     const managerPreferences = setManager.locator(".manager-preferences");
+    const answerLockStatus = page.locator("#answer-lock-status");
 
     await expect(setManager).toBeVisible();
     await expect(managerPreferences).toBeVisible();
+    await expect(answerLockStatus).toHaveText("Cevapları kilitle: Kapalı");
     await expect(setManagerHint).toBeVisible();
     await expect(setManagerHint).toContainText("A-E");
     await expect(setManagerHint).toContainText("F");
@@ -347,6 +349,56 @@ test.describe("MCQ smoke", () => {
     expect(assessments.solutionVisible["set:set-a::idx:0"]).toBeUndefined();
     expect(assessments.selectedAnswers["set:set-b::idx:0"]).toBe(3);
     expect(assessments.solutionVisible["set:set-b::idx:0"]).toBe(true);
+  });
+
+  test("answer lock prevents changing or clearing an answered question", async ({
+    page,
+  }) => {
+    await seedLocalSets(page, {
+      sets: {
+        demo: {
+          setName: "Answer Lock Demo",
+          fileName: "answer-lock-demo.json",
+          questions: [
+            {
+              q: "Kilidi test edelim mi?",
+              options: ["Evet", "Hayır", "Belki", "Sonra"],
+              correct: 0,
+              subject: "Genel",
+              explanation: "A",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["demo"],
+    });
+
+    await page.locator("#answer-lock-toggle-manager").check();
+    await expect(page.locator("#answer-lock-status")).toHaveText(
+      "Cevapları kilitle: Açık",
+    );
+
+    await page.locator("#start-btn").click();
+    await selectOption(page, 0);
+    await selectOption(page, 0);
+    await selectOption(page, 1);
+
+    await expect(page.locator("#options-container .option").nth(0)).toHaveClass(
+      /correct/,
+    );
+    await expect(page.locator("#options-container .option").nth(1)).not.toHaveClass(
+      /wrong/,
+    );
+
+    await page.locator('button[onclick="showSetManager()"]').click();
+    await page.locator("#answer-lock-toggle-manager").uncheck();
+    await page.locator("#start-btn").click();
+    await selectOption(page, 0);
+
+    const assessments = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("mc_assessments") || "{}"),
+    );
+    expect(Object.keys(assessments.selectedAnswers || {})).toHaveLength(0);
   });
 
   test("duplicate question across sets keeps answers independent", async ({

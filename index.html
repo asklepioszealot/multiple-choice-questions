@@ -865,6 +865,10 @@
         gap: 10px;
         align-items: center;
       }
+      .manager-toggle-row {
+        justify-content: flex-start;
+        gap: 12px;
+      }
       .btn-danger {
         background: #c2392f;
         color: white;
@@ -982,6 +986,17 @@
             <span class="toggle-slider"></span>
           </label>
           <span>🌙</span>
+        </div>
+        <div class="toggle-container manager-toggle-row">
+          <span id="answer-lock-status">Cevapları kilitle: Kapalı</span>
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              id="answer-lock-toggle-manager"
+              onchange="setAnswerLock(this.checked)"
+            />
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
       <div class="kbd-hint" style="margin-top: 20px">
