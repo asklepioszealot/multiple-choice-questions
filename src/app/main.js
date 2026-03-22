@@ -1045,16 +1045,21 @@
       function resetQuiz() {
         if (
           !confirm(
-            "Tüm cevaplarınız ve ilerlemeniz sıfırlanacak. Emin misiniz?",
+            "Seçili/aktif setlerdeki cevaplarınız ve ilerlemeniz sıfırlanacak. Emin misiniz?",
           )
         )
           return;
 
-        // Sadece mevcut sorulardaki cevapları sil (diğer setleri etkileme)
-        allQuestions.forEach((q) => {
-          const cid = cardId(q);
-          delete selectedAnswers[cid];
-          delete solutionVisible[cid];
+        const activeQuestionKeys = new Set(allQuestions.map((q) => cardId(q)));
+        Object.keys(selectedAnswers).forEach((questionKey) => {
+          if (activeQuestionKeys.has(questionKey)) {
+            delete selectedAnswers[questionKey];
+          }
+        });
+        Object.keys(solutionVisible).forEach((questionKey) => {
+          if (activeQuestionKeys.has(questionKey)) {
+            delete solutionVisible[questionKey];
+          }
         });
 
         currentQuestionIndex = 0;

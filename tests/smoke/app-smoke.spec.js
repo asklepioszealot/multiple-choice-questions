@@ -287,6 +287,66 @@ test.describe("MCQ smoke", () => {
       .toBe(false);
   });
 
+  test("reset only clears progress for active sets", async ({ page }) => {
+    await seedLocalSets(page, {
+      sets: {
+        "set-a": {
+          setName: "Aktif Set",
+          fileName: "active-set.json",
+          questions: [
+            {
+              q: "Aktif soru?",
+              options: ["A", "B", "C", "D"],
+              correct: 0,
+              subject: "Genel",
+              explanation: "A",
+            },
+          ],
+        },
+        "set-b": {
+          setName: "Pasif Set",
+          fileName: "inactive-set.json",
+          questions: [
+            {
+              q: "Pasif soru?",
+              options: ["A", "B", "C", "D"],
+              correct: 1,
+              subject: "Genel",
+              explanation: "B",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["set-a"],
+      assessments: {
+        selectedAnswers: {
+          "set:set-a::idx:0": 2,
+          "set:set-b::idx:0": 3,
+        },
+        solutionVisible: {
+          "set:set-a::idx:0": true,
+          "set:set-b::idx:0": true,
+        },
+      },
+    });
+
+    await page.locator("#start-btn").click();
+    page.once("dialog", async (dialog) => {
+      expect(dialog.message()).toContain("Seçili/aktif setlerdeki");
+      await dialog.accept();
+    });
+    await page.locator('button[onclick="resetQuiz()"]').click();
+
+    const assessments = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("mc_assessments") || "{}"),
+    );
+
+    expect(assessments.selectedAnswers["set:set-a::idx:0"]).toBeUndefined();
+    expect(assessments.solutionVisible["set:set-a::idx:0"]).toBeUndefined();
+    expect(assessments.selectedAnswers["set:set-b::idx:0"]).toBe(3);
+    expect(assessments.solutionVisible["set:set-b::idx:0"]).toBe(true);
+  });
+
   test("duplicate question across sets keeps answers independent", async ({
     page,
   }) => {
