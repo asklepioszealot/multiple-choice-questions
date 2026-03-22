@@ -193,6 +193,34 @@ test.describe("MCQ smoke", () => {
     expect(Object.keys(assessments.selectedAnswers || {})).toHaveLength(0);
   });
 
+  test("score display stays visible before any question is answered", async ({
+    page,
+  }) => {
+    await seedLocalSets(page, {
+      sets: {
+        demo: {
+          setName: "Score Demo",
+          fileName: "score-demo.json",
+          questions: [
+            {
+              q: "Henüz çözülmedi mi?",
+              options: ["Evet", "Hayır", "Belki", "Sonra"],
+              correct: 0,
+              subject: "Genel",
+              explanation: "A",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["demo"],
+    });
+
+    await page.locator("#start-btn").click();
+    await expect(page.locator("#score-display")).toHaveText(
+      "✅ 0 ❌ 0 📊 0/1 (%0) 🎯 %0",
+    );
+  });
+
   test("duplicate question across sets keeps answers independent", async ({
     page,
   }) => {

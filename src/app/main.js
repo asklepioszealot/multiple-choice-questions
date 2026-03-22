@@ -924,17 +924,15 @@
           }
         });
 
-      const scoreEl = document.getElementById("score-display");
+        const scoreEl = document.getElementById("score-display");
         if (!scoreEl) return;
-        if (answered === 0) {
-          scoreEl.textContent = "";
-          return;
-        }
+
         const progressPct =
           allQuestions.length > 0
             ? Math.round((answered / allQuestions.length) * 100)
             : 0;
-        const accuracyPct = Math.round((correct / answered) * 100);
+        const accuracyPct =
+          answered > 0 ? Math.round((correct / answered) * 100) : 0;
         scoreEl.innerHTML =
           "✅ " +
           correct +
