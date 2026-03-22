@@ -661,6 +661,20 @@
         syncAnswerLockToggleUI();
       }
 
+      function getSavedSession() {
+        try {
+          const savedSession = storage.getItem("mc_session");
+          if (!savedSession) return null;
+          const parsedSession = JSON.parse(savedSession);
+          return parsedSession && typeof parsedSession === "object"
+            ? parsedSession
+            : null;
+        } catch (e) {
+          console.error("Session load error", e);
+          return pendingSession;
+        }
+      }
+
       function toggleFullscreen() {
         const questionCard = document.getElementById("question-card");
         const toggleBtn = document.getElementById("fullscreen-toggle-btn");
@@ -722,7 +736,7 @@
         populateTopicFilter();
         updateScoreDisplay();
 
-        const session = pendingSession || {};
+        const session = getSavedSession() || pendingSession || {};
         const topicSelect = document.getElementById("topic-select");
         if (
           topicSelect &&
@@ -1208,6 +1222,7 @@
             selectedTopic: topicSelect ? topicSelect.value : "hepsi",
           };
           storage.setItem("mc_session", JSON.stringify(sessionState));
+          pendingSession = sessionState;
 
           const assessmentState = {
             selectedAnswers: selectedAnswers,
