@@ -303,6 +303,121 @@
         width: 100%;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
         border: 1px solid var(--color-border);
+        position: relative;
+      }
+
+      .question-card-content {
+        min-width: 0;
+      }
+
+      .fullscreen-toggle-btn {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+        width: 38px;
+        height: 38px;
+        border: 1px solid var(--color-border);
+        border-radius: 10px;
+        background: var(--color-bg-primary);
+        color: var(--color-text-secondary);
+        font-size: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .fullscreen-toggle-btn:hover {
+        background: var(--color-accent-soft);
+        color: var(--color-accent);
+        transform: scale(1.03);
+      }
+
+      .fullscreen-nav-bar {
+        display: none;
+      }
+
+      .fullscreen-center-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .question-card.fullscreen-active {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        margin: 0;
+        padding: 24px;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        background: var(--color-bg-primary);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow: hidden;
+      }
+
+      .question-card.fullscreen-active .question-card-content {
+        flex: 1;
+        width: min(1100px, 100%);
+        margin: 0 auto;
+        padding: 48px 8px 8px;
+        overflow-y: auto;
+      }
+
+      .question-card.fullscreen-active .fullscreen-nav-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        width: min(1100px, 100%);
+        margin: 0 auto;
+        flex-wrap: wrap;
+      }
+
+      .question-card.fullscreen-active .question-text {
+        font-size: 22px;
+        line-height: 1.5;
+        margin-bottom: 22px;
+      }
+
+      .question-card.fullscreen-active .options {
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .question-card.fullscreen-active .option {
+        padding: 14px 18px;
+        font-size: 15px;
+        align-items: flex-start;
+      }
+
+      .question-card.fullscreen-active .show-solution-btn {
+        padding: 10px 24px;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+
+      .question-card.fullscreen-active .solution {
+        padding: 18px 20px;
+        margin-top: 16px;
+        min-height: 0;
+      }
+
+      .question-card.fullscreen-active .solution-title {
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+
+      .question-card.fullscreen-active .solution-content {
+        font-size: 16px;
+        line-height: 1.65;
       }
 
       .question-text {
@@ -544,6 +659,35 @@
         .question-info {
           flex-direction: column;
           gap: 10px;
+        }
+
+        .question-card.fullscreen-active {
+          padding: 14px;
+        }
+
+        .question-card.fullscreen-active .question-card-content {
+          padding-top: 52px;
+        }
+
+        .question-card.fullscreen-active .fullscreen-nav-bar {
+          justify-content: center;
+        }
+
+        .question-card.fullscreen-active .fullscreen-nav-bar .nav-btn {
+          flex: 1 1 180px;
+          min-width: 0;
+        }
+
+        .question-card.fullscreen-active .question-text {
+          font-size: 19px;
+        }
+
+        .question-card.fullscreen-active .option {
+          font-size: 14px;
+        }
+
+        .question-card.fullscreen-active .solution-content {
+          font-size: 15px;
         }
       }
 
@@ -831,7 +975,8 @@
       </div>
       <div class="kbd-hint" style="margin-top: 20px">
         <kbd>A-E</kbd> Şık seç &nbsp; <kbd>S</kbd> Çözüm &nbsp;
-        <kbd>←</kbd><kbd>→</kbd> Gezin
+        <kbd>←</kbd><kbd>→</kbd> Gezin &nbsp; <kbd>F</kbd> Tam ekran &nbsp;
+        <kbd>ESC</kbd> Çık
       </div>
     </div>
     <div id="undo-toast" class="undo-toast">
@@ -921,22 +1066,47 @@
         </button>
       </div>
 
-      <div class="question-card">
-        <div class="question-text" id="question-text"></div>
-
-        <div class="options" id="options-container"></div>
-
+      <div class="question-card" id="question-card">
         <button
-          class="show-solution-btn"
-          id="show-solution-btn"
-          onclick="toggleSolution()"
+          class="fullscreen-toggle-btn"
+          id="fullscreen-toggle-btn"
+          onclick="event.stopPropagation(); toggleFullscreen()"
+          title="Tam ekran (F)"
         >
-          Çözümü Göster
+          ⛶
         </button>
+        <div class="question-card-content">
+          <div class="question-text" id="question-text"></div>
 
-        <div class="solution" id="solution">
-          <div class="solution-title">Açıklama</div>
-          <div class="solution-content" id="solution-content"></div>
+          <div class="options" id="options-container"></div>
+
+          <button
+            class="show-solution-btn"
+            id="show-solution-btn"
+            onclick="toggleSolution()"
+          >
+            Çözümü Göster
+          </button>
+
+          <div class="solution" id="solution">
+            <div class="solution-title">Açıklama</div>
+            <div class="solution-content" id="solution-content"></div>
+          </div>
+        </div>
+        <div class="fullscreen-nav-bar" id="fullscreen-nav-bar">
+          <button class="nav-btn" id="fullscreen-prev-btn" onclick="previousQuestion()">
+            Önceki
+          </button>
+          <div class="fullscreen-center-panel">
+            <div class="question-counter" id="fullscreen-question-counter">
+              Soru 1 / 20
+            </div>
+            <div class="subject-badge" id="fullscreen-subject-badge">Konu</div>
+            <div class="score-display" id="fullscreen-score-display"></div>
+          </div>
+          <button class="nav-btn" id="fullscreen-next-btn" onclick="nextQuestion()">
+            Sonraki
+          </button>
         </div>
       </div>
     </div>

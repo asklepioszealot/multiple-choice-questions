@@ -22,6 +22,7 @@
       let selectedAnswers = {};
       let solutionVisible = {};
       let pendingSession = null;
+      let isFullscreen = false;
       const storage = window.AppStorage;
 
       function buildQuestionKey(setId, question, index) {
@@ -614,6 +615,61 @@
         }
       }
 
+      function updateFullscreenInfo(question) {
+        const counterEl = document.getElementById("fullscreen-question-counter");
+        const subjectEl = document.getElementById("fullscreen-subject-badge");
+        const prevBtn = document.getElementById("fullscreen-prev-btn");
+        const nextBtn = document.getElementById("fullscreen-next-btn");
+        const questionTotal = filteredQuestions.length;
+
+        if (counterEl) {
+          counterEl.textContent =
+            questionTotal > 0
+              ? `Soru ${currentQuestionIndex + 1} / ${questionTotal}`
+              : "Soru 0 / 0";
+        }
+        if (subjectEl) {
+          subjectEl.textContent = question ? question.subject : "Konu";
+        }
+        if (prevBtn) {
+          prevBtn.disabled = questionTotal === 0 || currentQuestionIndex === 0;
+        }
+        if (nextBtn) {
+          nextBtn.disabled =
+            questionTotal === 0 || currentQuestionIndex === questionTotal - 1;
+        }
+      }
+
+      function toggleFullscreen() {
+        const questionCard = document.getElementById("question-card");
+        const toggleBtn = document.getElementById("fullscreen-toggle-btn");
+        if (!questionCard || !toggleBtn) return;
+
+        isFullscreen = !isFullscreen;
+
+        if (isFullscreen) {
+          questionCard.classList.add("fullscreen-active");
+          document.body.style.overflow = "hidden";
+          toggleBtn.textContent = "✕";
+          toggleBtn.title = "Tam ekrandan çık (ESC / F)";
+        } else {
+          questionCard.classList.remove("fullscreen-active");
+          document.body.style.overflow = "";
+          toggleBtn.textContent = "⛶";
+          toggleBtn.title = "Tam ekran (F)";
+        }
+
+        updateFullscreenInfo(
+          filteredQuestions.length > 0
+            ? filteredQuestions[questionOrder[currentQuestionIndex]]
+            : null,
+        );
+
+        if (document.activeElement && document.activeElement.blur) {
+          document.activeElement.blur();
+        }
+      }
+
       function startStudy() {
         if (selectedSets.size === 0) return;
 
@@ -670,6 +726,9 @@
       }
 
       function showSetManager() {
+        if (isFullscreen) {
+          toggleFullscreen();
+        }
         document.getElementById("set-manager").style.display = "block";
         document.getElementById("main-app").style.display = "none";
         renderSetList();
@@ -743,6 +802,7 @@
         document.getElementById("show-solution-btn").textContent = "Çözümü Göster";
         document.getElementById("prev-btn").disabled = true;
         document.getElementById("next-btn").disabled = true;
+        updateFullscreenInfo(null);
         saveState();
       }
 
@@ -797,6 +857,7 @@
           currentQuestionIndex === 0;
         document.getElementById("next-btn").disabled =
           currentQuestionIndex === filteredQuestions.length - 1;
+        updateFullscreenInfo(q);
         saveState();
       }
 
@@ -1026,16 +1087,13 @@
           }
         });
 
-        const scoreEl = document.getElementById("score-display");
-        if (!scoreEl) return;
-
         const progressPct =
           allQuestions.length > 0
             ? Math.round((answered / allQuestions.length) * 100)
             : 0;
         const accuracyPct =
           answered > 0 ? Math.round((correct / answered) * 100) : 0;
-        scoreEl.innerHTML =
+        const scoreHtml =
           "✅ " +
           correct +
           " &nbsp; ❌ " +
@@ -1049,6 +1107,12 @@
           ")" +
           " &nbsp; 🎯 %" +
           accuracyPct;
+        ["score-display", "fullscreen-score-display"].forEach((elementId) => {
+          const scoreEl = document.getElementById(elementId);
+          if (scoreEl) {
+            scoreEl.innerHTML = scoreHtml;
+          }
+        });
       }
 
       function migrateLegacyAssessmentsIfNeeded() {
@@ -1191,8 +1255,23 @@
         if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")
           return;
 
+        const isMainAppVisible =
+          document.getElementById("main-app").style.display !== "none";
+
+        if ((e.key === "f" || e.key === "F") && isMainAppVisible) {
+          e.preventDefault();
+          toggleFullscreen();
+          return;
+        }
+
+        if (e.key === "Escape" && isFullscreen) {
+          e.preventDefault();
+          toggleFullscreen();
+          return;
+        }
+
         // Yalnızca main-app görünürse tuşlara izin ver
-        if (document.getElementById("main-app").style.display === "none")
+        if (!isMainAppVisible)
           return;
 
         if (e.key === "ArrowLeft") {

@@ -88,6 +88,7 @@ test.describe("MCQ smoke", () => {
     await expect(setManager).toBeVisible();
     await expect(setManagerHint).toBeVisible();
     await expect(setManagerHint).toContainText("A-E");
+    await expect(setManagerHint).toContainText("F");
     await expect(driveButton).toBeVisible();
     await expect(driveButton).toHaveClass(/btn-secondary/);
     await expect(page.locator('label[for="file-picker"]')).toHaveClass(
@@ -232,6 +233,58 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#score-display")).toHaveText(
       "✅ 0 ❌ 0 📊 0/1 (%0) 🎯 %0",
     );
+  });
+
+  test("fullscreen mode toggles with keyboard shortcuts", async ({ page }) => {
+    await seedLocalSets(page, {
+      sets: {
+        demo: {
+          setName: "Fullscreen Demo",
+          fileName: "fullscreen-demo.json",
+          questions: [
+            {
+              q: "Tam ekran testi?",
+              options: ["A", "B", "C", "D"],
+              correct: 0,
+              subject: "Genel",
+              explanation: "A",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["demo"],
+    });
+
+    await page.locator("#start-btn").click();
+    await page.press("body", "F");
+
+    await expect
+      .poll(async () =>
+        page.evaluate(() =>
+          document
+            .getElementById("question-card")
+            .classList.contains("fullscreen-active"),
+        ),
+      )
+      .toBe(true);
+    await expect(page.locator("#fullscreen-question-counter")).toHaveText(
+      "Soru 1 / 1",
+    );
+    await expect(page.locator("#fullscreen-score-display")).toHaveText(
+      "✅ 0 ❌ 0 📊 0/1 (%0) 🎯 %0",
+    );
+
+    await page.press("body", "Escape");
+
+    await expect
+      .poll(async () =>
+        page.evaluate(() =>
+          document
+            .getElementById("question-card")
+            .classList.contains("fullscreen-active"),
+        ),
+      )
+      .toBe(false);
   });
 
   test("duplicate question across sets keeps answers independent", async ({
