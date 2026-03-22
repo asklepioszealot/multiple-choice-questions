@@ -89,6 +89,10 @@ test.describe("MCQ smoke", () => {
     await expect(setManagerHint).toBeVisible();
     await expect(setManagerHint).toContainText("A-E");
     await expect(driveButton).toBeVisible();
+    await expect(driveButton).toHaveClass(/btn-secondary/);
+    await expect(page.locator('label[for="file-picker"]')).toHaveClass(
+      /btn-secondary/,
+    );
     await expect(page.evaluate(() => typeof window.authGoogleDrive)).resolves.toBe(
       "function",
     );
