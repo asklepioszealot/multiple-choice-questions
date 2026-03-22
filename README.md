@@ -5,22 +5,26 @@ Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzer
 ## Özellikler
 
 1. **Dinamik Soru Seti Yükleme (`Set Yönetimi`)**:
-   - Dışarıdan indirdiğiniz veya kendiniz hazırladığınız `.json` uzantılı soru setlerini tek tıkla uygulamaya yükleyebilirsiniz.
+   - Dışarıdan indirdiğiniz veya kendiniz hazırladığınız `.json`, `.md` ve `.txt` uzantılı soru setlerini tek tıkla uygulamaya yükleyebilirsiniz.
+   - Web sürümünde Google Drive Picker ile Drive'dan doğrudan soru dosyası seçebilirsiniz. Tauri/masaüstü sürümünde ise bu sınır net bir uyarıyla belirtilir.
    - Birden fazla seti aynı anda seçip harmanlayarak veya ayrı ayrı filtreleyerek çözme imkanı sağlar.
 2. **Kişiselleştirilmiş Öğrenme ve İlerleme Takibi**:
    - Girdiğiniz cevaplar (doğru, yanlış, seçilmemiş) tarayıcı önbelleğinde (`localStorage`) güvende tutulur.
    - Soru setini silseniz dahi, aynı seti tekrar yüklediğinizde uygulamadaki ilerlemeniz kaldığı yerden devam eder (soru kimliği set-bazlı tutulur; aynı soru farklı setlerde birbirini ezmez).
-   - Uygulama, kaldığınız soru ve konu filtresini doğru şekilde geri yükler; eski `mc_...` anahtarlar otomatik migrate edilerek mevcut veriler korunur.
+   - Uygulama, kaldığınız soru ve konu filtresini doğru şekilde geri yükler; `Setlere Dön -> Başla` akışında ve uygulamayı kapatıp açtıktan sonra da aynı soruya dönebilir.
+   - İsterseniz `Cevapları kilitle` ile cevaplandıktan sonra şıkları değiştirilemez hale getirebilir, `Otomatik sonraki soru` ile cevap sonrası kısa gecikmeyle bir sonraki soruya otomatik geçebilirsiniz.
+   - `Sıfırla` artık yalnızca o anda çalışılan aktif/setilmiş setlerin ilerlemesini temizler.
+   - Eski `mc_...` anahtarlar otomatik migrate edilerek mevcut veriler korunur.
    - "Yanlışları Çöz" butonuyla sadece hata yaptığınız soruları ayıklayıp tekrar çözebilirsiniz.
 3. **Kapsamlı Konu Filtresi & Karıştırma**:
    - Yüklediğiniz setlerdeki sorular "Konu" başlıklarına göre otomatik olarak filtre seçeneklerine dahil olur.
    - İstediğiniz an soruları karıştırarak (`Karıştır` butonu) ezberi kırabilirsiniz.
-4. **Hızlı Kısayollar ve Yazdırma Desteği**:
-   - `Klavyedeki A, B, C, D, E` tuşlarıyla şıkları güvenle işaretleyin.
-   - `S` tuşuyla açıklamaları görün, Yön tuşlarıyla sorular arasında gezinin.
+4. **Hızlı Kısayollar, Tam Ekran ve Yazdırma Desteği**:
+   - Başlangıç ekranında görünen kısayollarla `A-E` ile şık işaretleyin, `S` ile açıklamayı açın, yön tuşlarıyla sorular arasında gezinin.
+   - `F` ile tam ekrana geçin, `ESC` ile çıkın. Tam ekranda soru, şık ve açıklama blokları daha kompakt boyutta gösterilir ve içerik kaydırılabilir.
    - Testleri temiz bir A4 formatında PDF olarak kaydedin veya doğrudan yazdırın.
 5. **Modern Arayüz ve Karanlık Tema**:
-   - Göz yormayan, animasyonlu arayüz ve kalıcı Karanlık/Aydınlık mod seçeneği.
+   - Göz yormayan, animasyonlu arayüz ve başlangıç ekranından da erişilebilen kalıcı Karanlık/Aydınlık mod seçeneği.
 
 ## Windows EXE Alma (Otomatik)
 
@@ -90,7 +94,7 @@ Aşağıdaki komutu yapay zekaya kopyalayıp, doğrudan test verisini talep edeb
 > ```
 > *Not: "correct" anahtarı için 0=A, 1=B, 2=C, 3=D, 4=E'dir.*
 
-Yapay zekanın verdiği JSON blok kodunu kopyalayıp örneğin `yenitest.json` dosyası olarak kaydedin ve uygulamadaki `JSON Dosyası Yükle` butonundan uygulamaya tanıtın.
+Yapay zekanın verdiği JSON blok kodunu kopyalayıp örneğin `yenitest.json` dosyası olarak kaydedin ve uygulamadaki `Soru Dosyası Yükle` butonundan uygulamaya tanıtın.
 
 ### Yöntem 2: Düz Metin (Markdown) Yüklemek
 
@@ -121,7 +125,7 @@ Not: Elinizdeki `.txt` veya `.md` dosyalarını JSON'a çevirmek için terminald
 
 Uygulamanın çalışması için herhangi bir sunucuya, kurulu bir programa ya da veritabanına ihtiyacınız yoktur.
 1. `index.html` dosyasını tarayıcınızda (Chrome, Safari, Firefox vb.) açın.
-2. Karşınıza çıkan **Set Yöneticisi** ekranından kendi ürettiğiniz `.json` ya da `.md` dosyasını seçin.
+2. Karşınıza çıkan **Set Yöneticisi** ekranından kendi ürettiğiniz `.json`, `.md` ya da `.txt` dosyasını seçin veya web sürümünde Drive'dan içe aktarın.
 3. Listeden çalışmak istediğiniz testleri seçip `Başla` butonuna basın!
 
 ## Smoke Test (Playwright)
