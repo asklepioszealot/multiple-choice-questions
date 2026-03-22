@@ -11,6 +11,7 @@
       const DRIVE_APP_ID = "102976125468";
       const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
       const ANSWER_LOCK_KEY = "mc_answer_lock";
+      const AUTO_ADVANCE_KEY = "mc_auto_advance";
       let driveTokenClient = null;
       let driveAccessToken = null;
       let drivePickerApiLoaded = false;
@@ -25,6 +26,8 @@
       let pendingSession = null;
       let isFullscreen = false;
       let answerLockEnabled = false;
+      let autoAdvanceEnabled = false;
+      let autoAdvanceTimeoutId = null;
       const storage = window.AppStorage;
 
       function buildQuestionKey(setId, question, index) {
@@ -661,6 +664,32 @@
         syncAnswerLockToggleUI();
       }
 
+      function syncAutoAdvanceToggleUI() {
+        const toggle = document.getElementById("auto-advance-toggle-manager");
+        if (toggle) {
+          toggle.checked = autoAdvanceEnabled;
+        }
+        const status = document.getElementById("auto-advance-status");
+        if (status) {
+          status.textContent = autoAdvanceEnabled
+            ? "Otomatik sonraki soru: Açık"
+            : "Otomatik sonraki soru: Kapalı";
+        }
+      }
+
+      function setAutoAdvance(isEnabled) {
+        autoAdvanceEnabled = Boolean(isEnabled);
+        storage.setItem(AUTO_ADVANCE_KEY, autoAdvanceEnabled ? "1" : "0");
+        syncAutoAdvanceToggleUI();
+      }
+
+      function clearAutoAdvanceTimer() {
+        if (autoAdvanceTimeoutId) {
+          clearTimeout(autoAdvanceTimeoutId);
+          autoAdvanceTimeoutId = null;
+        }
+      }
+
       function getSavedSession() {
         try {
           const savedSession = storage.getItem("mc_session");
@@ -707,6 +736,7 @@
 
       function startStudy() {
         if (selectedSets.size === 0) return;
+        clearAutoAdvanceTimer();
 
         allQuestions = [];
         for (const setId of selectedSets) {
@@ -761,6 +791,7 @@
       }
 
       function showSetManager() {
+        clearAutoAdvanceTimer();
         if (isFullscreen) {
           toggleFullscreen();
         }
@@ -900,6 +931,7 @@
         const q = filteredQuestions[questionOrder[currentQuestionIndex]];
         const cid = cardId(q);
         const currentAnswer = selectedAnswers[cid];
+        let answeredNow = false;
 
         if (answerLockEnabled && currentAnswer !== undefined) {
           return;
@@ -909,10 +941,21 @@
           delete selectedAnswers[cid];
         } else {
           selectedAnswers[cid] = index;
+          answeredNow = true;
         }
 
         displayQuestion();
         updateScoreDisplay();
+
+        if (autoAdvanceEnabled && answeredNow) {
+          clearAutoAdvanceTimer();
+          autoAdvanceTimeoutId = setTimeout(() => {
+            autoAdvanceTimeoutId = null;
+            if (currentQuestionIndex < filteredQuestions.length - 1) {
+              nextQuestion();
+            }
+          }, 400);
+        }
       }
 
       function toggleSolution() {
@@ -934,6 +977,7 @@
       }
 
       function previousQuestion() {
+        clearAutoAdvanceTimer();
         if (currentQuestionIndex > 0) {
           currentQuestionIndex--;
           displayQuestion();
@@ -941,6 +985,7 @@
       }
 
       function nextQuestion() {
+        clearAutoAdvanceTimer();
         if (currentQuestionIndex < filteredQuestions.length - 1) {
           currentQuestionIndex++;
           displayQuestion();
@@ -948,6 +993,7 @@
       }
 
       function jumpToQuestion() {
+        clearAutoAdvanceTimer();
         const input = document.getElementById("jump-input");
         const questionNum = parseInt(input.value);
 
@@ -1263,6 +1309,10 @@
           if (storedAnswerLock === "0" || storedAnswerLock === "1") {
             answerLockEnabled = storedAnswerLock === "1";
           }
+          const storedAutoAdvance = storage.getItem(AUTO_ADVANCE_KEY);
+          if (storedAutoAdvance === "0" || storedAutoAdvance === "1") {
+            autoAdvanceEnabled = storedAutoAdvance === "1";
+          }
 
           const savedSession = storage.getItem("mc_session");
           pendingSession = null;
@@ -1286,6 +1336,7 @@
           console.error("State loading error", e);
         }
         syncAnswerLockToggleUI();
+        syncAutoAdvanceToggleUI();
       }
 
       function populateTopicFilter() {

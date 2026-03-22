@@ -86,10 +86,12 @@ test.describe("MCQ smoke", () => {
     const driveButton = page.locator("#drive-upload-btn");
     const managerPreferences = setManager.locator(".manager-preferences");
     const answerLockStatus = page.locator("#answer-lock-status");
+    const autoAdvanceStatus = page.locator("#auto-advance-status");
 
     await expect(setManager).toBeVisible();
     await expect(managerPreferences).toBeVisible();
     await expect(answerLockStatus).toHaveText("Cevapları kilitle: Kapalı");
+    await expect(autoAdvanceStatus).toHaveText("Otomatik sonraki soru: Kapalı");
     await expect(setManagerHint).toBeVisible();
     await expect(setManagerHint).toContainText("A-E");
     await expect(setManagerHint).toContainText("F");
@@ -445,6 +447,52 @@ test.describe("MCQ smoke", () => {
       JSON.parse(localStorage.getItem("mc_assessments") || "{}"),
     );
     expect(Object.keys(assessments.selectedAnswers || {})).toHaveLength(0);
+  });
+
+  test("auto advance persists and moves to the next question", async ({
+    page,
+  }) => {
+    await seedLocalSets(page, {
+      sets: {
+        demo: {
+          setName: "Auto Advance Demo",
+          fileName: "auto-advance-demo.json",
+          questions: [
+            {
+              q: "İlk soru?",
+              options: ["A", "B", "C", "D"],
+              correct: 0,
+              subject: "Genel",
+              explanation: "A",
+            },
+            {
+              q: "İkinci soru?",
+              options: ["A", "B", "C", "D"],
+              correct: 1,
+              subject: "Genel",
+              explanation: "B",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["demo"],
+    });
+
+    await page.locator("#auto-advance-toggle-manager").check();
+    await expect(page.locator("#auto-advance-status")).toHaveText(
+      "Otomatik sonraki soru: Açık",
+    );
+
+    await page.reload();
+    await expect(page.locator("#auto-advance-status")).toHaveText(
+      "Otomatik sonraki soru: Açık",
+    );
+
+    await page.locator("#start-btn").click();
+    await selectOption(page, 0);
+    await page.waitForTimeout(450);
+    await expect(page.locator("#question-counter")).toHaveText("Soru 2 / 2");
+    await expect(page.locator("#solution")).not.toHaveClass(/visible/);
   });
 
   test("duplicate question across sets keeps answers independent", async ({
