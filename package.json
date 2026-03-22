@@ -17,16 +17,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/asklepioszealot/multiple-choices-test.git"
+    "url": "git+https://github.com/asklepioszealot/multiple-choice-questions.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/asklepioszealot/multiple-choices-test/issues"
+    "url": "https://github.com/asklepioszealot/multiple-choice-questions/issues"
   },
-  "homepage": "https://github.com/asklepioszealot/multiple-choices-test#readme",
+  "homepage": "https://github.com/asklepioszealot/multiple-choice-questions#readme",
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@tauri-apps/cli": "^2.10.1"

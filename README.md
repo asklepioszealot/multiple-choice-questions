@@ -1,4 +1,4 @@
-# Multiple Choice Questions (Dinamik Set Yönetimli)
+# Çoktan Seçmeli Sorular (Dinamik Set Yönetimli)
 
 Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzere) çoktan seçmeli sorularla pratik yapmayı sağlayan, **tamamen lokal**, tarayıcı üzerinde çalışan ve JSON dosyalarıyla dinamik olarak genişletilebilen bir test uygulamasıdır.
 

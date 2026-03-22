@@ -1,4 +1,4 @@
-# Multiple Choice Questions Source Modules (Roadmap)
+# Çoktan Seçmeli Sorular Kaynak Modülleri (Yol Haritası)
 
 Bu klasor, tek parca `index.html` yapisindan moduler yapiya gecis icin hazirlandi.
 
