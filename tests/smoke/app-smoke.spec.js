@@ -84,8 +84,10 @@ test.describe("MCQ smoke", () => {
     const startButton = page.locator("#start-btn");
     const setManagerHint = setManager.locator(".kbd-hint");
     const driveButton = page.locator("#drive-upload-btn");
+    const managerPreferences = setManager.locator(".manager-preferences");
 
     await expect(setManager).toBeVisible();
+    await expect(managerPreferences).toBeVisible();
     await expect(setManagerHint).toBeVisible();
     await expect(setManagerHint).toContainText("A-E");
     await expect(setManagerHint).toContainText("F");
