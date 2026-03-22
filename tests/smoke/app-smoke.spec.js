@@ -67,6 +67,13 @@ async function selectOption(page, optionIndex) {
   await page.waitForTimeout(200);
 }
 
+async function setHiddenToggle(page, inputSelector, checked) {
+  const input = page.locator(inputSelector);
+  if ((await input.isChecked()) !== checked) {
+    await page.locator(`${inputSelector} + .toggle-slider`).click();
+  }
+}
+
 test.describe("MCQ smoke", () => {
   test("set manager flow works from upload to start", async ({ page }) => {
     const fixturePath = path.resolve(
@@ -421,7 +428,7 @@ test.describe("MCQ smoke", () => {
       selectedSetIds: ["demo"],
     });
 
-    await page.locator("#answer-lock-toggle-manager").check();
+    await setHiddenToggle(page, "#answer-lock-toggle-manager", true);
     await expect(page.locator("#answer-lock-status")).toHaveText(
       "Cevapları kilitle: Açık",
     );
@@ -439,7 +446,7 @@ test.describe("MCQ smoke", () => {
     );
 
     await page.locator('button[onclick="showSetManager()"]').click();
-    await page.locator("#answer-lock-toggle-manager").uncheck();
+    await setHiddenToggle(page, "#answer-lock-toggle-manager", false);
     await page.locator("#start-btn").click();
     await selectOption(page, 0);
 
@@ -478,7 +485,7 @@ test.describe("MCQ smoke", () => {
       selectedSetIds: ["demo"],
     });
 
-    await page.locator("#auto-advance-toggle-manager").check();
+    await setHiddenToggle(page, "#auto-advance-toggle-manager", true);
     await expect(page.locator("#auto-advance-status")).toHaveText(
       "Otomatik sonraki soru: Açık",
     );
