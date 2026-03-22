@@ -154,6 +154,45 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#question-text")).toContainText("Kart C?");
   });
 
+  test("clicking the same answer twice clears the question", async ({ page }) => {
+    await seedLocalSets(page, {
+      sets: {
+        demo: {
+          setName: "Toggle Answer Demo",
+          fileName: "toggle-answer-demo.json",
+          questions: [
+            {
+              q: "Doğru cevap A mı?",
+              options: ["Evet", "Hayır", "Belki", "Bilmiyorum"],
+              correct: 0,
+              subject: "Genel",
+              explanation: "A",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["demo"],
+    });
+
+    await page.locator("#start-btn").click();
+    await selectOption(page, 0);
+
+    await expect(page.locator("#options-container .option").nth(0)).toHaveClass(
+      /correct/,
+    );
+
+    await selectOption(page, 0);
+
+    await expect(page.locator("#options-container .option").nth(0)).not.toHaveClass(
+      /correct/,
+    );
+
+    const assessments = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("mc_assessments") || "{}"),
+    );
+    expect(Object.keys(assessments.selectedAnswers || {})).toHaveLength(0);
+  });
+
   test("duplicate question across sets keeps answers independent", async ({
     page,
   }) => {

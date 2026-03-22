@@ -701,20 +701,15 @@
       function selectOption(index) {
         const q = filteredQuestions[questionOrder[currentQuestionIndex]];
         const cid = cardId(q);
+        const currentAnswer = selectedAnswers[cid];
 
-        selectedAnswers[cid] = index;
+        if (currentAnswer === index) {
+          delete selectedAnswers[cid];
+        } else {
+          selectedAnswers[cid] = index;
+        }
 
-        const options = document.querySelectorAll(".option");
-        options.forEach((opt, i) => {
-          opt.classList.remove("selected", "correct", "wrong");
-
-          if (i === q.correct) {
-            opt.classList.add("correct");
-          } else if (i === index && i !== q.correct) {
-            opt.classList.add("wrong");
-          }
-        });
-        saveState();
+        displayQuestion();
         updateScoreDisplay();
       }
 
