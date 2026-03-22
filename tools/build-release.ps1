@@ -115,8 +115,8 @@ try {
   $releaseDir = Join-Path $repoRoot ("release\" + $timestamp + "_v" + $version + "_" + $commit)
   New-Item -Path $releaseDir -ItemType Directory -Force | Out-Null
 
-  $portableName = "MCQ_Test_Portable_v{0}_{1}.exe" -f $version, $commit
-  $setupName = "MCQ_Test_Kurulum_v{0}_{1}.exe" -f $version, $commit
+  $portableName = "Multiple_Choice_Questions_Portable_v{0}_{1}.exe" -f $version, $commit
+  $setupName = "Multiple_Choice_Questions_Kurulum_v{0}_{1}.exe" -f $version, $commit
   $portableTarget = Join-Path $releaseDir $portableName
   $setupTarget = Join-Path $releaseDir $setupName
 
@@ -124,8 +124,8 @@ try {
   Copy-Item -Path $portableSource -Destination $portableTarget -Force
   Copy-Item -Path $setupSource.FullName -Destination $setupTarget -Force
 
-  $legacyPortablePath = Join-Path $repoRoot "MCQ_Test_Portable.exe"
-  $legacySetupPath = Join-Path $repoRoot "MCQ_Test_Kurulum.exe"
+  $legacyPortablePath = Join-Path $repoRoot "Multiple_Choice_Questions_Portable.exe"
+  $legacySetupPath = Join-Path $repoRoot "Multiple_Choice_Questions_Kurulum.exe"
 
   if (-not $NoLegacyCopy) {
     Write-Host "[4/6] Syncing legacy root file names..."

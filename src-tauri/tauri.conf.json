@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Multiple Choices Test",
+  "productName": "Multiple Choice Questions",
   "version": "0.1.0",
   "identifier": "com.asklepioszealot.multiplechoicestest",
   "build": {
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "Multiple Choices Test",
+        "title": "Multiple Choice Questions",
         "width": 800,
         "height": 600,
         "resizable": true,

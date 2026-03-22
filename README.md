@@ -1,4 +1,4 @@
-# Çoktan Seçmeli Test Şablonu (Dinamik Set Yönetimli)
+# Multiple Choice Questions (Dinamik Set Yönetimli)
 
 Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzere) çoktan seçmeli sorularla pratik yapmayı sağlayan, **tamamen lokal**, tarayıcı üzerinde çalışan ve JSON dosyalarıyla dinamik olarak genişletilebilen bir test uygulamasıdır.
 
@@ -36,7 +36,7 @@ Bu komut sırasıyla:
 1. `index.html` dosyasını `dist/` altında hazırlar (varsa `data/` klasörünü de kopyalar).
 2. `npx tauri build --bundles nsis` ile kurulum dosyasını üretir.
 3. Portable (`app.exe`) ve kurulum (`*-setup.exe`) çıktılarını `release/` altında versiyon+commit adlarıyla saklar.
-4. İsteğe bağlı kök dosya adlarını da günceller (`MCQ_Test_Portable.exe`, `MCQ_Test_Kurulum.exe`).
+4. İsteğe bağlı kök dosya adlarını da günceller (`Multiple_Choice_Questions_Portable.exe`, `Multiple_Choice_Questions_Kurulum.exe`).
 
 Sadece `release/` klasörlü çıktıyı almak için:
 

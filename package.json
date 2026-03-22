@@ -1,5 +1,5 @@
 {
-  "name": "multiple-choices-test",
+  "name": "multiple-choice-questions",
   "version": "1.0.0",
   "description": "Doktorlar ve tıp öğrencileri için lokal çalışan, JSON tabanlı çoktan seçmeli test uygulaması.",
   "main": "index.js",
