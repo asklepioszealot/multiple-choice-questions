@@ -172,6 +172,52 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#question-text")).toContainText("Kart C?");
   });
 
+  test("resume exact question after returning to set manager", async ({ page }) => {
+    await seedLocalSets(page, {
+      sets: {
+        demo: {
+          setName: "Manager Resume Demo",
+          fileName: "manager-resume-demo.json",
+          questions: [
+            {
+              q: "Soru A?",
+              options: ["A1", "A2", "A3", "A4"],
+              correct: 0,
+              subject: "Genel",
+              explanation: "A",
+            },
+            {
+              q: "Soru B?",
+              options: ["B1", "B2", "B3", "B4"],
+              correct: 1,
+              subject: "Genel",
+              explanation: "B",
+            },
+            {
+              q: "Soru C?",
+              options: ["C1", "C2", "C3", "C4"],
+              correct: 2,
+              subject: "Genel",
+              explanation: "C",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["demo"],
+    });
+
+    await page.locator("#start-btn").click();
+    await page.locator("#next-btn").click();
+    await page.locator("#next-btn").click();
+
+    await expect(page.locator("#question-counter")).toHaveText("Soru 3 / 3");
+    await page.locator('button[onclick="showSetManager()"]').click();
+    await page.locator("#start-btn").click();
+
+    await expect(page.locator("#question-counter")).toHaveText("Soru 3 / 3");
+    await expect(page.locator("#question-text")).toContainText("Soru C?");
+  });
+
   test("clicking the same answer twice clears the question", async ({ page }) => {
     await seedLocalSets(page, {
       sets: {
