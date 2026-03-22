@@ -558,12 +558,26 @@
         white-space: nowrap;
       }
 
-      .keyboard-hint {
+      .kbd-hint {
         text-align: center;
         color: var(--color-text-secondary);
         font-size: 12px;
         opacity: 0.6;
         margin-top: 15px;
+      }
+
+      .kbd-hint kbd {
+        display: inline-flex;
+        min-width: 24px;
+        justify-content: center;
+        padding: 2px 6px;
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        background: var(--color-bg-secondary);
+        color: var(--color-text-primary);
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
       }
 
       /* --- SET MANAGER CSS --- */
@@ -808,6 +822,10 @@
           ▶ Başla
         </button>
       </div>
+      <div class="kbd-hint" style="margin-top: 20px">
+        <kbd>A-E</kbd> Şık seç &nbsp; <kbd>S</kbd> Çözüm &nbsp;
+        <kbd>←</kbd><kbd>→</kbd> Gezin
+      </div>
     </div>
     <div id="undo-toast" class="undo-toast">
       <span id="undo-message">Set kaldırıldı.</span>
@@ -912,10 +930,6 @@
         <div class="solution" id="solution">
           <div class="solution-title">Açıklama</div>
           <div class="solution-content" id="solution-content"></div>
-        </div>
-        <div class="keyboard-hint">
-          ⌨️ A-E: Şık seç &nbsp;|&nbsp; S: Çözüm göster &nbsp;|&nbsp; ←→:
-          Önceki/Sonraki
         </div>
       </div>
     </div>

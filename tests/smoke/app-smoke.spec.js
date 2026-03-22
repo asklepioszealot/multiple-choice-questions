@@ -82,8 +82,11 @@ test.describe("MCQ smoke", () => {
     const setManager = page.locator("#set-manager");
     const mainApp = page.locator("#main-app");
     const startButton = page.locator("#start-btn");
+    const setManagerHint = setManager.locator(".kbd-hint");
 
     await expect(setManager).toBeVisible();
+    await expect(setManagerHint).toBeVisible();
+    await expect(setManagerHint).toContainText("A-E");
     const themeToggleSwitch = page.locator("#set-manager .toggle-switch").first();
     await expect(themeToggleSwitch).toBeVisible();
 
@@ -104,6 +107,7 @@ test.describe("MCQ smoke", () => {
     await startButton.click();
     await expect(mainApp).toBeVisible();
     await expect(setManager).toBeHidden();
+    await expect(mainApp.locator(".kbd-hint")).toHaveCount(0);
   });
 
   test("resume exact question after reload", async ({ page }) => {
