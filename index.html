@@ -807,6 +807,9 @@
       </div>
 
       <div class="set-actions">
+        <button class="btn" id="drive-upload-btn" onclick="authGoogleDrive()">
+          ☁️ Drive'dan Dosya Ekle
+        </button>
         <label class="btn" for="file-picker"
           >📂 Soru Dosyası Yükle (.json, .md)</label
         >
@@ -934,6 +937,8 @@
       </div>
     </div>
 
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
     <script src="./src/core/storage.js"></script>
     <script src="./src/ui/theme.js"></script>
     <script src="./src/app/main.js"></script>

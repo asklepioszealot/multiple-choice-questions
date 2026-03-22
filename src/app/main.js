@@ -5,6 +5,14 @@
       let deleteMode = false;
       let lastRemovedSets = [];
       let undoTimeoutId = null;
+      const DRIVE_CLIENT_ID =
+        "102976125468-1mq0m7ptikns377eso8gmnaaioac17fv.apps.googleusercontent.com";
+      const DRIVE_API_KEY = "AIzaSyCUvy3PvFNpAVL9FYvLF22lzUPJ9xZHWrw";
+      const DRIVE_APP_ID = "102976125468";
+      const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+      let driveTokenClient = null;
+      let driveAccessToken = null;
+      let drivePickerApiLoaded = false;
 
       // --- ESKİ DEĞİŞKENLER ---
       let currentQuestionIndex = 0;
@@ -214,72 +222,82 @@
         return result;
       }
 
+      function normalizeQuestions(data) {
+        return Array.isArray(data.questions)
+          ? data.questions
+              .filter(
+                (question) =>
+                  question &&
+                  typeof question === "object" &&
+                  !Array.isArray(question),
+              )
+              .map((question) => ({
+                q: typeof question.q === "string" ? question.q : "",
+                options: Array.isArray(question.options)
+                  ? question.options.filter((option) => typeof option === "string")
+                  : [],
+                correct: Number.isInteger(question.correct)
+                  ? question.correct
+                  : -1,
+                explanation:
+                  typeof question.explanation === "string"
+                    ? question.explanation
+                    : "",
+                subject:
+                  typeof question.subject === "string" && question.subject.trim()
+                    ? question.subject
+                    : "Genel",
+                id:
+                  typeof question.id === "string" ||
+                  typeof question.id === "number"
+                    ? question.id
+                    : null,
+              }))
+          : [];
+      }
+
+      function persistLoadedSet(fileName, data) {
+        const setId = fileName.replace(/\.[^/.]+$/, "");
+        loadedSets[setId] = {
+          setName: data.setName || fileName,
+          questions: normalizeQuestions(data),
+          fileName: fileName,
+        };
+
+        saveSetsList();
+        storage.setItem("mc_set_" + setId, JSON.stringify(loadedSets[setId]));
+        return setId;
+      }
+
+      function parseSetText(text, fileName) {
+        if (fileName.endsWith(".md") || fileName.endsWith(".txt")) {
+          return parseMarkdownToJSON(text, fileName);
+        }
+
+        // JSON'daki sondaki virgülleri (trailing commas) temizle
+        const cleanText = text.replace(/,\s*([\]}])/g, "$1");
+        return JSON.parse(cleanText);
+      }
+
+      async function loadSetFromText(text, fileName) {
+        const data = parseSetText(text, fileName);
+        return persistLoadedSet(fileName, data);
+      }
+
       async function handleFileSelect(event) {
         const files = event.target.files;
         for (const file of files) {
           try {
             const text = await file.text();
-            let data;
-
-            if (file.name.endsWith(".md") || file.name.endsWith(".txt")) {
-              data = parseMarkdownToJSON(text, file.name);
-            } else {
-              // JSON'daki sondaki virgülleri (trailing commas) temizle
-              const cleanText = text.replace(/,\s*([\]}])/g, "$1");
-              data = JSON.parse(cleanText);
-            }
-
-            const setId = file.name.replace(/\.[^/.]+$/, "");
-            const normalizedQuestions = Array.isArray(data.questions)
-              ? data.questions
-                  .filter(
-                    (question) =>
-                      question &&
-                      typeof question === "object" &&
-                      !Array.isArray(question),
-                  )
-                  .map((question) => ({
-                    q: typeof question.q === "string" ? question.q : "",
-                    options: Array.isArray(question.options)
-                      ? question.options.filter((option) => typeof option === "string")
-                      : [],
-                    correct: Number.isInteger(question.correct)
-                      ? question.correct
-                      : -1,
-                    explanation:
-                      typeof question.explanation === "string"
-                        ? question.explanation
-                        : "",
-                    subject:
-                      typeof question.subject === "string" && question.subject.trim()
-                        ? question.subject
-                        : "Genel",
-                    id:
-                      typeof question.id === "string" ||
-                      typeof question.id === "number"
-                        ? question.id
-                        : null,
-                  }))
-              : [];
-
-            loadedSets[setId] = {
-              setName: data.setName || file.name,
-              questions: normalizedQuestions,
-              fileName: file.name,
-            };
-
-            saveSetsList();
-            storage.setItem(
-              "mc_set_" + setId,
-              JSON.stringify(loadedSets[setId]),
-            );
+            const setId = await loadSetFromText(text, file.name);
+            selectedSets.add(setId);
           } catch (e) {
             console.error("Set okuma hatası:", e);
             alert(file.name + " okunamadı. Dosya formatı uyumlu değil.");
           }
         }
 
-        Object.keys(loadedSets).forEach((id) => selectedSets.add(id));
+        event.target.value = "";
         renderSetList();
       }
 
@@ -510,6 +528,90 @@
         lastRemovedSets = [];
         saveSetsList();
         renderSetList();
+      }
+
+      function initGoogleDrive() {
+        if (!window.google || !window.google.accounts || !window.gapi) {
+          setTimeout(initGoogleDrive, 500);
+          return;
+        }
+
+        gapi.load("picker", () => {
+          drivePickerApiLoaded = true;
+        });
+
+        driveTokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: DRIVE_CLIENT_ID,
+          scope: DRIVE_SCOPES,
+          callback: (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              driveAccessToken = tokenResponse.access_token;
+              launchDrivePicker();
+            }
+          },
+        });
+      }
+
+      function authGoogleDrive() {
+        if (!driveTokenClient || !drivePickerApiLoaded) {
+          alert("Google hesap servisleri henüz yüklenmedi veya bağlantı hatası var.");
+          return;
+        }
+
+        driveTokenClient.requestAccessToken({ prompt: "" });
+      }
+
+      function launchDrivePicker() {
+        if (window.__TAURI__) {
+          alert("Tauri (masaüstü) versiyonunda Google Picker penceresi desteklenmiyor.");
+          return;
+        }
+
+        const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+          .setMimeTypes("application/json,text/markdown,text/plain");
+        const picker = new google.picker.PickerBuilder()
+          .addView(view)
+          .setOAuthToken(driveAccessToken)
+          .setDeveloperKey(DRIVE_API_KEY)
+          .setAppId(DRIVE_APP_ID)
+          .setCallback(pickerCallback)
+          .setTitle("Uygulamaya eklenecek soru setini seçin (.json, .md, .txt)")
+          .build();
+
+        picker.setVisible(true);
+      }
+
+      function pickerCallback(data) {
+        if (data.action === google.picker.Action.PICKED) {
+          const file = data.docs[0];
+          downloadAndLoadDriveFile(file.id, file.name);
+        }
+      }
+
+      async function downloadAndLoadDriveFile(fileId, fileName) {
+        try {
+          const response = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${DRIVE_API_KEY}`,
+            {
+              headers: {
+                Authorization: `Bearer ${driveAccessToken}`,
+              },
+            },
+          );
+
+          if (!response.ok) {
+            throw new Error("İndirme hatası: " + response.statusText);
+          }
+
+          const text = await response.text();
+          const setId = await loadSetFromText(text, fileName);
+          selectedSets.add(setId);
+          renderSetList();
+          showUndoToast(`"${fileName}" yüklendi!`);
+        } catch (e) {
+          console.error("Drive set indirme hatası:", e);
+          alert("Drive indirme hatası: " + e.message);
+        }
       }
 
       function startStudy() {
@@ -1132,6 +1234,7 @@
 
         loadState();
         renderSetList();
+        initGoogleDrive();
       }
 
       initApp();
