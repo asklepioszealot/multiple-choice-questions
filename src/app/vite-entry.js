@@ -1,6 +1,7 @@
 import "../core/storage.js";
 import "../core/set-codec.js";
 import "../features/study/study-actions.js";
+import "../features/study/study-export.js";
 import "../features/study/study-session.js";
 import "../features/study/study-ui.js";
 import "../features/study-state/study-state.js";

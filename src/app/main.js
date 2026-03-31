@@ -39,6 +39,7 @@
         createResetStudyState,
         shuffleQuestionOrder,
       } = window.AppStudyActions;
+      const { buildPrintableStudyHtml } = window.AppStudyExport;
       const {
         buildStudyQuestions,
         collectStudySubjects,
@@ -804,50 +805,11 @@
 
       function exportPrintable() {
         const printWindow = window.open("", "_blank");
-        let html =
-          '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Çoktan Seçmeli Test - Test Çıktısı</title>';
-        html += "<style>";
-        html +=
-          'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #21302a; line-height: 1.6; }';
-        html +=
-          ".question { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; page-break-inside: avoid; }";
-        html +=
-          ".q-num { font-weight: 700; color: #2f7a56; margin-bottom: 8px; }";
-        html += ".q-text { font-size: 16px; margin-bottom: 12px; }";
-        html += ".option { padding: 4px 0; }";
-        html += ".option.correct { color: #059669; font-weight: 600; }";
-        html +=
-          ".explanation { margin-top: 12px; padding: 12px; background: #f0fdf4; border-radius: 6px; font-size: 14px; border-left: 3px solid #2f7a56; }";
-        html += "h1 { text-align: center; color: #2f7a56; }";
-        html += "@media print { .question { border: 1px solid #ccc; } }";
-        html += "</style></head><body><h1>Çoktan Seçmeli Test</h1>";
-
-        allQuestions.forEach((q, i) => {
-          const labels = ["A", "B", "C", "D", "E"];
-          html += '<div class="question">';
-          html +=
-            '<div class="q-num">Soru ' + (i + 1) + " - " + q.subject + "</div>";
-          html += '<div class="q-text">' + q.q + "</div>";
-          q.options.forEach((opt, j) => {
-            const isCorrect = j === q.correct;
-            html +=
-              '<div class="option' +
-              (isCorrect ? " correct" : "") +
-              '">' +
-              labels[j] +
-              ") " +
-              opt +
-              (isCorrect ? " ✓" : "") +
-              "</div>";
-          });
-          html +=
-            '<div class="explanation">' +
-            getExplanationHtml(q).replace(/<br>/g, "<br>") +
-            "</div>";
-          html += "</div>";
+        const html = buildPrintableStudyHtml({
+          title: "Çoktan Seçmeli Test",
+          questions: allQuestions,
+          getExplanationHtml,
         });
-
-        html += "</body></html>";
         printWindow.document.write(html);
         printWindow.document.close();
         printWindow.print();
