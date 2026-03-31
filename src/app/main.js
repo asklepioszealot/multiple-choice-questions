@@ -33,6 +33,13 @@
       const { storage } = bootstrap();
       const { normalizeQuestions, parseMarkdownToJSON } = window.AppSetCodec;
       const {
+        buildScoreSummary,
+        formatScoreSummaryHtml,
+        createRetryWrongAnswersState,
+        createResetStudyState,
+        shuffleQuestionOrder,
+      } = window.AppStudyActions;
+      const {
         buildStudyQuestions,
         collectStudySubjects,
         createFilteredStudyView,
@@ -789,15 +796,9 @@
 
       function shuffleQuestions() {
         if (filteredQuestions.length === 0) return;
-
-        for (let i = questionOrder.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [questionOrder[i], questionOrder[j]] = [
-            questionOrder[j],
-            questionOrder[i],
-          ];
-        }
-        currentQuestionIndex = 0;
+        const shuffled = shuffleQuestionOrder({ questionOrder });
+        questionOrder = shuffled.questionOrder;
+        currentQuestionIndex = shuffled.currentQuestionIndex;
         displayQuestion();
       }
 
@@ -853,28 +854,23 @@
       }
 
       function retryWrongAnswers() {
-        const wrongQuestions = allQuestions.filter((q, i) => {
-          const cid = cardId(q);
-          return (
-            selectedAnswers[cid] !== undefined &&
-            selectedAnswers[cid] !== q.correct
-          );
+        const retriedState = createRetryWrongAnswersState({
+          allQuestions,
+          selectedAnswers,
+          solutionVisible,
+          resolveQuestionKey: cardId,
         });
 
-        if (wrongQuestions.length === 0) {
+        if (!retriedState.hasWrongQuestions) {
           alert("Yanlış cevaplanan soru bulunamadı. Önce soruları cevaplayın.");
           return;
         }
 
-        filteredQuestions = wrongQuestions;
-        wrongQuestions.forEach((q) => {
-          const cid = cardId(q);
-          delete selectedAnswers[cid];
-          delete solutionVisible[cid];
-        });
-
-        questionOrder = [...Array(filteredQuestions.length).keys()];
-        currentQuestionIndex = 0;
+        filteredQuestions = retriedState.filteredQuestions;
+        selectedAnswers = retriedState.selectedAnswers;
+        solutionVisible = retriedState.solutionVisible;
+        questionOrder = retriedState.questionOrder;
+        currentQuestionIndex = retriedState.currentQuestionIndex;
         document.getElementById("topic-select").value = "hepsi";
         document
           .getElementById("jump-input")
@@ -891,22 +887,18 @@
           )
         )
           return;
-
-        const activeQuestionKeys = new Set(allQuestions.map((q) => cardId(q)));
-        Object.keys(selectedAnswers).forEach((questionKey) => {
-          if (activeQuestionKeys.has(questionKey)) {
-            delete selectedAnswers[questionKey];
-          }
-        });
-        Object.keys(solutionVisible).forEach((questionKey) => {
-          if (activeQuestionKeys.has(questionKey)) {
-            delete solutionVisible[questionKey];
-          }
+        const resetState = createResetStudyState({
+          allQuestions,
+          selectedAnswers,
+          solutionVisible,
+          resolveQuestionKey: cardId,
         });
 
-        currentQuestionIndex = 0;
-        filteredQuestions = [...allQuestions];
-        questionOrder = [...Array(filteredQuestions.length).keys()];
+        selectedAnswers = resetState.selectedAnswers;
+        solutionVisible = resetState.solutionVisible;
+        currentQuestionIndex = resetState.currentQuestionIndex;
+        filteredQuestions = resetState.filteredQuestions;
+        questionOrder = resetState.questionOrder;
         document.getElementById("topic-select").value = "hepsi";
 
         const jumpInput = document.getElementById("jump-input");
@@ -918,42 +910,13 @@
       }
 
       function updateScoreDisplay() {
-        let correct = 0;
-        let wrong = 0;
-        let answered = 0;
-
-        allQuestions.forEach((q) => {
-          const cid = cardId(q);
-          if (selectedAnswers[cid] !== undefined) {
-            answered++;
-            if (selectedAnswers[cid] === q.correct) {
-              correct++;
-            } else {
-              wrong++;
-            }
-          }
-        });
-
-        const progressPct =
-          allQuestions.length > 0
-            ? Math.round((answered / allQuestions.length) * 100)
-            : 0;
-        const accuracyPct =
-          answered > 0 ? Math.round((correct / answered) * 100) : 0;
-        const scoreHtml =
-          "✅ " +
-          correct +
-          " &nbsp; ❌ " +
-          wrong +
-          " &nbsp; 📊 " +
-          answered +
-          "/" +
-          allQuestions.length +
-          " (%" +
-          progressPct +
-          ")" +
-          " &nbsp; 🎯 %" +
-          accuracyPct;
+        const scoreHtml = formatScoreSummaryHtml(
+          buildScoreSummary({
+            allQuestions,
+            selectedAnswers,
+            resolveQuestionKey: cardId,
+          }),
+        );
         ["score-display", "fullscreen-score-display"].forEach((elementId) => {
           const scoreEl = document.getElementById(elementId);
           if (scoreEl) {
