@@ -37,7 +37,7 @@ npm run release
 
 Bu komut sırasıyla:
 
-1. `index.html` dosyasını `dist/` altında hazırlar (varsa `data/` klasörünü de kopyalar).
+1. `vite build` ile web çıktısını `dist/` altında üretir; legacy runtime için `src/` ve varsa `data/` klasörü de korunur.
 2. `npx tauri build --bundles nsis` ile kurulum dosyasını üretir.
 3. Portable (`app.exe`) ve kurulum (`*-setup.exe`) çıktılarını `release/` altında versiyon+commit adlarıyla saklar.
 4. İsteğe bağlı kök dosya adlarını da günceller (`Multiple_Choice_Questions_Portable.exe`, `Multiple_Choice_Questions_Kurulum.exe`).
@@ -142,10 +142,36 @@ Ilk kurulumda tarayici binary'si lazimsa:
 npm run test:smoke:install
 ```
 
+## Unit Test ve Build
+
+Temel unit testleri calistirmak icin:
+
+```powershell
+npm run test:unit
+```
+
+Tum temel dogrulamayi birlikte calistirmak icin:
+
+```powershell
+npm test
+```
+
+Vite tabanli web build almak icin:
+
+```powershell
+npm run build
+```
+
 ## Buyume Icin Klasor Standarti
 
+- `src/app/`: bootstrap, ekran gecisi ve uygulama state kabugu
+- `src/core/`: storage, set-codec ve runtime odakli cekirdek moduller
+- `src/generated/`: build/runtime fallback modulleri
 - `src/`: modulerlesme icin hedef kaynak klasoru
 - `tests/smoke/`: kritik akis smoke testleri
+- `tests/unit/`: saf mantik ve altyapi testleri
 - `docs/RELEASE_CHECKLIST.md`: release adimlari
 - `docs/MODULARIZATION_PLAN.md`: index.html -> moduler yapi gecis plani
+- `docs/superpowers/specs/`: onayli tasarim dokumanlari
+- `docs/superpowers/plans/`: gorev seviyesinde uygulama planlari
 - `CHANGELOG.md`: degisiklik kaydi
