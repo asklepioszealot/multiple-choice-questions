@@ -41,6 +41,12 @@
         toggleStudySolution,
       } = window.AppStudy;
       const {
+        createStudyChromeState,
+        getFullscreenToggleState,
+        getAnswerLockStatusText,
+        getAutoAdvanceStatusText,
+      } = window.AppStudyUI;
+      const {
         buildQuestionKey,
         resolveQuestionKey: cardId,
         loadPersistedStudyState,
@@ -422,23 +428,23 @@
         const subjectEl = document.getElementById("fullscreen-subject-badge");
         const prevBtn = document.getElementById("fullscreen-prev-btn");
         const nextBtn = document.getElementById("fullscreen-next-btn");
-        const questionTotal = filteredQuestions.length;
+        const chromeState = createStudyChromeState({
+          currentQuestionIndex,
+          totalQuestions: filteredQuestions.length,
+          subject: question ? question.subject : "",
+        });
 
         if (counterEl) {
-          counterEl.textContent =
-            questionTotal > 0
-              ? `Soru ${currentQuestionIndex + 1} / ${questionTotal}`
-              : "Soru 0 / 0";
+          counterEl.textContent = chromeState.counterText;
         }
         if (subjectEl) {
-          subjectEl.textContent = question ? question.subject : "Konu";
+          subjectEl.textContent = chromeState.subjectText;
         }
         if (prevBtn) {
-          prevBtn.disabled = questionTotal === 0 || currentQuestionIndex === 0;
+          prevBtn.disabled = chromeState.disablePrev;
         }
         if (nextBtn) {
-          nextBtn.disabled =
-            questionTotal === 0 || currentQuestionIndex === questionTotal - 1;
+          nextBtn.disabled = chromeState.disableNext;
         }
       }
 
@@ -449,9 +455,7 @@
         }
         const status = document.getElementById("answer-lock-status");
         if (status) {
-          status.textContent = answerLockEnabled
-            ? "Cevapları kilitle: Açık"
-            : "Cevapları kilitle: Kapalı";
+          status.textContent = getAnswerLockStatusText(answerLockEnabled);
         }
       }
 
@@ -468,9 +472,7 @@
         }
         const status = document.getElementById("auto-advance-status");
         if (status) {
-          status.textContent = autoAdvanceEnabled
-            ? "Otomatik sonraki soru: Açık"
-            : "Otomatik sonraki soru: Kapalı";
+          status.textContent = getAutoAdvanceStatusText(autoAdvanceEnabled);
         }
       }
 
@@ -493,18 +495,12 @@
         if (!questionCard || !toggleBtn) return;
 
         isFullscreen = !isFullscreen;
+        const fullscreenState = getFullscreenToggleState(isFullscreen);
 
-        if (isFullscreen) {
-          questionCard.classList.add("fullscreen-active");
-          document.body.style.overflow = "hidden";
-          toggleBtn.textContent = "✕";
-          toggleBtn.title = "Tam ekrandan çık (ESC / F)";
-        } else {
-          questionCard.classList.remove("fullscreen-active");
-          document.body.style.overflow = "";
-          toggleBtn.textContent = "⛶";
-          toggleBtn.title = "Tam ekran (F)";
-        }
+        questionCard.classList.toggle("fullscreen-active", isFullscreen);
+        document.body.style.overflow = fullscreenState.bodyOverflow;
+        toggleBtn.textContent = fullscreenState.buttonText;
+        toggleBtn.title = fullscreenState.buttonTitle;
 
         updateFullscreenInfo(
           filteredQuestions.length > 0
@@ -618,11 +614,17 @@
       function displayQuestion() {
         const q = filteredQuestions[questionOrder[currentQuestionIndex]];
         const cid = cardId(q);
+        const chromeState = createStudyChromeState({
+          currentQuestionIndex,
+          totalQuestions: filteredQuestions.length,
+          subject: q.subject,
+        });
 
         document.getElementById("question-text").innerHTML = q.q;
         document.getElementById("question-counter").textContent =
-          `Soru ${currentQuestionIndex + 1} / ${filteredQuestions.length}`;
-        document.getElementById("subject-badge").textContent = q.subject;
+          chromeState.counterText;
+        document.getElementById("subject-badge").textContent =
+          chromeState.subjectText;
         document.getElementById("solution-content").innerHTML =
           getExplanationHtml(q).replace(/<br>/g, "<br>");
 
@@ -662,10 +664,8 @@
             "Çözümü Göster";
         }
 
-        document.getElementById("prev-btn").disabled =
-          currentQuestionIndex === 0;
-        document.getElementById("next-btn").disabled =
-          currentQuestionIndex === filteredQuestions.length - 1;
+        document.getElementById("prev-btn").disabled = chromeState.disablePrev;
+        document.getElementById("next-btn").disabled = chromeState.disableNext;
         updateFullscreenInfo(q);
         saveState();
       }
