@@ -28,7 +28,9 @@
       let answerLockEnabled = false;
       let autoAdvanceEnabled = false;
       let autoAdvanceTimeoutId = null;
-      const storage = window.AppStorage;
+      const { bootstrap } = window.AppBootstrap;
+      const { showScreen } = window.AppScreen;
+      const { storage } = bootstrap();
       const { normalizeQuestions, parseMarkdownToJSON } = window.AppSetCodec;
 
       function buildQuestionKey(setId, question, index) {
@@ -579,8 +581,7 @@
         questionOrder = [...Array(filteredQuestions.length).keys()];
         currentQuestionIndex = 0;
 
-        document.getElementById("set-manager").style.display = "none";
-        document.getElementById("main-app").style.display = "block";
+        showScreen("study");
 
         populateTopicFilter();
         updateScoreDisplay();
@@ -614,8 +615,7 @@
         if (isFullscreen) {
           toggleFullscreen();
         }
-        document.getElementById("set-manager").style.display = "block";
-        document.getElementById("main-app").style.display = "none";
+        showScreen("manager");
         renderSetList();
       }
 
@@ -1233,6 +1233,7 @@
         }
 
         loadState();
+        showScreen("manager");
         renderSetList();
         initGoogleDrive();
       }
