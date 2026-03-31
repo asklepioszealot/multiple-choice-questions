@@ -4,16 +4,22 @@
   "description": "Doktorlar ve tıp öğrencileri için lokal çalışan, JSON tabanlı çoktan seçmeli test uygulaması.",
   "main": "index.js",
   "scripts": {
-    "build:dist": "node build.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "build:dist": "npm run build",
+    "preview": "vite preview",
+    "serve:dist": "npm run preview -- --host 127.0.0.1 --port 4173 --strictPort",
     "build:desktop": "npx tauri build --bundles nsis",
     "release": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/build-release.ps1",
     "release:no-legacy": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/build-release.ps1 -NoLegacyCopy",
     "validate:set": "node ./tools/validate-set.js",
     "validate:set:strict": "node ./tools/validate-set.js --require-files",
-    "test:smoke": "npx playwright test",
-    "test:smoke:headed": "npx playwright test --headed",
+    "test:smoke": "node ./tools/run-smoke.js",
+    "test:smoke:headed": "node ./tools/run-smoke.js --headed",
     "test:smoke:install": "npx playwright install chromium",
-    "test": "npm run test:smoke"
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test": "npm run test:smoke && npm run test:unit"
   },
   "repository": {
     "type": "git",
@@ -29,6 +35,9 @@
   "homepage": "https://github.com/asklepioszealot/multiple-choice-questions#readme",
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@tauri-apps/cli": "^2.10.1"
+    "@tauri-apps/cli": "^2.10.1",
+    "jsdom": "^29.0.1",
+    "vite": "^8.0.3",
+    "vitest": "^4.1.2"
   }
 }
