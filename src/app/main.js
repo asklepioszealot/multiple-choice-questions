@@ -35,7 +35,9 @@
       const {
         buildQuestionKey,
         resolveQuestionKey: cardId,
-        migrateLegacyAssessmentState,
+        loadPersistedStudyState,
+        persistStudyState,
+        readSavedSession,
       } = window.AppStudyState;
 
       function getExplanationHtml(question) {
@@ -477,20 +479,6 @@
         }
       }
 
-      function getSavedSession() {
-        try {
-          const savedSession = storage.getItem("mc_session");
-          if (!savedSession) return null;
-          const parsedSession = JSON.parse(savedSession);
-          return parsedSession && typeof parsedSession === "object"
-            ? parsedSession
-            : null;
-        } catch (e) {
-          console.error("Session load error", e);
-          return pendingSession;
-        }
-      }
-
       function toggleFullscreen() {
         const questionCard = document.getElementById("question-card");
         const toggleBtn = document.getElementById("fullscreen-toggle-btn");
@@ -552,7 +540,7 @@
         populateTopicFilter();
         updateScoreDisplay();
 
-        const session = getSavedSession() || pendingSession || {};
+        const session = readSavedSession(storage, pendingSession) || pendingSession || {};
         const topicSelect = document.getElementById("topic-select");
         if (
           topicSelect &&
@@ -990,21 +978,6 @@
         });
       }
 
-      function migrateLegacyAssessmentsIfNeeded() {
-        const migratedState = migrateLegacyAssessmentState({
-          loadedSets,
-          selectedAnswers,
-          solutionVisible,
-        });
-
-        if (migratedState.changed) {
-          selectedAnswers = migratedState.selectedAnswers;
-          solutionVisible = migratedState.solutionVisible;
-        }
-
-        return migratedState.changed;
-      }
-
       function saveState() {
         try {
           const activeQuestion =
@@ -1012,22 +985,15 @@
               ? filteredQuestions[questionOrder[currentQuestionIndex]]
               : null;
           const topicSelect = document.getElementById("topic-select");
-          const sessionState = {
-            currentQuestionIndex: currentQuestionIndex,
-            currentQuestionKey: activeQuestion ? cardId(activeQuestion) : null,
+          const sessionState = persistStudyState({
+            storage,
+            activeQuestion,
+            currentQuestionIndex,
             selectedTopic: topicSelect ? topicSelect.value : "hepsi",
-          };
-          storage.setItem("mc_session", JSON.stringify(sessionState));
+            selectedAnswers,
+            solutionVisible,
+          });
           pendingSession = sessionState;
-
-          const assessmentState = {
-            selectedAnswers: selectedAnswers,
-            solutionVisible: solutionVisible,
-          };
-          storage.setItem(
-            "mc_assessments",
-            JSON.stringify(assessmentState),
-          );
         } catch (e) {
           console.error("State saving error", e);
         }
@@ -1042,19 +1008,6 @@
             storageKey: "quiz-theme",
           });
 
-          const savedAssessments = storage.getItem("mc_assessments");
-          if (savedAssessments) {
-            const state = JSON.parse(savedAssessments);
-            selectedAnswers =
-              state && typeof state.selectedAnswers === "object"
-                ? state.selectedAnswers
-                : {};
-            solutionVisible =
-              state && typeof state.solutionVisible === "object"
-                ? state.solutionVisible
-                : {};
-          }
-
           const storedAnswerLock = storage.getItem(ANSWER_LOCK_KEY);
           if (storedAnswerLock === "0" || storedAnswerLock === "1") {
             answerLockEnabled = storedAnswerLock === "1";
@@ -1064,24 +1017,14 @@
             autoAdvanceEnabled = storedAutoAdvance === "1";
           }
 
-          const savedSession = storage.getItem("mc_session");
-          pendingSession = null;
-          if (savedSession) {
-            const session = JSON.parse(savedSession);
-            if (session && typeof session === "object") {
-              pendingSession = session;
-            }
-          }
-
-          if (migrateLegacyAssessmentsIfNeeded()) {
-            storage.setItem(
-              "mc_assessments",
-              JSON.stringify({
-                selectedAnswers: selectedAnswers,
-                solutionVisible: solutionVisible,
-              }),
-            );
-          }
+          const loadedState = loadPersistedStudyState({
+            storage,
+            loadedSets,
+            fallbackSession: null,
+          });
+          selectedAnswers = loadedState.selectedAnswers;
+          solutionVisible = loadedState.solutionVisible;
+          pendingSession = loadedState.pendingSession;
         } catch (e) {
           console.error("State loading error", e);
         }

@@ -102,11 +102,104 @@
     };
   }
 
+  function readSavedSession(storage, fallbackSession = null) {
+    try {
+      const savedSession = storage?.getItem?.("mc_session");
+      if (!savedSession) return null;
+      const parsedSession = JSON.parse(savedSession);
+      return parsedSession && typeof parsedSession === "object"
+        ? parsedSession
+        : null;
+    } catch {
+      return fallbackSession;
+    }
+  }
+
+  function loadPersistedStudyState({
+    storage,
+    loadedSets,
+    fallbackSession = null,
+  }) {
+    let selectedAnswers = {};
+    let solutionVisible = {};
+
+    try {
+      const savedAssessments = storage?.getItem?.("mc_assessments");
+      if (savedAssessments) {
+        const state = JSON.parse(savedAssessments);
+        selectedAnswers =
+          state && typeof state.selectedAnswers === "object"
+            ? state.selectedAnswers
+            : {};
+        solutionVisible =
+          state && typeof state.solutionVisible === "object"
+            ? state.solutionVisible
+            : {};
+      }
+    } catch {
+      selectedAnswers = {};
+      solutionVisible = {};
+    }
+
+    const pendingSession = readSavedSession(storage, fallbackSession);
+    const migrated = migrateLegacyAssessmentState({
+      loadedSets,
+      selectedAnswers,
+      solutionVisible,
+    });
+
+    if (migrated.changed) {
+      storage?.setItem?.(
+        "mc_assessments",
+        JSON.stringify({
+          selectedAnswers: migrated.selectedAnswers,
+          solutionVisible: migrated.solutionVisible,
+        }),
+      );
+    }
+
+    return {
+      selectedAnswers: migrated.selectedAnswers,
+      solutionVisible: migrated.solutionVisible,
+      pendingSession,
+      changed: migrated.changed,
+    };
+  }
+
+  function persistStudyState({
+    storage,
+    activeQuestion,
+    currentQuestionIndex,
+    selectedTopic,
+    selectedAnswers,
+    solutionVisible,
+  }) {
+    const sessionState = {
+      currentQuestionIndex,
+      currentQuestionKey: activeQuestion ? resolveQuestionKey(activeQuestion) : null,
+      selectedTopic: selectedTopic || "hepsi",
+    };
+
+    storage?.setItem?.("mc_session", JSON.stringify(sessionState));
+    storage?.setItem?.(
+      "mc_assessments",
+      JSON.stringify({
+        selectedAnswers,
+        solutionVisible,
+      }),
+    );
+
+    return sessionState;
+  }
+
   const AppStudyState = Object.freeze({
     buildQuestionKey,
     legacyQuestionId,
     resolveQuestionKey,
     migrateLegacyAssessmentState,
+    readSavedSession,
+    loadPersistedStudyState,
+    persistStudyState,
   });
 
   globalScope.AppStudyState = AppStudyState;
@@ -116,6 +209,9 @@
     exports.legacyQuestionId = legacyQuestionId;
     exports.resolveQuestionKey = resolveQuestionKey;
     exports.migrateLegacyAssessmentState = migrateLegacyAssessmentState;
+    exports.readSavedSession = readSavedSession;
+    exports.loadPersistedStudyState = loadPersistedStudyState;
+    exports.persistStudyState = persistStudyState;
     exports.AppStudyState = AppStudyState;
     exports.default = AppStudyState;
   }
