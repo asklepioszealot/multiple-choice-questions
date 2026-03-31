@@ -4,6 +4,18 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv } from "vite";
 
 const repoRoot = path.dirname(fileURLToPath(import.meta.url));
+const LOCAL_SOURCE_SCRIPT_PATTERN = /\s*<script(?:\s+type="module")?\s+src="\.\/src\/[^"]+"><\/script>\s*/g;
+
+export function transformLegacyIndexHtml(html) {
+  const viteEntryTag = '    <script type="module" src="./src/app/vite-entry.js"></script>\n';
+  const withoutLocalScripts = String(html ?? "").replace(LOCAL_SOURCE_SCRIPT_PATTERN, "\n");
+
+  if (withoutLocalScripts.includes('./src/app/vite-entry.js')) {
+    return withoutLocalScripts;
+  }
+
+  return withoutLocalScripts.replace("</body>", `${viteEntryTag}  </body>`);
+}
 
 function readAppVersion() {
   const tauriConfigPath = path.join(repoRoot, "src-tauri", "tauri.conf.json");
@@ -192,6 +204,18 @@ function preserveLegacyRuntimeLayout() {
   };
 }
 
+function useViteModuleEntry() {
+  return {
+    name: "mcq-vite-module-entry",
+    transformIndexHtml: {
+      order: "pre",
+      handler(html) {
+        return transformLegacyIndexHtml(html);
+      },
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = {
     ...process.env,
@@ -199,6 +223,7 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
+    base: "./",
     build: {
       outDir: "dist",
       emptyOutDir: true,
@@ -207,6 +232,6 @@ export default defineConfig(({ mode }) => {
       __BUILD_INFO__: JSON.stringify(makeBuildInfo()),
       __APP_CONFIG__: JSON.stringify(makeRuntimeConfig(env)),
     },
-    plugins: [preserveLegacyRuntimeLayout()],
+    plugins: [useViteModuleEntry(), preserveLegacyRuntimeLayout()],
   };
 });

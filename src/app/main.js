@@ -1238,4 +1238,29 @@
         initGoogleDrive();
       }
 
+      Object.assign(window, {
+        toggleDeleteMode,
+        selectAllSets,
+        clearSetSelection,
+        removeSelectedSets,
+        authGoogleDrive,
+        handleFileSelect,
+        startStudy,
+        toggleTheme,
+        setAnswerLock,
+        setAutoAdvance,
+        undoLastRemoval,
+        filterByTopic,
+        jumpToQuestion,
+        showSetManager,
+        shuffleQuestions,
+        retryWrongAnswers,
+        exportPrintable,
+        resetQuiz,
+        previousQuestion,
+        nextQuestion,
+        toggleFullscreen,
+        toggleSolution,
+      });
+
       initApp();
