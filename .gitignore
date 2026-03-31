@@ -15,3 +15,6 @@ release/
 # Playwright artifacts
 playwright-report/
 test-results/
+
+# Local worktrees
+.worktrees/
