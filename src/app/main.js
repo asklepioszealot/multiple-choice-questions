@@ -32,45 +32,11 @@
       const { showScreen } = window.AppScreen;
       const { storage } = bootstrap();
       const { normalizeQuestions, parseMarkdownToJSON } = window.AppSetCodec;
-
-      function buildQuestionKey(setId, question, index) {
-        const normalizedSetId = String(setId ?? "unknown");
-        const questionIdValue =
-          question && question.id !== undefined && question.id !== null
-            ? String(question.id).trim()
-            : "";
-        if (questionIdValue.length > 0) {
-          return `set:${normalizedSetId}::id:${questionIdValue}`;
-        }
-        return `set:${normalizedSetId}::idx:${index}`;
-      }
-
-      function legacyCardId(q) {
-        let hash = 0;
-        const questionText = q && typeof q.q === "string" ? q.q : "";
-        const questionSubject =
-          q && typeof q.subject === "string" ? q.subject : "";
-        const text = questionText + questionSubject;
-        for (let i = 0; i < text.length; i++) {
-          const char = text.charCodeAt(i);
-          hash = (hash << 5) - hash + char;
-          hash = hash & hash;
-        }
-        return "mc_" + hash;
-      }
-
-      function cardId(q, fallbackSetId, fallbackIndex) {
-        if (q && typeof q.__questionKey === "string" && q.__questionKey.length > 0) {
-          return q.__questionKey;
-        }
-        if (typeof fallbackSetId === "string" && Number.isInteger(fallbackIndex)) {
-          return buildQuestionKey(fallbackSetId, q, fallbackIndex);
-        }
-        if (q && typeof q.__setId === "string" && Number.isInteger(q.__setIndex)) {
-          return buildQuestionKey(q.__setId, q, q.__setIndex);
-        }
-        return legacyCardId(q);
-      }
+      const {
+        buildQuestionKey,
+        resolveQuestionKey: cardId,
+        migrateLegacyAssessmentState,
+      } = window.AppStudyState;
 
       function getExplanationHtml(question) {
         if (
@@ -1025,53 +991,18 @@
       }
 
       function migrateLegacyAssessmentsIfNeeded() {
-        const legacyToModernMap = new Map();
-        Object.entries(loadedSets).forEach(([setId, setObj]) => {
-          if (!setObj || !Array.isArray(setObj.questions)) return;
-          setObj.questions.forEach((question, index) => {
-            const legacyKey = legacyCardId(question);
-            const modernKey = buildQuestionKey(setId, question, index);
-            if (!legacyToModernMap.has(legacyKey)) {
-              legacyToModernMap.set(legacyKey, new Set());
-            }
-            legacyToModernMap.get(legacyKey).add(modernKey);
-          });
+        const migratedState = migrateLegacyAssessmentState({
+          loadedSets,
+          selectedAnswers,
+          solutionVisible,
         });
 
-        const migrateMap = (sourceMap) => {
-          const normalizedMap =
-            sourceMap && typeof sourceMap === "object" && !Array.isArray(sourceMap)
-              ? sourceMap
-              : {};
-          const migratedMap = { ...normalizedMap };
-          let changed = false;
-
-          Object.entries(normalizedMap).forEach(([key, value]) => {
-            if (typeof key !== "string" || key.startsWith("set:")) return;
-            const matches = legacyToModernMap.get(key);
-            if (!matches || matches.size === 0) return;
-            changed = true;
-            matches.forEach((modernKey) => {
-              if (!(modernKey in migratedMap)) {
-                migratedMap[modernKey] = value;
-              }
-            });
-          });
-
-          return { migratedMap, changed };
-        };
-
-        const selectedAnswersMigration = migrateMap(selectedAnswers);
-        const solutionVisibleMigration = migrateMap(solutionVisible);
-        if (selectedAnswersMigration.changed) {
-          selectedAnswers = selectedAnswersMigration.migratedMap;
+        if (migratedState.changed) {
+          selectedAnswers = migratedState.selectedAnswers;
+          solutionVisible = migratedState.solutionVisible;
         }
-        if (solutionVisibleMigration.changed) {
-          solutionVisible = solutionVisibleMigration.migratedMap;
-        }
-        return (
-          selectedAnswersMigration.changed || solutionVisibleMigration.changed
-        );
+
+        return migratedState.changed;
       }
 
       function saveState() {
