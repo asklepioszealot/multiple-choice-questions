@@ -1,5 +1,6 @@
 import "../core/storage.js";
 import "../core/set-codec.js";
+import "../features/study/study-session.js";
 import "../features/study-state/study-state.js";
 import "./state.js";
 import "./screen.js";
