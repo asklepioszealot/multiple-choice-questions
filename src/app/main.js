@@ -33,6 +33,14 @@
       const { storage } = bootstrap();
       const { normalizeQuestions, parseMarkdownToJSON } = window.AppSetCodec;
       const {
+        buildStudyQuestions,
+        collectStudySubjects,
+        createFilteredStudyView,
+        getBoundedQuestionIndex,
+        selectStudyAnswer,
+        toggleStudySolution,
+      } = window.AppStudy;
+      const {
         buildQuestionKey,
         resolveQuestionKey: cardId,
         loadPersistedStudyState,
@@ -513,18 +521,11 @@
         if (selectedSets.size === 0) return;
         clearAutoAdvanceTimer();
 
-        allQuestions = [];
-        for (const setId of selectedSets) {
-          const setData = loadedSets[setId];
-          if (!setData || !Array.isArray(setData.questions)) continue;
-          setData.questions.forEach((question, index) => {
-            const clonedQuestion = { ...question };
-            clonedQuestion.__setId = setId;
-            clonedQuestion.__setIndex = index;
-            clonedQuestion.__questionKey = buildQuestionKey(setId, question, index);
-            allQuestions.push(clonedQuestion);
-          });
-        }
+        allQuestions = buildStudyQuestions({
+          loadedSets,
+          selectedSetIds: selectedSets,
+          buildQuestionKey,
+        });
 
         if (allQuestions.length === 0) {
           alert("Seçili setlerde soru bulunamadı.");
@@ -575,52 +576,21 @@
 
       function filterByTopic(resetIndex = true, options = {}) {
         const selectedTopic = document.getElementById("topic-select").value;
+        const nextView = createFilteredStudyView({
+          allQuestions,
+          selectedTopic,
+          preferredQuestionKey: resetIndex ? null : options.preferredQuestionKey,
+          fallbackIndex: resetIndex
+            ? 0
+            : Number.isInteger(options.fallbackIndex)
+              ? options.fallbackIndex
+              : null,
+          resolveQuestionKey: cardId,
+        });
 
-        if (selectedTopic === "hepsi") {
-          filteredQuestions = [...allQuestions];
-        } else {
-          filteredQuestions = allQuestions.filter(
-            (q) => q.subject === selectedTopic,
-          );
-        }
-
-        questionOrder = [...Array(filteredQuestions.length).keys()];
-
-        let restoredIndex = 0;
-        if (resetIndex) {
-          currentQuestionIndex = 0;
-        } else {
-          const preferredQuestionKey = options.preferredQuestionKey;
-          const fallbackIndex = Number.isInteger(options.fallbackIndex)
-            ? options.fallbackIndex
-            : null;
-
-          if (
-            typeof preferredQuestionKey === "string" &&
-            preferredQuestionKey.length > 0
-          ) {
-            const matchedIndex = questionOrder.findIndex((questionIndex) => {
-              const question = filteredQuestions[questionIndex];
-              return cardId(question) === preferredQuestionKey;
-            });
-            if (matchedIndex >= 0) {
-              restoredIndex = matchedIndex;
-            } else if (fallbackIndex !== null) {
-              restoredIndex = Math.min(
-                Math.max(fallbackIndex, 0),
-                Math.max(filteredQuestions.length - 1, 0),
-              );
-            }
-          } else if (fallbackIndex !== null) {
-            restoredIndex = Math.min(
-              Math.max(fallbackIndex, 0),
-              Math.max(filteredQuestions.length - 1, 0),
-            );
-          }
-        }
-        if (!resetIndex) {
-          currentQuestionIndex = restoredIndex;
-        }
+        filteredQuestions = nextView.filteredQuestions;
+        questionOrder = nextView.questionOrder;
+        currentQuestionIndex = nextView.currentQuestionIndex;
 
         document
           .getElementById("jump-input")
@@ -702,25 +672,24 @@
 
       function selectOption(index) {
         const q = filteredQuestions[questionOrder[currentQuestionIndex]];
-        const cid = cardId(q);
-        const currentAnswer = selectedAnswers[cid];
-        let answeredNow = false;
+        const answerSelection = selectStudyAnswer({
+          question: q,
+          selectedAnswers,
+          answerIndex: index,
+          answerLockEnabled,
+          resolveQuestionKey: cardId,
+        });
 
-        if (answerLockEnabled && currentAnswer !== undefined) {
+        if (answerSelection.blocked) {
           return;
         }
 
-        if (currentAnswer === index) {
-          delete selectedAnswers[cid];
-        } else {
-          selectedAnswers[cid] = index;
-          answeredNow = true;
-        }
+        selectedAnswers = answerSelection.selectedAnswers;
 
         displayQuestion();
         updateScoreDisplay();
 
-        if (autoAdvanceEnabled && answeredNow) {
+        if (autoAdvanceEnabled && answerSelection.answeredNow) {
           clearAutoAdvanceTimer();
           autoAdvanceTimeoutId = setTimeout(() => {
             autoAdvanceTimeoutId = null;
@@ -733,13 +702,17 @@
 
       function toggleSolution() {
         const q = filteredQuestions[questionOrder[currentQuestionIndex]];
-        const cid = cardId(q);
-        solutionVisible[cid] = !solutionVisible[cid];
+        const toggled = toggleStudySolution({
+          question: q,
+          solutionVisible,
+          resolveQuestionKey: cardId,
+        });
+        solutionVisible = toggled.solutionVisible;
 
         const solution = document.getElementById("solution");
         const btn = document.getElementById("show-solution-btn");
 
-        if (solutionVisible[cid]) {
+        if (toggled.isVisible) {
           solution.classList.add("visible");
           btn.textContent = "Çözümü Gizle";
         } else {
@@ -751,16 +724,24 @@
 
       function previousQuestion() {
         clearAutoAdvanceTimer();
-        if (currentQuestionIndex > 0) {
-          currentQuestionIndex--;
+        const nextIndex = getBoundedQuestionIndex(
+          currentQuestionIndex - 1,
+          filteredQuestions.length,
+        );
+        if (nextIndex !== currentQuestionIndex) {
+          currentQuestionIndex = nextIndex;
           displayQuestion();
         }
       }
 
       function nextQuestion() {
         clearAutoAdvanceTimer();
-        if (currentQuestionIndex < filteredQuestions.length - 1) {
-          currentQuestionIndex++;
+        const nextIndex = getBoundedQuestionIndex(
+          currentQuestionIndex + 1,
+          filteredQuestions.length,
+        );
+        if (nextIndex !== currentQuestionIndex) {
+          currentQuestionIndex = nextIndex;
           displayQuestion();
         }
       }
@@ -771,7 +752,10 @@
         const questionNum = parseInt(input.value);
 
         if (questionNum >= 1 && questionNum <= filteredQuestions.length) {
-          currentQuestionIndex = questionNum - 1;
+          currentQuestionIndex = getBoundedQuestionIndex(
+            questionNum - 1,
+            filteredQuestions.length,
+          );
           displayQuestion();
           input.value = "";
         } else {
@@ -1035,7 +1019,7 @@
       function populateTopicFilter() {
         const select = document.getElementById("topic-select");
         if (!select) return;
-        const subjects = [...new Set(allQuestions.map((q) => q.subject))];
+        const subjects = collectStudySubjects(allQuestions);
         select.innerHTML = '<option value="hepsi">Tüm Başlıklar</option>';
         subjects.forEach((subject) => {
           const option = document.createElement("option");
