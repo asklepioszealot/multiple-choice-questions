@@ -1,27 +1,69 @@
 (function attachAppStorage(globalScope) {
   "use strict";
 
-  if (globalScope.AppStorage) {
-    return;
-  }
+  const EMPTY_STORAGE = Object.freeze({
+    getItem() {
+      return null;
+    },
+    setItem() {},
+    removeItem() {},
+  });
 
-  const storage = globalScope.localStorage;
+  const localStorageRef = globalScope.localStorage ?? EMPTY_STORAGE;
+  const sessionStorageRef = globalScope.sessionStorage ?? EMPTY_STORAGE;
 
   function getItem(key) {
-    return storage.getItem(key);
+    return localStorageRef.getItem(key);
   }
 
   function setItem(key, value) {
-    storage.setItem(key, value);
+    localStorageRef.setItem(key, value);
   }
 
   function removeItem(key) {
-    storage.removeItem(key);
+    localStorageRef.removeItem(key);
   }
 
-  globalScope.AppStorage = Object.freeze({
+  function getLocalItem(key) {
+    return localStorageRef.getItem(key);
+  }
+
+  function setLocalItem(key, value) {
+    localStorageRef.setItem(key, value);
+  }
+
+  function removeLocalItem(key) {
+    localStorageRef.removeItem(key);
+  }
+
+  function getSessionItem(key) {
+    return sessionStorageRef.getItem(key);
+  }
+
+  function setSessionItem(key, value) {
+    sessionStorageRef.setItem(key, value);
+  }
+
+  function removeSessionItem(key) {
+    sessionStorageRef.removeItem(key);
+  }
+
+  const AppStorage = Object.freeze({
     getItem,
     setItem,
     removeItem,
+    getLocalItem,
+    setLocalItem,
+    removeLocalItem,
+    getSessionItem,
+    setSessionItem,
+    removeSessionItem,
   });
-})(window);
+
+  globalScope.AppStorage = AppStorage;
+
+  if (typeof exports !== "undefined") {
+    exports.AppStorage = AppStorage;
+    exports.default = AppStorage;
+  }
+})(typeof window !== "undefined" ? window : globalThis);
