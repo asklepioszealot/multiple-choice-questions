@@ -6,15 +6,29 @@ import { defineConfig, loadEnv } from "vite";
 const repoRoot = path.dirname(fileURLToPath(import.meta.url));
 const LOCAL_SOURCE_SCRIPT_PATTERN = /\s*<script(?:\s+type="module")?\s+src="\.\/src\/[^"]+"><\/script>\s*/g;
 
-export function transformLegacyIndexHtml(html) {
+function buildRuntimeConfigBridgeScript(runtimeConfig = {}) {
+  const serializedConfig = JSON.stringify(runtimeConfig).replace(/</g, "\\u003c");
+  return `    <script>window.APP_CONFIG = Object.freeze(${serializedConfig});</script>\n`;
+}
+
+export function transformLegacyIndexHtml(html, runtimeConfig = {}) {
   const viteEntryTag = '    <script type="module" src="./src/app/vite-entry.js"></script>\n';
   const withoutLocalScripts = String(html ?? "").replace(LOCAL_SOURCE_SCRIPT_PATTERN, "\n");
+  const runtimeConfigTag = withoutLocalScripts.includes("window.APP_CONFIG")
+    ? ""
+    : buildRuntimeConfigBridgeScript(runtimeConfig);
 
   if (withoutLocalScripts.includes('./src/app/vite-entry.js')) {
-    return withoutLocalScripts;
+    if (!runtimeConfigTag) {
+      return withoutLocalScripts;
+    }
+
+    return withoutLocalScripts.replace("</head>", `${runtimeConfigTag}</head>`);
   }
 
-  return withoutLocalScripts.replace("</body>", `${viteEntryTag}  </body>`);
+  return withoutLocalScripts
+    .replace("</head>", `${runtimeConfigTag}</head>`)
+    .replace("</body>", `${viteEntryTag}  </body>`);
 }
 
 function readAppVersion() {
@@ -204,13 +218,13 @@ function preserveLegacyRuntimeLayout() {
   };
 }
 
-function useViteModuleEntry() {
+function useViteModuleEntry(runtimeConfig) {
   return {
     name: "mcq-vite-module-entry",
     transformIndexHtml: {
       order: "pre",
       handler(html) {
-        return transformLegacyIndexHtml(html);
+        return transformLegacyIndexHtml(html, runtimeConfig);
       },
     },
   };
@@ -221,6 +235,7 @@ export default defineConfig(({ mode }) => {
     ...process.env,
     ...loadEnv(mode, repoRoot, ""),
   };
+  const runtimeConfig = makeRuntimeConfig(env);
 
   return {
     base: "./",
@@ -230,8 +245,8 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       __BUILD_INFO__: JSON.stringify(makeBuildInfo()),
-      __APP_CONFIG__: JSON.stringify(makeRuntimeConfig(env)),
+      __APP_CONFIG__: JSON.stringify(runtimeConfig),
     },
-    plugins: [useViteModuleEntry(), preserveLegacyRuntimeLayout()],
+    plugins: [useViteModuleEntry(runtimeConfig), preserveLegacyRuntimeLayout()],
   };
 });

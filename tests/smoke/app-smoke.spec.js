@@ -19,7 +19,10 @@ function legacyQuestionId(questionText, subject = "Genel") {
 
 async function clearStorage(page) {
   await page.goto(appUrl());
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
   await page.reload();
 }
 
@@ -28,6 +31,15 @@ async function seedLocalSets(page, { sets, selectedSetIds, assessments, session 
   await page.evaluate(
     ({ sets, selectedSetIds, assessments, session }) => {
       localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(
+        "mc_auth_session",
+        JSON.stringify({
+          mode: "demo",
+          userId: "demo-user",
+          displayName: "Demo Modu",
+        }),
+      );
       Object.entries(sets).forEach(([setId, setData]) => {
         localStorage.setItem(`mc_set_${setId}`, JSON.stringify(setData));
       });
@@ -74,7 +86,33 @@ async function setHiddenToggle(page, inputSelector, checked) {
   }
 }
 
+async function continueAsDemo(page) {
+  await page.locator("#demo-auth-btn").click();
+  await expect(page.locator("#set-manager")).toBeVisible();
+}
+
 test.describe("MCQ smoke", () => {
+  test("demo auth persists across reload and logout returns to auth screen", async ({
+    page,
+  }) => {
+    await clearStorage(page);
+
+    await expect(page.locator("#auth-screen")).toBeVisible();
+    await expect(page.locator("#set-manager")).toBeHidden();
+
+    await continueAsDemo(page);
+    await expect(page.locator("#auth-status-badge")).toContainText("Demo Modu");
+    await expect(page.locator("#auth-logout-btn")).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator("#set-manager")).toBeVisible();
+    await expect(page.locator("#auth-screen")).toBeHidden();
+
+    await page.locator("#auth-logout-btn").click();
+    await expect(page.locator("#auth-screen")).toBeVisible();
+    await expect(page.locator("#set-manager")).toBeHidden();
+  });
+
   test("set manager flow works from upload to start", async ({ page }) => {
     const fixturePath = path.resolve(
       process.cwd(),
@@ -86,6 +124,7 @@ test.describe("MCQ smoke", () => {
     await page.addInitScript(() => localStorage.clear());
     await page.goto(appUrl());
 
+    const authScreen = page.locator("#auth-screen");
     const setManager = page.locator("#set-manager");
     const mainApp = page.locator("#main-app");
     const startButton = page.locator("#start-btn");
@@ -95,6 +134,8 @@ test.describe("MCQ smoke", () => {
     const answerLockStatus = page.locator("#answer-lock-status");
     const autoAdvanceStatus = page.locator("#auto-advance-status");
 
+    await expect(authScreen).toBeVisible();
+    await continueAsDemo(page);
     await expect(setManager).toBeVisible();
     await expect(managerPreferences).toBeVisible();
     await expect(answerLockStatus).toHaveText("Cevapları kilitle: Kapalı");
@@ -102,11 +143,10 @@ test.describe("MCQ smoke", () => {
     await expect(setManagerHint).toBeVisible();
     await expect(setManagerHint).toContainText("A-E");
     await expect(setManagerHint).toContainText("F");
+    await expect(page.locator("#import-set-btn")).toBeVisible();
     await expect(driveButton).toBeVisible();
     await expect(driveButton).toHaveClass(/btn-secondary/);
-    await expect(page.locator('label[for="file-picker"]')).toHaveClass(
-      /btn-secondary/,
-    );
+    await expect(page.locator("#check-updates-btn")).toBeHidden();
     await expect(page.evaluate(() => typeof window.authGoogleDrive)).resolves.toBe(
       "function",
     );
@@ -131,6 +171,373 @@ test.describe("MCQ smoke", () => {
     await expect(mainApp).toBeVisible();
     await expect(setManager).toBeHidden();
     await expect(mainApp.locator(".kbd-hint")).toHaveCount(0);
+  });
+
+  test("editor updates a selected set and returns to manager", async ({ page }) => {
+    const fixturePath = path.resolve(
+      process.cwd(),
+      "tests",
+      "fixtures",
+      "smoke-set.json",
+    );
+
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.setInputFiles("#file-picker", fixturePath);
+    await expect(page.locator("#edit-btn")).toBeEnabled();
+
+    await page.locator("#edit-btn").click();
+    await expect(page.locator("#editor-screen")).toBeVisible();
+
+    await page.fill("#editor-set-name", "Edited Smoke Set");
+    await page.fill("#editor-question-text", "Duzenlenmis soru?");
+    await page.click("#editor-save-btn");
+
+    await expect(page.locator("#set-manager")).toBeVisible();
+    await expect(page.locator("#set-list .set-name", { hasText: "Edited Smoke Set" })).toBeVisible();
+
+    await page.click("#start-btn");
+    await expect(page.locator("#question-text")).toContainText("Duzenlenmis soru?");
+  });
+
+  test("manager can create a brand new markdown-first set from scratch", async ({ page }) => {
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await expect(page.locator("#set-list .set-empty")).toBeVisible();
+    await page.click("#new-set-btn");
+    await expect(page.locator("#editor-screen")).toBeVisible();
+    await expect(page.locator("#editor-source-format-label")).toContainText("Markdown/TXT");
+    await expect(page.locator("#editor-question-list .editor-question-item")).toHaveCount(1);
+    await expect(page.locator("#editor-save-btn")).toBeDisabled();
+    await expect(page.locator("#editor-validation-summary")).toContainText(
+      "Set adi bos olamaz.",
+    );
+
+    await page.fill("#editor-set-name", "Sifirdan Set");
+    await page.fill("#editor-question-text", "Yeni markdown soru?");
+    await expect(page.locator("#editor-save-btn")).toBeDisabled();
+    await expect(page.locator("#editor-validation-summary")).toContainText(
+      "En az iki dolu secenek gerekli.",
+    );
+    await page.evaluate(() => {
+      window.updateEditorOption(0, "Birinci");
+      window.updateEditorOption(1, "Ikinci");
+    });
+    await page.locator("#editor-correct").selectOption("1");
+    await page.fill("#editor-explanation", "Yeni aciklama");
+    await expect(page.locator("#editor-save-btn")).toBeEnabled();
+    await page.click("#editor-save-btn");
+
+    await expect(page.locator("#set-manager")).toBeVisible();
+    await expect(page.locator("#set-list .set-name", { hasText: "Sifirdan Set" })).toBeVisible();
+    await expect(page.locator("#edit-btn")).toBeEnabled();
+    await expect(page.locator("#start-btn")).toBeEnabled();
+    await page.click("#edit-btn");
+    await expect(page.locator("#editor-screen")).toBeVisible();
+    await expect(page.locator("#editor-set-name")).toHaveValue("Sifirdan Set");
+    await expect(page.locator("#editor-question-text")).toHaveValue("Yeni markdown soru?");
+    await expect(page.locator("#editor-source-format-label")).toContainText("Markdown/TXT");
+    await page.click('button:has-text("Yoneticiye don")');
+
+    await page.click("#start-btn");
+    await expect(page.locator("#question-text")).toContainText("Yeni markdown soru?");
+  });
+
+  test("editor protects unsaved changes and can duplicate the active question", async ({
+    page,
+  }) => {
+    const fixturePath = path.resolve(
+      process.cwd(),
+      "tests",
+      "fixtures",
+      "smoke-set.md",
+    );
+
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.setInputFiles("#file-picker", fixturePath);
+    await page.locator("#edit-btn").click();
+    await expect(page.locator("#editor-screen")).toBeVisible();
+    await expect(page.locator("#editor-dirty-pill")).toHaveText("Durum: Kaydedildi");
+
+    await page.fill("#editor-question-text", "Kirli soru?");
+    await expect(page.locator("#editor-dirty-pill")).toHaveText("Durum: Kaydedilmedi");
+
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await page.click('button:has-text("Yoneticiye don")');
+    await expect(page.locator("#editor-screen")).toBeVisible();
+    await expect(page.locator("#editor-question-text")).toHaveValue("Kirli soru?");
+
+    await page.click("#editor-duplicate-question-btn");
+    await expect(page.locator("#editor-question-list .editor-question-item")).toHaveCount(2);
+  });
+
+  test("markdown set survives visual edit and raw roundtrip", async ({ page }) => {
+    const fixturePath = path.resolve(
+      process.cwd(),
+      "tests",
+      "fixtures",
+      "smoke-set.md",
+    );
+
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.setInputFiles("#file-picker", fixturePath);
+    await expect(
+      page.locator("#set-list .set-name", { hasText: "Smoke Markdown Set" }),
+    ).toBeVisible();
+
+    await page.locator("#edit-btn").click();
+    await expect(page.locator("#editor-screen")).toBeVisible();
+
+    await page.fill("#editor-question-text", "Duzenlenmis **Markdown** soru?");
+    await page.fill("#editor-explanation", "Aciklama satiri 1\n> ⚠️ satir 2");
+    await page.locator("#editor-raw-tab-btn").click();
+
+    await expect(page.locator("#editor-raw-input")).toHaveValue(
+      /Soru 1: Duzenlenmis \*\*Markdown\*\* soru\?/,
+    );
+    await expect(page.locator("#editor-raw-input")).toHaveValue(
+      /Açıklama: Aciklama satiri 1/,
+    );
+
+    await page.click("#editor-save-btn");
+    await expect(page.locator("#set-manager")).toBeVisible();
+
+    await page.click("#start-btn");
+    await expect(page.locator("#question-text")).toContainText("Duzenlenmis");
+    await expect(page.locator("#question-text")).toContainText("Markdown");
+  });
+
+  test("manager analytics summary updates after answering and returning", async ({
+    page,
+  }) => {
+    const fixturePath = path.resolve(
+      process.cwd(),
+      "tests",
+      "fixtures",
+      "smoke-set.json",
+    );
+
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.setInputFiles("#file-picker", fixturePath);
+    await expect(page.locator("#analytics-dashboard-manager")).toBeHidden();
+    await page.click("#analytics-toggle-btn");
+    await expect(page.locator("#analytics-dashboard-manager")).toBeVisible();
+    await expect(page.locator("#analytics-sets-value")).toHaveText("1 / 1");
+    await expect(page.locator("#analytics-questions-value")).toHaveText("1 / 0");
+    await page.click("#analytics-close-btn");
+    await expect(page.locator("#analytics-dashboard-manager")).toBeHidden();
+
+    await page.click("#start-btn");
+    await selectOption(page, 1);
+    await page.locator('button[onclick="showSetManager()"]').click();
+
+    await expect(page.locator("#analytics-dashboard-manager")).toBeHidden();
+    await page.click("#analytics-toggle-btn");
+    await expect(page.locator("#analytics-questions-value")).toHaveText("1 / 1");
+    await expect(page.locator("#analytics-results-value")).toHaveText("1 / 0");
+    await expect(page.locator("#analytics-completion-value")).toHaveText("%100");
+  });
+
+  test("sync conflict panel shows diff details and cloud resolution applies remote workspace", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.evaluate(() => {
+      const localWorkspace = {
+        loadedSets: {
+          local: {
+            id: "local",
+            setName: "Kardiyoloji",
+            fileName: "cardio.md",
+            sourcePath: "C:/sets/cardio.md",
+            sourceFormat: "markdown",
+            updatedAt: "2026-04-04T10:00:00.000Z",
+            questions: [
+              {
+                id: "q-1",
+                q: "Yerel soru?",
+                options: ["A", "B"],
+                correct: 0,
+                explanation: "Aciklama",
+                subject: "Genel",
+              },
+            ],
+          },
+        },
+        selectedSetIds: ["local"],
+      };
+      const remoteRecords = [
+        {
+          id: "cloud",
+          setName: "Kardiyoloji",
+          fileName: "cardio.md",
+          sourcePath: "C:/sets/cardio.md",
+          sourceFormat: "markdown",
+          updatedAt: "2026-04-04T10:00:00.000Z",
+          questions: [
+            {
+              id: "q-1",
+              q: "Bulut soru?",
+              options: ["A", "B"],
+              correct: 1,
+              explanation: "Aciklama",
+              subject: "Genel",
+            },
+          ],
+        },
+      ];
+      const remoteSnapshot = {
+        selectedSetIds: ["cloud"],
+        selectedAnswers: {
+          "set:cloud::id:q-1": 1,
+        },
+        solutionVisible: {},
+        session: {
+          currentQuestionIndex: 0,
+          currentQuestionKey: "set:cloud::id:q-1",
+          selectedTopic: "Genel",
+        },
+        autoAdvanceEnabled: false,
+      };
+      const conflict = window.AppSyncConflict.detectSyncConflict({
+        localWorkspace,
+        remoteRecords,
+        localSnapshot: {
+          selectedSetIds: ["local"],
+          selectedAnswers: {
+            "set:local::id:q-1": 0,
+          },
+          solutionVisible: {},
+          session: {
+            currentQuestionIndex: 0,
+            currentQuestionKey: "set:local::id:q-1",
+            selectedTopic: "Genel",
+          },
+          autoAdvanceEnabled: false,
+        },
+        remoteSnapshot,
+      });
+
+      window.__MCQ_TEST_HOOKS__.showSyncConflictPreview({
+        conflict,
+        userPrefix: "",
+        localWorkspaceSeed: localWorkspace,
+        localWorkspacePrefix: "",
+        localSnapshotSeed: null,
+        localSnapshotPrefix: "",
+        remoteRecords,
+        remoteSnapshot,
+      });
+    });
+
+    await expect(page.locator("#sync-conflict-panel")).toBeVisible();
+    await expect(page.locator("#sync-conflict-local-details")).toContainText(
+      "Kardiyoloji: Iki taraf da degismis",
+    );
+    await expect(page.locator("#sync-conflict-remote-details")).toContainText(
+      "Soru farki: 1",
+    );
+
+    await page.click('button:has-text("Bulutu kullan")');
+    await expect(page.locator("#sync-conflict-panel")).toBeHidden();
+    await expect(page.locator("#set-list .set-name")).toContainText("Kardiyoloji");
+  });
+
+  test("desktop import writes edited markdown back to its source file", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.__MCQ_TAURI_CALLS__ = [];
+      window.__TAURI__ = {
+        core: {
+          invoke: async (command, args = {}) => {
+            if (command === "plugin:updater|check") {
+              return null;
+            }
+
+            if (
+              command === "plugin:resources|close" ||
+              command === "plugin:updater|download_and_install" ||
+              command === "plugin:process|restart"
+            ) {
+              return null;
+            }
+
+            if (command === "pick_native_set_files") {
+              return [
+                {
+                  path: "C:\\sets\\native-demo.md",
+                  name: "native-demo.md",
+                  contents: [
+                    "# Native Demo",
+                    "",
+                    "Soru 1: Ilk soru?",
+                    "Konu: Genel",
+                    "A) A",
+                    "B) B",
+                    "Doğru Cevap: A",
+                    "Açıklama: Aciklama",
+                  ].join("\n"),
+                },
+              ];
+            }
+
+            if (command === "write_set_source_file") {
+              window.__MCQ_TAURI_CALLS__.push({
+                command,
+                args,
+              });
+              return null;
+            }
+
+            throw new Error(`unexpected tauri command: ${command}`);
+          },
+        },
+      };
+    });
+
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.locator("#import-set-btn").click();
+    await expect(page.locator("#set-list .set-name")).toContainText("Native Demo");
+
+    await page.locator("#edit-btn").click();
+    await page.fill("#editor-question-text", "Native duzenlenmis soru?");
+    await page.click("#editor-save-btn");
+
+    await expect(page.locator("#set-manager")).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.__MCQ_TAURI_CALLS__),
+      )
+      .toEqual([
+        {
+          command: "write_set_source_file",
+          args: {
+            sourcePath: "C:\\sets\\native-demo.md",
+            rawSource: expect.stringContaining("Soru 1: Native duzenlenmis soru?"),
+          },
+        },
+      ]);
   });
 
   test("resume exact question after reload", async ({ page }) => {

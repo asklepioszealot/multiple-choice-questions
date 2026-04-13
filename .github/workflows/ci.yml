@@ -7,14 +7,14 @@ on:
     branches: [main]
 
 jobs:
-  smoke:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -25,11 +25,20 @@ jobs:
       - name: Validate set files
         run: npm run validate:set
 
+      - name: Build app
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          ENABLE_DEMO_AUTH: ${{ vars.ENABLE_DEMO_AUTH }}
+        run: npm run build
+
       - name: Install Chromium
         run: npx playwright install chromium
 
-      - name: Run smoke tests
-        run: npm run test:smoke
+      - name: Run smoke + unit suite
+        env:
+          FORCE_MOCK_AUTH: 1
+        run: npm test
 
       - name: Upload Playwright report on failure
         if: failure()

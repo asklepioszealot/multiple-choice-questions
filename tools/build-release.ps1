@@ -1,5 +1,6 @@
 param(
-  [switch]$NoLegacyCopy
+  [switch]$NoLegacyCopy,
+  [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
@@ -70,20 +71,132 @@ function Assert-AuthenticodeSignature {
   }
 }
 
+function Get-HashOrMissing {
+  param(
+    [Parameter(Mandatory = $true)][string]$FilePath
+  )
+
+  if (-not (Test-Path $FilePath)) {
+    return "missing"
+  }
+
+  return (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash
+}
+
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$localUpdaterOverridePath = $null
 
 Push-Location $repoRoot
 try {
-  Write-Host "[1/6] Building dist from index.html..."
-  node build.mjs
+  Write-Host "[1/6] Building dist with Vite..."
+  npm run build
   if ($LASTEXITCODE -ne 0) {
-    throw "node build.mjs failed with exit code $LASTEXITCODE"
+    throw "npm run build failed with exit code $LASTEXITCODE"
+  }
+
+  $sourceIndexPath = Join-Path $repoRoot "index.html"
+  $sourceMainPath = Join-Path $repoRoot "src\app\main.js"
+  $distIndexPath = Join-Path $repoRoot "dist\index.html"
+  $distMainPath = Join-Path $repoRoot "dist\src\app\main.js"
+  $buildIdPath = Join-Path $repoRoot "dist\build-id.txt"
+  $buildMetadataPath = Join-Path $repoRoot "dist\build-metadata.json"
+  $buildId = if (Test-Path $buildIdPath) {
+    (Get-Content -Path $buildIdPath -Raw).Trim()
+  } else {
+    "unknown"
+  }
+  $sourceIndexHash = Get-HashOrMissing -FilePath $sourceIndexPath
+  $sourceMainHash = Get-HashOrMissing -FilePath $sourceMainPath
+  $distIndexHash = Get-HashOrMissing -FilePath $distIndexPath
+  $distMainHash = Get-HashOrMissing -FilePath $distMainPath
+
+  $tauriConfigPath = Join-Path $repoRoot "src-tauri\tauri.conf.json"
+  $tauriConfig = Get-Content $tauriConfigPath -Raw | ConvertFrom-Json
+  $productName = [string]$tauriConfig.productName
+  $version = [string]$tauriConfig.version
+  if ([string]::IsNullOrWhiteSpace($productName)) {
+    $productName = "Coktan Secmeli Sorular"
+  }
+  if ([string]::IsNullOrWhiteSpace($version)) {
+    $version = "unknown"
+  }
+
+  $defaultUpdaterKeyPath = Join-Path $HOME ".tauri\multiple-choice-questions-updater.key"
+  $updaterKeySource = "missing"
+  if (-not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+    $updaterKeySource = "env-inline"
+  } elseif (-not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PATH)) {
+    $updaterKeySource = "env-path"
+  } elseif (Test-Path $defaultUpdaterKeyPath) {
+    $updaterKeySource = "local-default"
+  }
+  $updaterArtifactsEnabled = $updaterKeySource -ne "missing"
+
+  if ($updaterKeySource -eq "local-default" -and -not $DryRun) {
+    $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content -Raw $defaultUpdaterKeyPath)
+    Write-Host "[2/6] Using local updater key: $defaultUpdaterKeyPath"
+  }
+
+  $commit = (git rev-parse --short HEAD).Trim()
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commit)) {
+    $commit = "nogit"
+  }
+
+  $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+  $releasePlanScript = Join-Path $repoRoot "tools\release-plan.mjs"
+  $env:MCQ_RELEASE_BUILD_ID = $buildId
+  $env:MCQ_RELEASE_COMMIT = $commit
+  $env:MCQ_RELEASE_NO_LEGACY = if ($NoLegacyCopy) { "1" } else { "0" }
+  $env:MCQ_RELEASE_PRODUCT_NAME = $productName
+  $env:MCQ_RELEASE_REPO_ROOT = $repoRoot
+  $env:MCQ_RELEASE_TIMESTAMP = $timestamp
+  $env:MCQ_RELEASE_VERSION = $version
+  $env:MCQ_RELEASE_DEFAULT_KEY_PATH = $defaultUpdaterKeyPath
+  $env:MCQ_RELEASE_KEY_SOURCE = $updaterKeySource
+  $env:MCQ_RELEASE_UPDATER_ENABLED = if ($updaterArtifactsEnabled) { "1" } else { "0" }
+  $releasePlanJson = & node $releasePlanScript
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($releasePlanJson)) {
+    throw "Release plan could not be generated."
+  }
+
+  $releasePlan = $releasePlanJson | ConvertFrom-Json
+  $releaseDir = [string]$releasePlan.releaseDir
+  $portableTarget = [string]$releasePlan.portableTarget
+  $setupTarget = [string]$releasePlan.setupTarget
+  $latestPointerPath = [string]$releasePlan.latestPointerPath
+  $openPortableInfoPath = [string]$releasePlan.openPortableInfoPath
+  $legacyPortablePath = Join-Path $repoRoot ([string]$releasePlan.artifactNames.legacyPortableName)
+  $legacySetupPath = Join-Path $repoRoot ([string]$releasePlan.artifactNames.legacySetupName)
+
+  if ($DryRun) {
+    Write-Host "[2/6] Dry run mode: desktop build, artifact copy ve signing atlandi."
+    Write-Host ""
+    Write-Host "Planned release folder: $releaseDir"
+    Write-Host "Planned portable: $portableTarget"
+    Write-Host "Planned setup: $setupTarget"
+    Write-Host "Planned latest pointer: $latestPointerPath"
+    Write-Host "Updater key source: $($releasePlan.dryRunSummary.updaterKeySource)"
+    Write-Host "Updater artifacts: $($releasePlan.dryRunSummary.updaterArtifacts)"
+    Write-Host "Legacy root copy: $($releasePlan.dryRunSummary.legacyCopy)"
+    Write-Host "Build ID: $buildId"
+    return
+  }
+
+  $tauriBuildArgs = @("tauri", "build", "--bundles", "nsis")
+  if (-not $updaterArtifactsEnabled) {
+    $localUpdaterOverridePath = Join-Path ([System.IO.Path]::GetTempPath()) ("mcq-tauri-no-updater-" + [Guid]::NewGuid().ToString("N") + ".json")
+    @{ bundle = @{ createUpdaterArtifacts = $false } } |
+      ConvertTo-Json -Depth 5 |
+      Set-Content -Path $localUpdaterOverridePath -Encoding UTF8
+    $tauriBuildArgs += @("--config", $localUpdaterOverridePath)
+    Write-Warning "Updater imza anahtari bulunamadi. Local release build updater artefaktlari olmadan devam edecek."
   }
 
   Write-Host "[2/6] Building desktop app (NSIS)..."
-  npx tauri build --bundles nsis
+  $npxCmd = "npx " + ($tauriBuildArgs -join " ")
+  cmd.exe /d /s /c $npxCmd
   if ($LASTEXITCODE -ne 0) {
-    throw "npx tauri build --bundles nsis failed with exit code $LASTEXITCODE"
+    throw "cmd.exe /d /s /c $npxCmd failed with exit code $LASTEXITCODE"
   }
 
   $portableSource = Join-Path $repoRoot "src-tauri\target\release\app.exe"
@@ -99,33 +212,11 @@ try {
     throw "NSIS setup file not found under: $nsisDir"
   }
 
-  $tauriConfigPath = Join-Path $repoRoot "src-tauri\tauri.conf.json"
-  $tauriConfig = Get-Content $tauriConfigPath -Raw | ConvertFrom-Json
-  $version = [string]$tauriConfig.version
-  if ([string]::IsNullOrWhiteSpace($version)) {
-    $version = "unknown"
-  }
-
-  $commit = (git rev-parse --short HEAD).Trim()
-  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commit)) {
-    $commit = "nogit"
-  }
-
-  $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-  $releaseDir = Join-Path $repoRoot ("release\" + $timestamp + "_v" + $version + "_" + $commit)
   New-Item -Path $releaseDir -ItemType Directory -Force | Out-Null
-
-  $portableName = "Multiple_Choice_Questions_Portable_v{0}_{1}.exe" -f $version, $commit
-  $setupName = "Multiple_Choice_Questions_Kurulum_v{0}_{1}.exe" -f $version, $commit
-  $portableTarget = Join-Path $releaseDir $portableName
-  $setupTarget = Join-Path $releaseDir $setupName
 
   Write-Host "[3/6] Copying artifacts to release folder..."
   Copy-Item -Path $portableSource -Destination $portableTarget -Force
   Copy-Item -Path $setupSource.FullName -Destination $setupTarget -Force
-
-  $legacyPortablePath = Join-Path $repoRoot "Multiple_Choice_Questions_Portable.exe"
-  $legacySetupPath = Join-Path $repoRoot "Multiple_Choice_Questions_Kurulum.exe"
 
   if (-not $NoLegacyCopy) {
     Write-Host "[4/6] Syncing legacy root file names..."
@@ -133,7 +224,20 @@ try {
     Copy-Item -Path $setupSource.FullName -Destination $legacySetupPath -Force
   } else {
     Write-Host "[4/6] Skipping legacy root file names (-NoLegacyCopy)."
+    if ((Test-Path $legacyPortablePath) -or (Test-Path $legacySetupPath)) {
+      Write-Warning "Legacy root EXE files exist and may be stale. Use the timestamped release folder artifact."
+    }
   }
+
+  @(
+    "Bu release icin test edilecek dogru portable EXE:",
+    $portableTarget,
+    "",
+    "setup_exe=$setupTarget",
+    "build_id=$buildId"
+  ) | Set-Content -Path $openPortableInfoPath -Encoding UTF8
+
+  @($releasePlan.pointerEntries) | Set-Content -Path $latestPointerPath -Encoding UTF8
 
   $signEnable = [string]$env:SIGN_ENABLE
   $signEnableNormalized = $signEnable.Trim()
@@ -174,7 +278,7 @@ try {
     }
   } else {
     if ($signingRequired) {
-      throw "SIGN_ENABLE=1 set edildi ancak imzalama adımı çalıştırılamadı."
+      throw "SIGN_ENABLE=1 set edildi ancak imzalama adimi calistirilamadi."
     }
     Write-Host "[5/6] Skipping signing (set SIGN_ENABLE=1, SIGN_PFX_PATH or SIGN_CERT_SHA1)."
   }
@@ -184,8 +288,16 @@ try {
     "version=$version"
     "commit=$commit"
     "timestamp=$timestamp"
+    "build_id=$buildId"
     "portable_source=$portableSource"
     "setup_source=$($setupSource.FullName)"
+    "legacy_copy=$(-not $NoLegacyCopy)"
+    "source_index_sha256=$sourceIndexHash"
+    "source_main_sha256=$sourceMainHash"
+    "dist_index_sha256=$distIndexHash"
+    "dist_main_sha256=$distMainHash"
+    "dist_build_metadata=$buildMetadataPath"
+    "pointer_file=$latestPointerPath"
   ) | Set-Content -Path $infoPath -Encoding UTF8
 
   $portableHash = (Get-FileHash -Path $portableTarget -Algorithm SHA256).Hash
@@ -198,6 +310,12 @@ try {
   Write-Host "Portable SHA256: $portableHash"
   Write-Host "Setup: $setupTarget"
   Write-Host "Setup SHA256: $setupHash"
+  Write-Host "Build ID: $buildId"
+  Write-Host "Open-this marker: $openPortableInfoPath"
+  Write-Host "Latest pointer: $latestPointerPath"
 } finally {
+  if ($localUpdaterOverridePath -and (Test-Path $localUpdaterOverridePath)) {
+    Remove-Item -Path $localUpdaterOverridePath -Force -ErrorAction SilentlyContinue
+  }
   Pop-Location
 }

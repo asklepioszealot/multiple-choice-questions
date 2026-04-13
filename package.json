@@ -9,9 +9,12 @@
     "build:dist": "npm run build",
     "preview": "vite preview",
     "serve:dist": "npm run preview -- --host 127.0.0.1 --port 4173 --strictPort",
-    "build:desktop": "npx tauri build --bundles nsis",
-    "release": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/build-release.ps1",
-    "release:no-legacy": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/build-release.ps1 -NoLegacyCopy",
+    "tauri": "node ./node_modules/@tauri-apps/cli/tauri.js",
+    "build:desktop": "node ./tools/build-desktop.mjs",
+    "release": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy",
+    "release:no-legacy": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy",
+    "release:dry-run": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy -DryRun",
+    "release:with-legacy": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1",
     "validate:set": "node ./tools/validate-set.js",
     "validate:set:strict": "node ./tools/validate-set.js --require-files",
     "test:smoke": "node ./tools/run-smoke.js",
@@ -39,5 +42,10 @@
     "jsdom": "^29.0.1",
     "vite": "^8.0.3",
     "vitest": "^4.1.2"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.101.1",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.0"
   }
 }
