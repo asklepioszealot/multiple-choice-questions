@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildStudyStateSnapshot,
   buildQuestionKey,
   legacyQuestionId,
   loadPersistedStudyState,
   migrateLegacyAssessmentState,
+  pickNewerStudyStateSnapshot,
   persistStudyState,
   readSavedSession,
   resolveQuestionKey,
@@ -137,5 +139,54 @@ describe("study-state helpers", () => {
         },
       ],
     ]);
+  });
+
+  it("builds a normalized study-state snapshot for remote sync", () => {
+    const snapshot = buildStudyStateSnapshot({
+      activeQuestion: { __questionKey: "set:demo::idx:1" },
+      currentQuestionIndex: 1,
+      selectedTopic: "Genel",
+      selectedSetIds: ["demo"],
+      selectedAnswers: { "set:demo::idx:1": 0 },
+      solutionVisible: { "set:demo::idx:1": true },
+      autoAdvanceEnabled: false,
+      updatedAt: "2026-04-04T12:00:00.000Z",
+    });
+
+    expect(snapshot).toEqual({
+      selectedSetIds: ["demo"],
+      selectedAnswers: { "set:demo::idx:1": 0 },
+      solutionVisible: { "set:demo::idx:1": true },
+      session: {
+        currentQuestionIndex: 1,
+        currentQuestionKey: "set:demo::idx:1",
+        selectedTopic: "Genel",
+      },
+      autoAdvanceEnabled: false,
+      updatedAt: "2026-04-04T12:00:00.000Z",
+    });
+  });
+
+  it("prefers the newer snapshot when local and remote state differ", () => {
+    const localSnapshot = {
+      selectedSetIds: ["demo"],
+      selectedAnswers: {},
+      solutionVisible: {},
+      session: null,
+      autoAdvanceEnabled: true,
+      updatedAt: "2026-04-03T12:00:00.000Z",
+    };
+    const remoteSnapshot = {
+      selectedSetIds: ["remote"],
+      selectedAnswers: { "set:remote::idx:0": 1 },
+      solutionVisible: {},
+      session: null,
+      autoAdvanceEnabled: false,
+      updatedAt: "2026-04-04T12:00:00.000Z",
+    };
+
+    expect(pickNewerStudyStateSnapshot(localSnapshot, remoteSnapshot)).toEqual(
+      remoteSnapshot,
+    );
   });
 });

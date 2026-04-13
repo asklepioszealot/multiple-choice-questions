@@ -1,20 +1,5 @@
-      // --- YENİ SET YÖNETİMİ DEĞİŞKENLERİ ---
-      let loadedSets = {};
-      let selectedSets = new Set();
-      let removeCandidateSets = new Set();
-      let deleteMode = false;
-      let lastRemovedSets = [];
-      let undoTimeoutId = null;
-      const DRIVE_CLIENT_ID =
-        "102976125468-1mq0m7ptikns377eso8gmnaaioac17fv.apps.googleusercontent.com";
-      const DRIVE_API_KEY = "AIzaSyCUvy3PvFNpAVL9FYvLF22lzUPJ9xZHWrw";
-      const DRIVE_APP_ID = "102976125468";
-      const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
       const ANSWER_LOCK_KEY = "mc_answer_lock";
       const AUTO_ADVANCE_KEY = "mc_auto_advance";
-      let driveTokenClient = null;
-      let driveAccessToken = null;
-      let drivePickerApiLoaded = false;
 
       // --- ESKİ DEĞİŞKENLER ---
       let currentQuestionIndex = 0;
@@ -28,10 +13,42 @@
       let answerLockEnabled = false;
       let autoAdvanceEnabled = false;
       let autoAdvanceTimeoutId = null;
+      let remoteStudyStateSyncTimeoutId = null;
+      let pendingRemoteStudyStateSnapshot = null;
+      let lastSyncRetryAction = null;
+      let pendingSyncConflict = null;
       const { bootstrap } = window.AppBootstrap;
       const { showScreen } = window.AppScreen;
       const { storage } = bootstrap();
-      const { normalizeQuestions, parseMarkdownToJSON } = window.AppSetCodec;
+      const { createPlatformAdapter } = window.AppPlatformAdapter;
+      const {
+        getRuntimeConfig,
+        hasDriveConfig,
+        hasSupabaseConfig,
+        isDesktopRuntime,
+      } = window.AppRuntimeConfig;
+      const { createAuthFeature } = window.AppAuthShell;
+      const { createSyncStatusController } = window.AppSyncStatus;
+      const {
+        createRemoteWorkspaceSeed,
+        detectSyncConflict,
+      } = window.AppSyncConflict;
+      const {
+        buildAnalyticsSummary,
+        createAnalyticsPanelController,
+      } = window.AppAnalytics;
+      const { createDesktopUpdateFeature } = window.AppDesktopUpdate;
+      const {
+        buildSetRecord,
+        formatEditableText,
+        htmlToEditableText,
+        normalizeQuestions,
+        parseSetText,
+        serializeSetRecord,
+      } = window.AppSetCodec;
+      const { createSetManager } = window.AppSetManager;
+      const { createEditorFeature } = window.AppEditor;
+      const { createGoogleDriveFeature } = window.AppGoogleDrive;
       const {
         buildScoreSummary,
         formatScoreSummaryHtml,
@@ -56,11 +73,896 @@
       } = window.AppStudyUI;
       const {
         buildQuestionKey,
+        buildStudyStateSnapshot,
         resolveQuestionKey: cardId,
         loadPersistedStudyState,
+        pickNewerStudyStateSnapshot,
         persistStudyState,
+        persistStudyStateSnapshot,
         readSavedSession,
       } = window.AppStudyState;
+      const setManager = createSetManager({
+        storage,
+        buildSetRecord,
+        normalizeQuestions,
+        parseSetText,
+        getSelectedAnswers() {
+          return selectedAnswers;
+        },
+        resolveQuestionKey: cardId,
+        getStorageKeyPrefix,
+        onSetImported: saveRemoteSetRecord,
+        onRender: renderAnalyticsSummary,
+        onSetsRemoved: deleteRemoteSetRecords,
+        onSelectionChanged: handleSelectionChanged,
+        documentRef: document,
+        setTimeoutRef: window.setTimeout.bind(window),
+        clearTimeoutRef: window.clearTimeout.bind(window),
+        alertRef: window.alert?.bind(window),
+        consoleRef: window.console,
+      });
+      const platformAdapter = createPlatformAdapter({
+        storage,
+        getRuntimeConfig,
+      });
+      const authFeature = createAuthFeature({
+        storage,
+        platformAdapter,
+        getRuntimeConfig,
+        hasSupabaseConfig,
+        showScreen,
+        documentRef: document,
+      });
+      const googleDrive = createGoogleDriveFeature({
+        getRuntimeConfig,
+        hasDriveConfig,
+        isDesktopRuntime,
+        loadSetFromText,
+        selectSet,
+        renderSetList,
+        showUndoToast,
+        documentRef: document,
+        alertRef: window.alert?.bind(window),
+        consoleRef: window.console,
+        fetchRef: window.fetch?.bind(window),
+        setTimeoutRef: window.setTimeout.bind(window),
+        clearTimeoutRef: window.clearTimeout.bind(window),
+      });
+      const syncStatus = createSyncStatusController({
+        onChange: renderSyncStatus,
+      });
+      const analyticsPanel = createAnalyticsPanelController({
+        documentRef: document,
+        stateRef: window.AppState,
+      });
+      const editorFeature = createEditorFeature({
+        buildSetRecord,
+        documentRef: document,
+        formatEditableText,
+        htmlToEditableText,
+        parseSetText,
+        serializeSetRecord,
+        showScreen,
+        saveSetRecord: saveEditedSetRecord,
+        writeSourceFile(sourcePath, rawSource) {
+          return platformAdapter.writeSetSourceFile(sourcePath, rawSource);
+        },
+        confirmRef: window.confirm?.bind(window),
+      });
+      const desktopUpdateFeature = createDesktopUpdateFeature({
+        stateRef: window.AppState,
+        isDesktopRuntimeRef: isDesktopRuntime,
+        documentRef: document,
+        windowRef: window,
+        alertRef: window.alert?.bind(window),
+        confirmRef: window.confirm?.bind(window),
+        consoleRef: window.console,
+      });
+
+      function getAuthSession() {
+        return authFeature.getAuthSession();
+      }
+
+      function getStorageKeyPrefix() {
+        const authSession = getAuthSession();
+        if (
+          authSession &&
+          authSession.mode === "supabase" &&
+          typeof authSession.userId === "string" &&
+          authSession.userId.trim()
+        ) {
+          return `mc_user::${authSession.userId.trim()}`;
+        }
+
+        return "";
+      }
+
+      function buildScopedStorageKey(key, prefixOverride = null) {
+        const prefix =
+          typeof prefixOverride === "string" ? prefixOverride : getStorageKeyPrefix();
+        return prefix ? `${prefix}::${key}` : key;
+      }
+
+      function getScopedStorageItem(key, prefixOverride = null) {
+        return storage.getItem(buildScopedStorageKey(key, prefixOverride));
+      }
+
+      function setScopedStorageItem(key, value, prefixOverride = null) {
+        storage.setItem(buildScopedStorageKey(key, prefixOverride), value);
+      }
+
+      function isRemoteWorkspaceActive() {
+        return (
+          getAuthSession()?.mode === "supabase" &&
+          platformAdapter.supportsRemoteSync === true
+        );
+      }
+
+      function normalizeSyncErrorMessage(error) {
+        const message =
+          typeof error?.message === "string" && error.message.trim()
+            ? error.message.trim()
+            : "Bilinmeyen hata";
+        return message.replace(/\.$/, "");
+      }
+
+      function renderSyncStatus(snapshot = syncStatus.getSnapshot()) {
+        const syncStatusEl = document.getElementById("sync-status");
+        const retryButton = document.getElementById("sync-retry-btn");
+
+        if (!syncStatusEl || !retryButton) {
+          return;
+        }
+
+        if (!isRemoteWorkspaceActive() || !snapshot?.visible) {
+          syncStatusEl.textContent = "";
+          syncStatusEl.className = "sync-status";
+          syncStatusEl.style.display = "none";
+          retryButton.style.display = "none";
+          desktopUpdateFeature.syncButtonState();
+          return;
+        }
+
+        syncStatusEl.textContent = snapshot.message;
+        syncStatusEl.className = `sync-status ${snapshot.state}`;
+        syncStatusEl.style.display = "inline-flex";
+        retryButton.style.display = snapshot.canRetry ? "inline-flex" : "none";
+        desktopUpdateFeature.syncButtonState();
+      }
+
+      function markSyncing(detail = "") {
+        if (!isRemoteWorkspaceActive()) {
+          renderSyncStatus(syncStatus.reset());
+          return;
+        }
+
+        renderSyncStatus(syncStatus.markSyncing(detail));
+      }
+
+      function markSynced(detail = "") {
+        if (!isRemoteWorkspaceActive()) {
+          renderSyncStatus(syncStatus.reset());
+          return;
+        }
+
+        lastSyncRetryAction = null;
+        renderSyncStatus(syncStatus.markSynced(detail));
+      }
+
+      function markSyncError(error, retryAction = null) {
+        if (!isRemoteWorkspaceActive()) {
+          renderSyncStatus(syncStatus.reset());
+          return;
+        }
+
+        lastSyncRetryAction = typeof retryAction === "function" ? retryAction : null;
+        renderSyncStatus(syncStatus.markError(normalizeSyncErrorMessage(error)));
+      }
+
+      async function retryCloudSync() {
+        if (!isRemoteWorkspaceActive()) {
+          renderSyncStatus(syncStatus.reset());
+          return null;
+        }
+
+        if (typeof lastSyncRetryAction === "function") {
+          return lastSyncRetryAction();
+        }
+
+        return loadSyncedWorkspace({
+          fallbackWorkspace: captureWorkspaceSeed(),
+          fallbackStudySnapshot: buildCurrentStudyStateSnapshot(),
+        });
+      }
+
+      function cloneJson(value) {
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function captureWorkspaceSeed() {
+        return {
+          loadedSets: cloneJson(getLoadedSets()),
+          selectedSetIds: [...getSelectedSetIds()],
+        };
+      }
+
+      function hasWorkspaceSeed(seed) {
+        return Boolean(seed && Object.keys(seed.loadedSets || {}).length > 0);
+      }
+
+      function hasPendingSyncConflict() {
+        return Boolean(pendingSyncConflict);
+      }
+
+      function formatSyncConflictSummary(summary = {}) {
+        return `${summary.setCount || 0} set, ${summary.questionCount || 0} soru, ${summary.answeredCount || 0} cevap`;
+      }
+
+      function formatConflictTimestamp(value) {
+        const parsed = Date.parse(value || "");
+        if (!Number.isFinite(parsed)) {
+          return "";
+        }
+
+        return new Date(parsed).toLocaleString("tr-TR", {
+          hour12: false,
+        });
+      }
+
+      function renderSyncConflictDetailList(elementId, lines) {
+        const listEl = document.getElementById(elementId);
+        if (!listEl) {
+          return;
+        }
+
+        listEl.innerHTML = "";
+        lines.forEach((line) => {
+          const item = document.createElement("li");
+          item.textContent = line;
+          listEl.appendChild(item);
+        });
+      }
+
+      function formatConflictFreshness(newerSide) {
+        if (newerSide === "local") {
+          return "Yerel daha yeni";
+        }
+
+        if (newerSide === "remote") {
+          return "Bulut daha yeni";
+        }
+
+        return "Iki taraf da degismis";
+      }
+
+      function buildSyncConflictDetailLines(conflict, side) {
+        const lines = [];
+        const decisionEnvelope = conflict?.decisionEnvelope || {};
+        const studySummary = decisionEnvelope.studyStateSummary || {};
+
+        (decisionEnvelope.blockingConflicts || []).forEach((entry) => {
+          const timestamp =
+            side === "local"
+              ? formatConflictTimestamp(entry.localUpdatedAt)
+              : formatConflictTimestamp(entry.remoteUpdatedAt);
+          lines.push(
+            `${entry.setName}: ${formatConflictFreshness(entry.newerSide)}${timestamp ? ` | Son degisim: ${timestamp}` : ""} | Soru farki: ${entry.questionDelta || 0} | Cevap farki: ${entry.answerDelta || 0}`,
+          );
+        });
+
+        if (conflict?.studyConflict) {
+          const answeredCount =
+            side === "local"
+              ? studySummary.localAnsweredCount
+              : studySummary.remoteAnsweredCount;
+          lines.push(`İlerleme: ${answeredCount || 0} cevap`);
+          if ((studySummary.blockingAnswerCount || 0) > 0) {
+            lines.push(
+              `Cakisan cevap sayisi: ${studySummary.blockingAnswerCount || 0}`,
+            );
+          }
+        }
+
+        if (lines.length === 0) {
+          lines.push("Ek fark bilgisi yok.");
+        }
+
+        return lines;
+      }
+
+      function renderSyncConflictPanel() {
+        const panel = document.getElementById("sync-conflict-panel");
+        const localSummaryEl = document.getElementById("sync-conflict-local-summary");
+        const remoteSummaryEl = document.getElementById("sync-conflict-remote-summary");
+        const messageEl = document.getElementById("sync-conflict-message");
+        const localDetailList = document.getElementById("sync-conflict-local-details");
+        const remoteDetailList = document.getElementById("sync-conflict-remote-details");
+
+        if (
+          !panel ||
+          !localSummaryEl ||
+          !remoteSummaryEl ||
+          !messageEl ||
+          !localDetailList ||
+          !remoteDetailList
+        ) {
+          return;
+        }
+
+        if (!pendingSyncConflict) {
+          panel.style.display = "none";
+          messageEl.textContent = "";
+          localSummaryEl.textContent = "";
+          remoteSummaryEl.textContent = "";
+          localDetailList.innerHTML = "";
+          remoteDetailList.innerHTML = "";
+          return;
+        }
+
+        panel.style.display = "flex";
+        const blockingSetCount =
+          pendingSyncConflict.conflict?.decisionEnvelope?.blockingConflicts?.length || 0;
+        messageEl.textContent =
+          blockingSetCount > 0
+            ? `${blockingSetCount} sette iki taraf da degismis. Hangisi esas alinsin?`
+            : "Yerel calisma alani ile bulut verisi farkli. Hangisi esas alinsin?";
+        localSummaryEl.textContent = formatSyncConflictSummary(
+          pendingSyncConflict.conflict.localSummary,
+        );
+        remoteSummaryEl.textContent = formatSyncConflictSummary(
+          pendingSyncConflict.conflict.remoteSummary,
+        );
+        renderSyncConflictDetailList(
+          "sync-conflict-local-details",
+          buildSyncConflictDetailLines(pendingSyncConflict.conflict, "local"),
+        );
+        renderSyncConflictDetailList(
+          "sync-conflict-remote-details",
+          buildSyncConflictDetailLines(pendingSyncConflict.conflict, "remote"),
+        );
+      }
+
+      function clearSyncConflictState() {
+        pendingSyncConflict = null;
+        renderSyncConflictPanel();
+      }
+
+      function applyWorkspaceSeed(seed, options = {}) {
+        setManager.replaceLoadedSets(Object.values(seed?.loadedSets || {}), {
+          selectedSetIds: seed?.selectedSetIds || [],
+          storageKeyPrefix: options.storageKeyPrefix ?? null,
+        });
+      }
+
+      function resetStudyState(storageKeyPrefix = null) {
+        selectedAnswers = {};
+        solutionVisible = {};
+        pendingSession = null;
+        autoAdvanceEnabled = false;
+        storage.removeItem(buildScopedStorageKey("mc_session", storageKeyPrefix));
+        storage.removeItem(buildScopedStorageKey("mc_assessments", storageKeyPrefix));
+        storage.removeItem(buildScopedStorageKey(AUTO_ADVANCE_KEY, storageKeyPrefix));
+        syncAutoAdvanceToggleUI();
+        renderSetList();
+      }
+
+      function buildCurrentStudyStateSnapshot(options = {}) {
+        return buildStudyStateSnapshot({
+          activeQuestion:
+            filteredQuestions.length > 0
+              ? filteredQuestions[questionOrder[currentQuestionIndex]]
+              : null,
+          currentQuestionIndex,
+          selectedTopic:
+            options.selectedTopic ??
+            document.getElementById("topic-select")?.value ??
+            pendingSession?.selectedTopic ??
+            "hepsi",
+          selectedSetIds: getSelectedSetIds(),
+          selectedAnswers,
+          solutionVisible,
+          autoAdvanceEnabled,
+          updatedAt: options.updatedAt,
+        });
+      }
+
+      function hasMeaningfulStudyStateSnapshot(snapshot) {
+        if (!snapshot || typeof snapshot !== "object") {
+          return false;
+        }
+
+        const session = snapshot.session;
+        const hasMeaningfulSession = Boolean(
+          session &&
+            ((typeof session.currentQuestionKey === "string" &&
+              session.currentQuestionKey.trim()) ||
+              (Number.isInteger(session.currentQuestionIndex) &&
+                session.currentQuestionIndex > 0)),
+        );
+
+        return Boolean(
+          (Array.isArray(snapshot.selectedSetIds) && snapshot.selectedSetIds.length > 0) ||
+            Object.keys(snapshot.selectedAnswers || {}).length > 0 ||
+            Object.keys(snapshot.solutionVisible || {}).length > 0 ||
+            hasMeaningfulSession,
+        );
+      }
+
+      function applyStudyStateSnapshot(snapshot, options = {}) {
+        const normalizedSnapshot = persistStudyStateSnapshot({
+          storage,
+          snapshot,
+          storageKeyPrefix: options.storageKeyPrefix ?? getStorageKeyPrefix(),
+        });
+
+        selectedAnswers = normalizedSnapshot.selectedAnswers;
+        solutionVisible = normalizedSnapshot.solutionVisible;
+        pendingSession = normalizedSnapshot.session;
+        autoAdvanceEnabled = normalizedSnapshot.autoAdvanceEnabled !== false;
+
+        if (Array.isArray(normalizedSnapshot.selectedSetIds)) {
+          setManager.setSelectedSetIds(normalizedSnapshot.selectedSetIds, {
+            storageKeyPrefix: options.storageKeyPrefix ?? getStorageKeyPrefix(),
+            notify: false,
+          });
+        }
+
+        syncAutoAdvanceToggleUI();
+        renderSetList();
+      }
+
+      async function saveRemoteSetRecord(setRecord) {
+        if (!isRemoteWorkspaceActive() || typeof platformAdapter.saveSet !== "function") {
+          return setRecord;
+        }
+
+        markSyncing("setler");
+
+        try {
+          const savedRecord = await platformAdapter.saveSet(setRecord);
+          markSynced("setler");
+          return savedRecord;
+        } catch (error) {
+          markSyncError(error, () => saveRemoteSetRecord(setRecord));
+          throw error;
+        }
+      }
+
+      async function deleteRemoteSetRecords(setIds) {
+        if (!isRemoteWorkspaceActive() || typeof platformAdapter.deleteSets !== "function") {
+          return null;
+        }
+
+        markSyncing("setler");
+
+        try {
+          const result = await platformAdapter.deleteSets(setIds);
+          markSynced("setler");
+          return result;
+        } catch (error) {
+          markSyncError(error, () => deleteRemoteSetRecords(setIds));
+          throw error;
+        }
+      }
+
+      function clearRemoteStudyStateSyncTimer() {
+        if (remoteStudyStateSyncTimeoutId) {
+          clearTimeout(remoteStudyStateSyncTimeoutId);
+          remoteStudyStateSyncTimeoutId = null;
+        }
+      }
+
+      async function flushRemoteStudyStateSync() {
+        if (
+          !isRemoteWorkspaceActive() ||
+          typeof platformAdapter.saveUserState !== "function" ||
+          !pendingRemoteStudyStateSnapshot
+        ) {
+          return;
+        }
+
+        const snapshotToSync = pendingRemoteStudyStateSnapshot;
+        pendingRemoteStudyStateSnapshot = null;
+        markSyncing("ilerleme");
+
+        try {
+          const savedSnapshot = await platformAdapter.saveUserState(snapshotToSync);
+          if (savedSnapshot) {
+            persistStudyStateSnapshot({
+              storage,
+              snapshot: savedSnapshot,
+              storageKeyPrefix: getStorageKeyPrefix(),
+            });
+          }
+          markSynced("ilerleme");
+        } catch (error) {
+          console.error("Remote study-state sync error", error);
+          pendingRemoteStudyStateSnapshot = snapshotToSync;
+          markSyncError(error, async function retryPendingStudyStateSync() {
+            pendingRemoteStudyStateSnapshot = snapshotToSync;
+            return flushRemoteStudyStateSync();
+          });
+        }
+      }
+
+      function scheduleRemoteStudyStateSync(snapshot = buildCurrentStudyStateSnapshot()) {
+        if (
+          !isRemoteWorkspaceActive() ||
+          typeof platformAdapter.saveUserState !== "function"
+        ) {
+          return;
+        }
+
+        pendingRemoteStudyStateSnapshot = snapshot;
+        clearRemoteStudyStateSyncTimer();
+        remoteStudyStateSyncTimeoutId = setTimeout(() => {
+          remoteStudyStateSyncTimeoutId = null;
+          void flushRemoteStudyStateSync();
+        }, 600);
+      }
+
+      function handleSelectionChanged() {
+        scheduleRemoteStudyStateSync(buildCurrentStudyStateSnapshot());
+      }
+
+      async function seedRemoteWorkspaceFromSeed(seed) {
+        if (
+          !isRemoteWorkspaceActive() ||
+          !hasWorkspaceSeed(seed) ||
+          typeof platformAdapter.saveSet !== "function"
+        ) {
+          return [];
+        }
+
+        const savedRecords = [];
+        for (const [setId, setRecord] of Object.entries(seed.loadedSets || {})) {
+          const savedRecord = await platformAdapter.saveSet({
+            id: setRecord.id || setId,
+            slug: setRecord.slug || setId,
+            setName: setRecord.setName,
+            fileName: setRecord.fileName,
+            sourceFormat: setRecord.sourceFormat,
+            rawSource: setRecord.rawSource,
+            questions: setRecord.questions,
+            updatedAt: setRecord.updatedAt || new Date().toISOString(),
+          });
+          savedRecords.push(savedRecord);
+        }
+
+        return savedRecords;
+      }
+
+      async function uploadReconciledLocalRecords(records = [], remoteIdsToDelete = []) {
+        if (
+          !isRemoteWorkspaceActive() ||
+          ((typeof platformAdapter.saveSet !== "function" ||
+            !Array.isArray(records) ||
+            records.length === 0) &&
+            (typeof platformAdapter.deleteSets !== "function" ||
+              !Array.isArray(remoteIdsToDelete) ||
+              remoteIdsToDelete.length === 0))
+        ) {
+          return [];
+        }
+
+        const savedRecords = [];
+        if (
+          Array.isArray(remoteIdsToDelete) &&
+          remoteIdsToDelete.length > 0 &&
+          typeof platformAdapter.deleteSets === "function"
+        ) {
+          await platformAdapter.deleteSets(remoteIdsToDelete);
+        }
+
+        for (const record of records) {
+          savedRecords.push(
+            await platformAdapter.saveSet({
+              ...record,
+              updatedAt: record.updatedAt || new Date().toISOString(),
+            }),
+          );
+        }
+        return savedRecords;
+      }
+
+      async function loadSyncedWorkspace(options = {}) {
+        if (!isRemoteWorkspaceActive()) {
+          renderSyncStatus(syncStatus.reset());
+          clearSyncConflictState();
+          return;
+        }
+
+        markSyncing("calisma alani");
+
+        const userPrefix = getStorageKeyPrefix();
+        const fallbackWorkspace = hasWorkspaceSeed(options.fallbackWorkspace)
+          ? options.fallbackWorkspace
+          : null;
+        const fallbackSnapshot = hasMeaningfulStudyStateSnapshot(
+          options.fallbackStudySnapshot,
+        )
+          ? options.fallbackStudySnapshot
+          : null;
+
+        setManager.loadStoredSets(userPrefix);
+        loadState(userPrefix);
+
+        const userScopedWorkspace = captureWorkspaceSeed();
+        const userScopedSnapshot = hasMeaningfulStudyStateSnapshot(
+          buildCurrentStudyStateSnapshot(),
+        )
+          ? buildCurrentStudyStateSnapshot()
+          : null;
+        const localWorkspaceSeed = hasWorkspaceSeed(userScopedWorkspace)
+          ? userScopedWorkspace
+          : fallbackWorkspace;
+        const localWorkspacePrefix = hasWorkspaceSeed(userScopedWorkspace)
+          ? userPrefix
+          : "";
+        const localSnapshotSeed = userScopedSnapshot || fallbackSnapshot;
+        const localSnapshotPrefix = userScopedSnapshot ? userPrefix : "";
+
+        let remoteRecords = [];
+        let syncLoadFailed = false;
+        try {
+          remoteRecords = await platformAdapter.loadSets();
+        } catch (error) {
+          console.error("Remote set load error", error);
+          syncLoadFailed = true;
+          markSyncError(error, () => loadSyncedWorkspace(options));
+        }
+
+        if (remoteRecords.length === 0 && hasWorkspaceSeed(localWorkspaceSeed)) {
+          try {
+            remoteRecords = await seedRemoteWorkspaceFromSeed(localWorkspaceSeed);
+          } catch (error) {
+            console.error("Remote set seed error", error);
+            syncLoadFailed = true;
+            markSyncError(error, () => loadSyncedWorkspace(options));
+          }
+        }
+
+        let remoteSnapshot = null;
+
+        try {
+          remoteSnapshot =
+            typeof platformAdapter.loadUserState === "function"
+              ? await platformAdapter.loadUserState()
+              : null;
+          if (remoteSnapshot) {
+          }
+        } catch (error) {
+          console.error("Remote study-state load error", error);
+          syncLoadFailed = true;
+          markSyncError(error, () => loadSyncedWorkspace(options));
+        }
+
+        if (!syncLoadFailed) {
+          let conflict = detectSyncConflict({
+            localWorkspace: localWorkspaceSeed,
+            remoteRecords,
+            localSnapshot: localSnapshotSeed,
+            remoteSnapshot,
+          });
+
+          if (
+            !conflict.hasConflict &&
+            (conflict.recordsToUpload.length > 0 ||
+              (conflict.remoteIdsToDelete || []).length > 0)
+          ) {
+            try {
+              const uploadedRecords = await uploadReconciledLocalRecords(
+                conflict.recordsToUpload,
+                conflict.remoteIdsToDelete,
+              );
+              if (uploadedRecords.length > 0) {
+                const nextRemoteMap = new Map(
+                  remoteRecords
+                    .filter(
+                      (record) =>
+                        record &&
+                        record.id &&
+                        !(conflict.remoteIdsToDelete || []).includes(record.id),
+                    )
+                    .map((record) => [record.id, record]),
+                );
+                uploadedRecords.forEach((record) => {
+                  if (record?.id) {
+                    nextRemoteMap.set(record.id, record);
+                  }
+                });
+                remoteRecords = [...nextRemoteMap.values()];
+                conflict = detectSyncConflict({
+                  localWorkspace: localWorkspaceSeed,
+                  remoteRecords,
+                  localSnapshot: localSnapshotSeed,
+                  remoteSnapshot,
+                });
+              }
+            } catch (error) {
+              console.error("Remote reconciliation upload error", error);
+              syncLoadFailed = true;
+              markSyncError(error, () => loadSyncedWorkspace(options));
+            }
+          }
+
+          if (conflict.hasConflict) {
+            pendingSyncConflict = {
+              conflict,
+              userPrefix,
+              localWorkspaceSeed,
+              localWorkspacePrefix,
+              localSnapshotSeed,
+              localSnapshotPrefix,
+              remoteRecords,
+              remoteSnapshot,
+            };
+            renderSyncConflictPanel();
+            renderSyncStatus(syncStatus.reset());
+
+            if (hasWorkspaceSeed(localWorkspaceSeed)) {
+              applyWorkspaceSeed(localWorkspaceSeed, {
+                storageKeyPrefix: localWorkspacePrefix,
+              });
+            } else {
+              applyWorkspaceSeed({ loadedSets: {}, selectedSetIds: [] }, {
+                storageKeyPrefix: localWorkspacePrefix,
+              });
+            }
+
+            if (hasMeaningfulStudyStateSnapshot(localSnapshotSeed)) {
+              applyStudyStateSnapshot(localSnapshotSeed, {
+                storageKeyPrefix: localSnapshotPrefix,
+              });
+            } else {
+              resetStudyState(localSnapshotPrefix);
+            }
+            return;
+          }
+        }
+
+        clearSyncConflictState();
+
+        const resolvedConflict = detectSyncConflict({
+          localWorkspace: localWorkspaceSeed,
+          remoteRecords,
+          localSnapshot: localSnapshotSeed,
+          remoteSnapshot,
+        });
+
+        applyWorkspaceSeed(resolvedConflict.mergedWorkspace, {
+          storageKeyPrefix: userPrefix,
+        });
+
+        let finalSnapshot = resolvedConflict.mergedSnapshot;
+        if (hasMeaningfulStudyStateSnapshot(finalSnapshot)) {
+          if (resolvedConflict.shouldPersistMergedSnapshot) {
+            scheduleRemoteStudyStateSync(finalSnapshot);
+          }
+        } else if (remoteSnapshot) {
+          finalSnapshot = pickNewerStudyStateSnapshot(
+            localSnapshotSeed,
+            remoteSnapshot,
+          );
+          if (
+            finalSnapshot === localSnapshotSeed &&
+            hasMeaningfulStudyStateSnapshot(localSnapshotSeed)
+          ) {
+            scheduleRemoteStudyStateSync(localSnapshotSeed);
+          }
+        } else if (hasMeaningfulStudyStateSnapshot(localSnapshotSeed)) {
+          finalSnapshot = localSnapshotSeed;
+          scheduleRemoteStudyStateSync(localSnapshotSeed);
+        }
+
+        if (hasMeaningfulStudyStateSnapshot(finalSnapshot)) {
+          applyStudyStateSnapshot(finalSnapshot, {
+            storageKeyPrefix: userPrefix,
+          });
+        } else {
+          renderSetList();
+        }
+
+        if (!syncLoadFailed) {
+          markSynced("calisma alani");
+        }
+      }
+
+      async function useCloudConflictResolution() {
+        if (!pendingSyncConflict) {
+          return null;
+        }
+
+        const conflictState = pendingSyncConflict;
+        clearSyncConflictState();
+        markSyncing("calisma alani");
+
+        const remoteSelectedSetIds = Array.isArray(
+          conflictState.remoteSnapshot?.selectedSetIds,
+        )
+          ? conflictState.remoteSnapshot.selectedSetIds
+          : conflictState.remoteRecords.map((record) => record.id).filter(Boolean);
+
+        applyWorkspaceSeed(
+          createRemoteWorkspaceSeed(conflictState.remoteRecords, remoteSelectedSetIds),
+          {
+            storageKeyPrefix: conflictState.userPrefix,
+          },
+        );
+
+        if (hasMeaningfulStudyStateSnapshot(conflictState.remoteSnapshot)) {
+          applyStudyStateSnapshot(conflictState.remoteSnapshot, {
+            storageKeyPrefix: conflictState.userPrefix,
+          });
+        } else {
+          resetStudyState(conflictState.userPrefix);
+        }
+
+        markSynced("calisma alani");
+        return true;
+      }
+
+      async function useLocalConflictResolution() {
+        if (!pendingSyncConflict) {
+          return null;
+        }
+
+        const conflictState = pendingSyncConflict;
+        clearSyncConflictState();
+        markSyncing("calisma alani");
+
+        try {
+          const remoteIds = conflictState.remoteRecords
+            .map((record) => record.id)
+            .filter(Boolean);
+          const localRecords = Object.values(
+            conflictState.localWorkspaceSeed?.loadedSets || {},
+          );
+          const localIds = localRecords.map((record) => record.id).filter(Boolean);
+          const removeIds = remoteIds.filter((setId) => !localIds.includes(setId));
+
+          if (
+            removeIds.length > 0 &&
+            typeof platformAdapter.deleteSets === "function"
+          ) {
+            await platformAdapter.deleteSets(removeIds);
+          }
+
+          for (const record of localRecords) {
+            await platformAdapter.saveSet({
+              ...record,
+              updatedAt: record.updatedAt || new Date().toISOString(),
+            });
+          }
+
+          if (
+            hasMeaningfulStudyStateSnapshot(conflictState.localSnapshotSeed) &&
+            typeof platformAdapter.saveUserState === "function"
+          ) {
+            await platformAdapter.saveUserState(conflictState.localSnapshotSeed);
+          }
+
+          applyWorkspaceSeed(conflictState.localWorkspaceSeed, {
+            storageKeyPrefix: conflictState.userPrefix,
+          });
+
+          if (hasMeaningfulStudyStateSnapshot(conflictState.localSnapshotSeed)) {
+            applyStudyStateSnapshot(conflictState.localSnapshotSeed, {
+              storageKeyPrefix: conflictState.userPrefix,
+            });
+          } else {
+            resetStudyState(conflictState.userPrefix);
+          }
+
+          markSynced("calisma alani");
+          return true;
+        } catch (error) {
+          pendingSyncConflict = conflictState;
+          markSyncError(error, useLocalConflictResolution);
+          renderSyncConflictPanel();
+          throw error;
+        }
+      }
 
       function getExplanationHtml(question) {
         if (
@@ -73,362 +975,331 @@
         return '<span class="highlight-important">⚠️ Açıklama bulunamadı.</span>';
       }
 
-      function persistLoadedSet(fileName, data) {
-        const setId = fileName.replace(/\.[^/.]+$/, "");
-        loadedSets[setId] = {
-          setName: data.setName || fileName,
-          questions: normalizeQuestions(data),
-          fileName: fileName,
-        };
-
-        saveSetsList();
-        storage.setItem("mc_set_" + setId, JSON.stringify(loadedSets[setId]));
-        return setId;
+      function getLoadedSets() {
+        return setManager.getLoadedSets();
       }
 
-      function parseSetText(text, fileName) {
-        if (fileName.endsWith(".md") || fileName.endsWith(".txt")) {
-          return parseMarkdownToJSON(text, fileName);
+      function getSelectedSetIds() {
+        return setManager.getSelectedSetIds();
+      }
+
+      function loadSetFromText(text, fileName, importOptions = {}) {
+        return setManager.loadSetFromText(text, fileName, importOptions);
+      }
+
+      function handleFileSelect(event) {
+        return setManager.handleFileSelect(event);
+      }
+
+      async function openSetImport() {
+        if (hasPendingSyncConflict()) {
+          return null;
         }
 
-        // JSON'daki sondaki virgülleri (trailing commas) temizle
-        const cleanText = text.replace(/,\s*([\]}])/g, "$1");
-        return JSON.parse(cleanText);
-      }
-
-      async function loadSetFromText(text, fileName) {
-        const data = parseSetText(text, fileName);
-        return persistLoadedSet(fileName, data);
-      }
-
-      async function handleFileSelect(event) {
-        const files = event.target.files;
-        for (const file of files) {
+        if (
+          isDesktopRuntime() &&
+          typeof platformAdapter.pickNativeSetFiles === "function"
+        ) {
           try {
-            const text = await file.text();
-            const setId = await loadSetFromText(text, file.name);
-            selectedSets.add(setId);
-          } catch (e) {
-            console.error("Set okuma hatası:", e);
-            alert(file.name + " okunamadı. Dosya formatı uyumlu değil.");
+            const files = await platformAdapter.pickNativeSetFiles();
+            await setManager.importNativeFiles(files);
+            renderSetList();
+            return files;
+          } catch (error) {
+            console.error("Native set import error", error);
+            window.alert?.(
+              error?.message || "Yerel dosya secilirken bir hata olustu.",
+            );
+            return null;
           }
         }
 
-        event.target.value = "";
-        renderSetList();
+        document.getElementById("file-picker")?.click();
+        return null;
       }
 
-      function saveSetsList() {
-        storage.setItem(
-          "mc_loaded_sets",
-          JSON.stringify(Object.keys(loadedSets)),
-        );
-        storage.setItem(
-          "mc_selected_sets",
-          JSON.stringify([...selectedSets]),
-        );
+      function renderAnalyticsSummary() {
+        const summary = buildAnalyticsSummary({
+          loadedSets: getLoadedSets(),
+          pendingSession,
+          resolveQuestionKey: cardId,
+          selectedAnswers,
+          selectedSetIds: getSelectedSetIds(),
+        });
+
+        analyticsPanel.renderSummary(summary);
+        desktopUpdateFeature.syncButtonState();
       }
 
       function renderSetList() {
-        const setListEl = document.getElementById("set-list");
-        const startBtn = document.getElementById("start-btn");
-        const setToolsEl = document.getElementById("set-list-tools");
-        const removeSelectedBtn = document.getElementById("remove-selected-btn");
-        const deleteModeBtn = document.getElementById("delete-mode-btn");
-        const selectAllBtn = document.getElementById("select-all-btn");
-        const clearSelectionBtn = document.getElementById("clear-selection-btn");
-        const modeHint = document.getElementById("mode-hint");
+        const result = setManager.renderSetList();
+        renderAnalyticsSummary();
+        analyticsPanel.syncVisibility();
+        return result;
+      }
 
-        if (Object.keys(loadedSets).length === 0) {
-          setListEl.innerHTML =
-            '<div class="set-empty">Henüz test seti yüklenmedi.<br>Aşağıdaki butondan JSON dosyası yükleyin.</div>';
-          startBtn.disabled = true;
-          setToolsEl.style.display = "none";
-          if (removeSelectedBtn) removeSelectedBtn.disabled = true;
-          return;
+      function toggleAnalyticsPanel() {
+        const visible = analyticsPanel.togglePanel();
+        if (visible) {
+          renderAnalyticsSummary();
         }
+        return visible;
+      }
 
-        startBtn.disabled = selectedSets.size === 0;
-        setToolsEl.style.display = "flex";
-        if (deleteModeBtn) {
-          deleteModeBtn.textContent = deleteMode
-            ? "Silme Modu: Açık"
-            : "Silme Modu: Kapalı";
-          deleteModeBtn.className = deleteMode
-            ? "btn btn-small btn-danger"
-            : "btn btn-small btn-secondary";
-        }
-        if (selectAllBtn) {
-          selectAllBtn.textContent = deleteMode
-            ? "Silineceklerin Tümünü Seç"
-            : "Tümünü Derse Dahil Et";
-        }
-        if (clearSelectionBtn) {
-          clearSelectionBtn.textContent = deleteMode
-            ? "Silme Seçimini Temizle"
-            : "Ders Seçimini Temizle";
-        }
-        if (modeHint) {
-          modeHint.textContent = deleteMode
-            ? "Mod: Sileceğin setleri işaretliyorsun."
-            : "Mod: Derse dahil edilecek setleri seçiyorsun.";
-        }
-        if (removeSelectedBtn) {
-          removeSelectedBtn.disabled = !deleteMode || removeCandidateSets.size === 0;
-          removeSelectedBtn.textContent = `Seçilileri Kaldır (${removeCandidateSets.size})`;
-        }
-        setListEl.innerHTML = "";
-
-        for (const [setId, setObj] of Object.entries(loadedSets)) {
-          const isSelected = deleteMode
-            ? removeCandidateSets.has(setId)
-            : selectedSets.has(setId);
-
-          let solvedCount = 0;
-          let correctCount = 0;
-          let wrongCount = 0;
-          const totalQuestions = Array.isArray(setObj.questions)
-            ? setObj.questions.length
-            : 0;
-
-          setObj.questions.forEach((q, index) => {
-            const questionKey = cardId(q, setId, index);
-            if (selectedAnswers[questionKey] !== undefined) {
-              solvedCount++;
-              if (selectedAnswers[questionKey] === q.correct) {
-                correctCount++;
-              } else {
-                wrongCount++;
-              }
-            }
-          });
-
-          const progressPercent =
-            totalQuestions > 0
-              ? Math.round((solvedCount / totalQuestions) * 100)
-              : 0;
-
-          const markup = `
-            <div class="set-item">
-              <div class="set-item-left" onclick="toggleSetCheck('${setId}')">
-                <input type="checkbox" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSetCheck('${setId}')">
-                <div class="set-info">
-                  <div class="set-name">${setObj.setName}</div>
-                  <div class="set-stats">📚 ${totalQuestions} Soru | 📊 İlerleme: ${solvedCount}/${totalQuestions} (%${progressPercent}) | ✅ ${correctCount} ❌ ${wrongCount}</div>
-                </div>
-              </div>
-              <button class="delete-btn-circle" title="Seti kaldır" onclick="deleteSet('${setId}')">-</button>
-            </div>
-          `;
-          setListEl.innerHTML += markup;
-        }
+      function closeAnalyticsPanel() {
+        return analyticsPanel.closePanel();
       }
 
       function toggleSetCheck(setId) {
-        if (deleteMode) {
-          if (removeCandidateSets.has(setId)) {
-            removeCandidateSets.delete(setId);
-          } else {
-            removeCandidateSets.add(setId);
-          }
-          renderSetList();
-          return;
-        }
-        toggleSetSelection(setId);
-      }
-
-      function toggleSetSelection(setId) {
-        if (selectedSets.has(setId)) {
-          selectedSets.delete(setId);
-        } else {
-          selectedSets.add(setId);
-        }
-        saveSetsList();
-        renderSetList();
+        return setManager.toggleSetCheck(setId);
       }
 
       function deleteSet(setId) {
-        removeSets([setId]);
-      }
-
-      function removeSets(idsToRemove) {
-        const removed = [];
-        idsToRemove.forEach((setId) => {
-          if (!loadedSets[setId]) return;
-          removed.push({
-            setId: setId,
-            setData: loadedSets[setId],
-            wasSelected: selectedSets.has(setId),
-          });
-          delete loadedSets[setId];
-          selectedSets.delete(setId);
-          removeCandidateSets.delete(setId);
-          storage.removeItem("mc_set_" + setId);
-        });
-        if (removed.length === 0) return;
-        lastRemovedSets = removed;
-        showUndoToast(
-          removed.length === 1
-            ? "Set kaldırıldı."
-            : `${removed.length} set kaldırıldı.`,
-        );
-        saveSetsList();
-        renderSetList();
-      }
-
-      function selectAllSets() {
-        if (deleteMode) {
-          removeCandidateSets = new Set(Object.keys(loadedSets));
-          renderSetList();
-          return;
-        }
-        selectedSets = new Set(Object.keys(loadedSets));
-        saveSetsList();
-        renderSetList();
-      }
-
-      function clearSetSelection() {
-        if (deleteMode) {
-          removeCandidateSets.clear();
-          renderSetList();
-          return;
-        }
-        selectedSets.clear();
-        saveSetsList();
-        renderSetList();
-      }
-
-      function removeSelectedSets() {
-        if (!deleteMode || removeCandidateSets.size === 0) return;
-        removeSets([...removeCandidateSets]);
+        return setManager.deleteSet(setId);
       }
 
       function toggleDeleteMode() {
-        deleteMode = !deleteMode;
-        if (!deleteMode) {
-          removeCandidateSets.clear();
-        }
-        renderSetList();
+        return setManager.toggleDeleteMode();
       }
 
-      function showUndoToast(message) {
-        const toast = document.getElementById("undo-toast");
-        const msgEl = document.getElementById("undo-message");
-        if (!toast || !msgEl) return;
-        msgEl.textContent = message;
-        toast.style.display = "flex";
-        if (undoTimeoutId) {
-          clearTimeout(undoTimeoutId);
-        }
-        undoTimeoutId = setTimeout(() => {
-          toast.style.display = "none";
-          lastRemovedSets = [];
-        }, 7000);
+      function selectAllSets() {
+        return setManager.selectAllSets();
+      }
+
+      function clearSetSelection() {
+        return setManager.clearSetSelection();
+      }
+
+      function removeSelectedSets() {
+        return setManager.removeSelectedSets();
       }
 
       function undoLastRemoval() {
-        if (!lastRemovedSets || lastRemovedSets.length === 0) return;
-        lastRemovedSets.forEach((entry) => {
-          loadedSets[entry.setId] = entry.setData;
-          storage.setItem("mc_set_" + entry.setId, JSON.stringify(entry.setData));
-          if (entry.wasSelected) {
-            selectedSets.add(entry.setId);
-          }
-        });
-        const toast = document.getElementById("undo-toast");
-        if (toast) toast.style.display = "none";
-        if (undoTimeoutId) {
-          clearTimeout(undoTimeoutId);
-          undoTimeoutId = null;
-        }
-        removeCandidateSets.clear();
-        lastRemovedSets = [];
-        saveSetsList();
+        return setManager.undoLastRemoval();
+      }
+
+      function selectSet(setId) {
+        return setManager.selectSet(setId);
+      }
+
+      function showUndoToast(message) {
+        return setManager.showUndoToast(message);
+      }
+
+      async function saveEditedSetRecord(record) {
+        const savedRecord = await setManager.saveSetRecord(record);
         renderSetList();
+        return savedRecord;
+      }
+
+      function confirmEditorNavigation(message, blockedMessage) {
+        if (window.AppState?.currentScreen !== "editor") {
+          return true;
+        }
+
+        return editorFeature.confirmNavigateAway(message, blockedMessage);
+      }
+
+      function openSelectedSetEditor() {
+        if (hasPendingSyncConflict()) {
+          return;
+        }
+
+        if (
+          !confirmEditorNavigation(
+            "Kaydedilmemis degisiklikler var. Baska bir sete gecersen editor kapanacak. Devam etmek istiyor musun?",
+            "Kaydedilmemis degisiklikler korunuyor.",
+          )
+        ) {
+          return false;
+        }
+
+        const selectedSetIds = getSelectedSetIds();
+        if (selectedSetIds.length !== 1) {
+          return;
+        }
+
+        const record = getLoadedSets()[selectedSetIds[0]];
+        if (!record) {
+          return;
+        }
+
+        editorFeature.openEditor(record);
+      }
+
+      function openNewSetEditor() {
+        if (hasPendingSyncConflict()) {
+          return;
+        }
+
+        if (
+          !confirmEditorNavigation(
+            "Kaydedilmemis degisiklikler var. Yeni taslak acarsan editor kapanacak. Devam etmek istiyor musun?",
+            "Kaydedilmemis degisiklikler korunuyor.",
+          )
+        ) {
+          return false;
+        }
+
+        editorFeature.openNewDraft({
+          sourceFormat: "markdown",
+        });
+      }
+
+      function closeEditor() {
+        const closed = editorFeature.closeEditor();
+        if (closed !== false) {
+          renderSetList();
+        }
+        return closed;
+      }
+
+      function saveEditor() {
+        return editorFeature.save();
+      }
+
+      function exportEditorJson() {
+        return editorFeature.exportJson();
+      }
+
+      function exportEditorSource() {
+        return editorFeature.exportSource();
+      }
+
+      function selectEditorQuestion(index) {
+        return editorFeature.selectQuestion(index);
+      }
+
+      function showEditorVisual() {
+        return editorFeature.setMode("visual");
+      }
+
+      function showEditorRaw() {
+        return editorFeature.setMode("raw");
+      }
+
+      function updateEditorSetName(value) {
+        return editorFeature.updateMetaField("setName", value);
+      }
+
+      function updateEditorQuestionText(value) {
+        return editorFeature.updateCurrentQuestionField("q", value);
+      }
+
+      function updateEditorQuestionSubject(value) {
+        return editorFeature.updateCurrentQuestionField("subject", value);
+      }
+
+      function updateEditorQuestionExplanation(value) {
+        return editorFeature.updateCurrentQuestionField("explanation", value);
+      }
+
+      function updateEditorCorrectIndex(value) {
+        return editorFeature.updateCurrentQuestionField("correct", value);
+      }
+
+      function updateEditorOption(index, value) {
+        return editorFeature.updateCurrentOption(index, value);
+      }
+
+      function addEditorQuestion() {
+        return editorFeature.addQuestion();
+      }
+
+      function duplicateCurrentEditorQuestion() {
+        return editorFeature.duplicateQuestion();
+      }
+
+      function moveCurrentEditorQuestion(direction) {
+        return editorFeature.moveQuestion(direction);
+      }
+
+      function removeCurrentEditorQuestion() {
+        return editorFeature.removeQuestion();
+      }
+
+      function addEditorOption() {
+        return editorFeature.addOption();
+      }
+
+      function removeEditorOption(index) {
+        return editorFeature.removeOption(index);
+      }
+
+      function applyEditorRaw() {
+        return editorFeature.applyRaw();
+      }
+
+      function continueAsDemoAuth() {
+        lastSyncRetryAction = null;
+        clearSyncConflictState();
+        renderSyncStatus(syncStatus.reset());
+        renderSetList();
+        googleDrive.syncDriveButtonState();
+        return authFeature.continueAsDemo();
+      }
+
+      async function signInAuth() {
+        const fallbackWorkspace = captureWorkspaceSeed();
+        const fallbackStudySnapshot = buildCurrentStudyStateSnapshot();
+        const session = await authFeature.attemptPasswordAuth("signin");
+        if (session) {
+          await loadSyncedWorkspace({
+            fallbackWorkspace,
+            fallbackStudySnapshot,
+          });
+          renderSetList();
+        }
+        return session;
+      }
+
+      async function signUpAuth() {
+        const fallbackWorkspace = captureWorkspaceSeed();
+        const fallbackStudySnapshot = buildCurrentStudyStateSnapshot();
+        const session = await authFeature.attemptPasswordAuth("signup");
+        if (session) {
+          await loadSyncedWorkspace({
+            fallbackWorkspace,
+            fallbackStudySnapshot,
+          });
+          renderSetList();
+        }
+        return session;
+      }
+
+      async function signOutAuth() {
+        if (
+          !confirmEditorNavigation(
+            "Kaydedilmemis degisiklikler var. Cikis yaparsan editor degisiklikleri kaybolacak. Devam etmek istiyor musun?",
+            "Kaydedilmemis degisiklikler korunuyor.",
+          )
+        ) {
+          return false;
+        }
+
+        clearAutoAdvanceTimer();
+        clearRemoteStudyStateSyncTimer();
+        pendingRemoteStudyStateSnapshot = null;
+        lastSyncRetryAction = null;
+        clearSyncConflictState();
+        if (isFullscreen) {
+          toggleFullscreen();
+        }
+        const result = await authFeature.signOut();
+        renderSyncStatus(syncStatus.reset());
+        setManager.loadStoredSets("");
+        loadState("");
+        renderSetList();
+        googleDrive.syncDriveButtonState();
+        return result;
       }
 
       function initGoogleDrive() {
-        if (!window.google || !window.google.accounts || !window.gapi) {
-          setTimeout(initGoogleDrive, 500);
-          return;
-        }
-
-        gapi.load("picker", () => {
-          drivePickerApiLoaded = true;
-        });
-
-        driveTokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: DRIVE_CLIENT_ID,
-          scope: DRIVE_SCOPES,
-          callback: (tokenResponse) => {
-            if (tokenResponse && tokenResponse.access_token) {
-              driveAccessToken = tokenResponse.access_token;
-              launchDrivePicker();
-            }
-          },
-        });
+        return googleDrive.initGoogleDrive();
       }
 
       function authGoogleDrive() {
-        if (!driveTokenClient || !drivePickerApiLoaded) {
-          alert("Google hesap servisleri henüz yüklenmedi veya bağlantı hatası var.");
-          return;
-        }
-
-        driveTokenClient.requestAccessToken({ prompt: "" });
-      }
-
-      function launchDrivePicker() {
-        if (window.__TAURI__) {
-          alert("Tauri (masaüstü) versiyonunda Google Picker penceresi desteklenmiyor.");
-          return;
-        }
-
-        const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
-          .setMimeTypes("application/json,text/markdown,text/plain");
-        const picker = new google.picker.PickerBuilder()
-          .addView(view)
-          .setOAuthToken(driveAccessToken)
-          .setDeveloperKey(DRIVE_API_KEY)
-          .setAppId(DRIVE_APP_ID)
-          .setCallback(pickerCallback)
-          .setTitle("Uygulamaya eklenecek soru setini seçin (.json, .md, .txt)")
-          .build();
-
-        picker.setVisible(true);
-      }
-
-      function pickerCallback(data) {
-        if (data.action === google.picker.Action.PICKED) {
-          const file = data.docs[0];
-          downloadAndLoadDriveFile(file.id, file.name);
-        }
-      }
-
-      async function downloadAndLoadDriveFile(fileId, fileName) {
-        try {
-          const response = await fetch(
-            `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${DRIVE_API_KEY}`,
-            {
-              headers: {
-                Authorization: `Bearer ${driveAccessToken}`,
-              },
-            },
-          );
-
-          if (!response.ok) {
-            throw new Error("İndirme hatası: " + response.statusText);
-          }
-
-          const text = await response.text();
-          const setId = await loadSetFromText(text, fileName);
-          selectedSets.add(setId);
-          renderSetList();
-          showUndoToast(`"${fileName}" yüklendi!`);
-        } catch (e) {
-          console.error("Drive set indirme hatası:", e);
-          alert("Drive indirme hatası: " + e.message);
-        }
+        return googleDrive.authGoogleDrive();
       }
 
       function updateFullscreenInfo(question) {
@@ -486,8 +1357,12 @@
 
       function setAutoAdvance(isEnabled) {
         autoAdvanceEnabled = Boolean(isEnabled);
-        storage.setItem(AUTO_ADVANCE_KEY, autoAdvanceEnabled ? "1" : "0");
+        setScopedStorageItem(
+          AUTO_ADVANCE_KEY,
+          autoAdvanceEnabled ? "1" : "0",
+        );
         syncAutoAdvanceToggleUI();
+        scheduleRemoteStudyStateSync(buildCurrentStudyStateSnapshot());
       }
 
       function clearAutoAdvanceTimer() {
@@ -522,12 +1397,20 @@
       }
 
       function startStudy() {
-        if (selectedSets.size === 0) return;
+        if (!authFeature.requireAuth()) {
+          return;
+        }
+        if (hasPendingSyncConflict()) {
+          return;
+        }
+        const loadedSets = getLoadedSets();
+        const selectedSetIds = getSelectedSetIds();
+        if (selectedSetIds.length === 0) return;
         clearAutoAdvanceTimer();
 
         allQuestions = buildStudyQuestions({
           loadedSets,
-          selectedSetIds: selectedSets,
+          selectedSetIds,
           buildQuestionKey,
         });
 
@@ -545,7 +1428,10 @@
         populateTopicFilter();
         updateScoreDisplay();
 
-        const session = readSavedSession(storage, pendingSession) || pendingSession || {};
+        const session =
+          readSavedSession(storage, pendingSession, getStorageKeyPrefix()) ||
+          pendingSession ||
+          {};
         const topicSelect = document.getElementById("topic-select");
         if (
           topicSelect &&
@@ -570,12 +1456,28 @@
       }
 
       function showSetManager() {
+        if (!authFeature.requireAuth()) {
+          return;
+        }
+        if (
+          !confirmEditorNavigation(
+            "Kaydedilmemis degisiklikler var. Yoneticiye donersen editor kapanacak. Devam etmek istiyor musun?",
+            "Kaydedilmemis degisiklikler korunuyor.",
+          )
+        ) {
+          return false;
+        }
         clearAutoAdvanceTimer();
         if (isFullscreen) {
           toggleFullscreen();
         }
         showScreen("manager");
         renderSetList();
+        desktopUpdateFeature.syncButtonState();
+      }
+
+      function checkDesktopUpdates() {
+        return desktopUpdateFeature.checkForUpdates("manual");
       }
 
       function filterByTopic(resetIndex = true, options = {}) {
@@ -901,14 +1803,16 @@
             selectedTopic: topicSelect ? topicSelect.value : "hepsi",
             selectedAnswers,
             solutionVisible,
+            storageKeyPrefix: getStorageKeyPrefix(),
           });
           pendingSession = sessionState;
+          scheduleRemoteStudyStateSync(buildCurrentStudyStateSnapshot());
         } catch (e) {
           console.error("State saving error", e);
         }
       }
 
-      function loadState() {
+      function loadState(storageKeyPrefix = null) {
         try {
           window.ThemeManager.initThemeFromStorage({
             primaryToggleId: "theme-toggle",
@@ -921,15 +1825,22 @@
           if (storedAnswerLock === "0" || storedAnswerLock === "1") {
             answerLockEnabled = storedAnswerLock === "1";
           }
-          const storedAutoAdvance = storage.getItem(AUTO_ADVANCE_KEY);
+          const storedAutoAdvance = getScopedStorageItem(
+            AUTO_ADVANCE_KEY,
+            storageKeyPrefix,
+          );
           if (storedAutoAdvance === "0" || storedAutoAdvance === "1") {
             autoAdvanceEnabled = storedAutoAdvance === "1";
           }
 
           const loadedState = loadPersistedStudyState({
             storage,
-            loadedSets,
+            loadedSets: getLoadedSets(),
             fallbackSession: null,
+            storageKeyPrefix:
+              typeof storageKeyPrefix === "string"
+                ? storageKeyPrefix
+                : getStorageKeyPrefix(),
           });
           selectedAnswers = loadedState.selectedAnswers;
           solutionVisible = loadedState.solutionVisible;
@@ -991,48 +1902,83 @@
         }
       });
 
-      // İlk yüklendiğinde set listesini localStorage'dan getir
-      function initApp() {
-        try {
-          const storedSets = storage.getItem("mc_loaded_sets");
-          const storedSelected = storage.getItem("mc_selected_sets");
-
-          if (storedSets) {
-            const setIds = JSON.parse(storedSets);
-            setIds.forEach((id) => {
-              const setData = storage.getItem("mc_set_" + id);
-              if (setData) {
-                loadedSets[id] = JSON.parse(setData);
-              }
-            });
-          }
-
-          if (storedSelected) {
-            const selArray = JSON.parse(storedSelected);
-            selectedSets = new Set(selArray.filter((id) => loadedSets[id]));
-          }
-        } catch (e) {
-          console.error("Cache load error", e);
+      window.addEventListener("beforeunload", function (event) {
+        if (!editorFeature.shouldPreventUnload()) {
+          return;
         }
 
-        loadState();
-        showScreen("manager");
+        event.preventDefault();
+        event.returnValue = "";
+      });
+
+      // İlk yüklendiğinde set listesini localStorage'dan getir
+      async function initApp() {
+        setManager.loadStoredSets("");
+        loadState("");
+        const fallbackWorkspace = captureWorkspaceSeed();
+        const fallbackStudySnapshot = buildCurrentStudyStateSnapshot();
+        await authFeature.loadAuthSession();
+        if (isRemoteWorkspaceActive()) {
+          await loadSyncedWorkspace({
+            fallbackWorkspace,
+            fallbackStudySnapshot,
+          });
+        } else {
+          clearSyncConflictState();
+          renderSyncStatus(syncStatus.reset());
+        }
+        authFeature.syncAuthUi();
+        showScreen(authFeature.resolveInitialScreen());
         renderSetList();
+        desktopUpdateFeature.syncButtonState();
+        desktopUpdateFeature.scheduleStartupCheck();
+        googleDrive.syncDriveButtonState();
         initGoogleDrive();
       }
 
       Object.assign(window, {
+        toggleSetCheck,
+        deleteSet,
         toggleDeleteMode,
         selectAllSets,
         clearSetSelection,
         removeSelectedSets,
+        openNewSetEditor,
+        openSelectedSetEditor,
         authGoogleDrive,
+        continueAsDemoAuth,
+        openSetImport,
         handleFileSelect,
+        signInAuth,
+        signUpAuth,
+        signOutAuth,
+        useCloudConflictResolution,
+        useLocalConflictResolution,
         startStudy,
         toggleTheme,
         setAnswerLock,
         setAutoAdvance,
         undoLastRemoval,
+        closeEditor,
+        saveEditor,
+        exportEditorJson,
+        exportEditorSource,
+        selectEditorQuestion,
+        showEditorVisual,
+        showEditorRaw,
+        updateEditorSetName,
+        updateEditorQuestionText,
+        updateEditorQuestionSubject,
+        updateEditorQuestionExplanation,
+        updateEditorCorrectIndex,
+        updateEditorOption,
+        addEditorQuestion,
+        duplicateCurrentEditorQuestion,
+        moveCurrentEditorQuestion,
+        removeCurrentEditorQuestion,
+        addEditorOption,
+        removeEditorOption,
+        applyEditorRaw,
         filterByTopic,
         jumpToQuestion,
         showSetManager,
@@ -1040,10 +1986,24 @@
         retryWrongAnswers,
         exportPrintable,
         resetQuiz,
+        toggleAnalyticsPanel,
+        closeAnalyticsPanel,
+        checkDesktopUpdates,
+        retryCloudSync,
         previousQuestion,
         nextQuestion,
         toggleFullscreen,
         toggleSolution,
       });
 
-      initApp();
+      window.__MCQ_TEST_HOOKS__ = Object.freeze({
+        clearSyncConflictPreview() {
+          clearSyncConflictState();
+        },
+        showSyncConflictPreview(conflictState) {
+          pendingSyncConflict = conflictState;
+          renderSyncConflictPanel();
+        },
+      });
+
+      void initApp();

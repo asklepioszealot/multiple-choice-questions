@@ -1,52 +1,129 @@
-# Çoktan Seçmeli Sorular (Dinamik Set Yönetimli)
+# Çoktan Seçmeli Sorular
 
-Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzere) çoktan seçmeli sorularla pratik yapmayı sağlayan, **tamamen lokal**, tarayıcı üzerinde çalışan ve JSON dosyalarıyla dinamik olarak genişletilebilen bir test uygulamasıdır.
+Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzere) çoktan seçmeli sorularla pratik yapmayı sağlayan, **local-first ama online-ready** bir MCQ uygulamasıdır. Uygulama kimligi MCQ olarak korunur; flashcards klonu degildir. Vite/Vitest tabani, moduler feature yapisi, runtime config, Supabase auth/sync temeli, editor, analytics ve desktop release/updater iskeleti ile uzun vadeli hibrit urun kabuguna yaklastirilmistir.
 
 ## Özellikler
 
-1. **Dinamik Soru Seti Yükleme (`Set Yönetimi`)**:
+1. **Dinamik Soru Seti Yukleme (`Set Yonetimi`)**:
    - Dışarıdan indirdiğiniz veya kendiniz hazırladığınız `.json`, `.md` ve `.txt` uzantılı soru setlerini tek tıkla uygulamaya yükleyebilirsiniz.
+   - Manager ekranindan `Yeni set` ile sifirdan, markdown-first bir taslak acip yeni bir soru seti de olusturabilirsiniz.
    - Web sürümünde Google Drive Picker ile Drive'dan doğrudan soru dosyası seçebilirsiniz. Tauri/masaüstü sürümünde ise bu sınır net bir uyarıyla belirtilir.
    - Birden fazla seti aynı anda seçip harmanlayarak veya ayrı ayrı filtreleyerek çözme imkanı sağlar.
-2. **Kişiselleştirilmiş Öğrenme ve İlerleme Takibi**:
-   - Girdiğiniz cevaplar (doğru, yanlış, seçilmemiş) tarayıcı önbelleğinde (`localStorage`) güvende tutulur.
+2. **Auth, Senkronizasyon ve Catismayi Guvenli Cozme**:
+   - Demo auth ile hizli baslangic yapabilir veya Supabase runtime config verilince email/sifre ile giris yapabilirsiniz.
+   - Yuklu setler ve study-state cloud'a senkronize olabilir; sync durumu manager ustunde gorunur.
+   - Sync reconciliation ayni kaynagi `sourcePath -> fileName -> record id` sirasi ile eslestirir; yalnizca ayni sette iki taraf da degismisse conflict acilir.
+   - Disjoint setler, local-only eklemeler, remote-only eklemeler ve tek-taraf-guncel ayni setler guvenli sekilde otomatik birlestirilir; gerekiyorsa eski remote `id` temizlenir.
+   - Manual panel iki aksiyonlu kalir (`Bulutu kullan`, `Yereli buluta yaz`) ve artik set adi, hangi tarafin daha yeni oldugu, son degisim zamani ile soru/cevap farkini gosterir.
+3. **Kişiselleştirilmiş Öğrenme ve İlerleme Takibi**:
+   - Girdiğiniz cevaplar (doğru, yanlış, seçilmemiş) tarayıcı önbelleğinde veya kullaniciya bagli storage alaninda tutulur.
    - Soru setini silseniz dahi, aynı seti tekrar yüklediğinizde uygulamadaki ilerlemeniz kaldığı yerden devam eder (soru kimliği set-bazlı tutulur; aynı soru farklı setlerde birbirini ezmez).
    - Uygulama, kaldığınız soru ve konu filtresini doğru şekilde geri yükler; `Setlere Dön -> Başla` akışında ve uygulamayı kapatıp açtıktan sonra da aynı soruya dönebilir.
    - İsterseniz `Cevapları kilitle` ile cevaplandıktan sonra şıkları değiştirilemez hale getirebilir, `Otomatik sonraki soru` ile cevap sonrası kısa gecikmeyle bir sonraki soruya otomatik geçebilirsiniz.
    - `Sıfırla` artık yalnızca o anda çalışılan aktif/setilmiş setlerin ilerlemesini temizler.
    - Eski `mc_...` anahtarlar otomatik migrate edilerek mevcut veriler korunur.
    - "Yanlışları Çöz" butonuyla sadece hata yaptığınız soruları ayıklayıp tekrar çözebilirsiniz.
-3. **Kapsamlı Konu Filtresi & Karıştırma**:
+4. **Editor ve Analytics Yuzeyi**:
+   - `editor-screen` ile tek secili seti gorsel form veya raw kaynak gorunumu uzerinden duzenleyebilirsiniz.
+   - Yeni set olusturma akisi varsayilan olarak `Markdown/TXT` kaynak formatiyla baslar; kaydedince normal set listesine ve sync hattina baglanir.
+   - Editor artik toplu validation ozeti, sorunlu soruya atlama, save gating, soru kopyalama/tasima ve daha genis dirty-state korumalari ile authoring kapanisina hazirdir.
+   - Markdown/JSON kaynaklar roundtrip-safe codec uzerinden korunur; kaynak formatta disa aktar desteklenir.
+   - Manager ustunde yuklu/secili set, soru havuzu, dogru/yanlis, tamamlanma ve son oturum ozeti gorulur.
+5. **Kapsamlı Konu Filtresi & Karıştırma**:
    - Yüklediğiniz setlerdeki sorular "Konu" başlıklarına göre otomatik olarak filtre seçeneklerine dahil olur.
    - İstediğiniz an soruları karıştırarak (`Karıştır` butonu) ezberi kırabilirsiniz.
-4. **Hızlı Kısayollar, Tam Ekran ve Yazdırma Desteği**:
+6. **Hızlı Kısayollar, Tam Ekran ve Yazdırma Desteği**:
    - Başlangıç ekranında görünen kısayollarla `A-E` ile şık işaretleyin, `S` ile açıklamayı açın, yön tuşlarıyla sorular arasında gezinin.
    - `F` ile tam ekrana geçin, `ESC` ile çıkın. Tam ekranda soru, şık ve açıklama blokları daha kompakt boyutta gösterilir ve içerik kaydırılabilir.
    - Testleri temiz bir A4 formatında PDF olarak kaydedin veya doğrudan yazdırın.
-5. **Modern Arayüz ve Karanlık Tema**:
+7. **Modern Arayüz, Karanlık Tema ve Desktop Update Hazırlığı**:
    - Göz yormayan, animasyonlu arayüz ve başlangıç ekranından da erişilebilen kalıcı Karanlık/Aydınlık mod seçeneği.
+   - Windows desktop runtime’da `Guncellemeleri Kontrol Et` butonu gorunur ve updater/plugin hazirligi vardir.
 
-## Windows EXE Alma (Otomatik)
-
-Tek komutla güncel desktop çıktıları almak için:
+## Gelistirme
 
 ```powershell
 npm install
+npm run dev
+```
+
+Preview:
+
+```powershell
+npm run preview
+```
+
+## Test ve Build
+
+Smoke:
+
+```powershell
+npm run test:smoke
+```
+
+Unit:
+
+```powershell
+npm run test:unit
+```
+
+Tum temel dogrulama:
+
+```powershell
+npm test
+```
+
+Vite web build:
+
+```powershell
+npm run build
+```
+
+Desktop build:
+
+```powershell
+npm run build:desktop
+```
+
+Release plan sanity:
+
+```powershell
+npm run release:dry-run
+```
+
+## Windows Desktop Release
+
+Yerel timestamped release klasoru uretmek icin:
+
+```powershell
 npm run release
 ```
 
-Bu komut sırasıyla:
-
-1. `vite build` ile web çıktısını `dist/` altında üretir; legacy runtime için `src/` ve varsa `data/` klasörü de korunur.
-2. `npx tauri build --bundles nsis` ile kurulum dosyasını üretir.
-3. Portable (`app.exe`) ve kurulum (`*-setup.exe`) çıktılarını `release/` altında versiyon+commit adlarıyla saklar.
-4. İsteğe bağlı kök dosya adlarını da günceller (`Multiple_Choice_Questions_Portable.exe`, `Multiple_Choice_Questions_Kurulum.exe`).
-
-Sadece `release/` klasörlü çıktıyı almak için:
+Gercek artefakt olusturmadan once release planini ve updater durumunu gormek icin:
 
 ```powershell
-npm run release:no-legacy
+npm run release:dry-run
 ```
+
+Varsayilan davranis legacy kok EXE kopyalamaz. Eski davranis gerekiyorsa:
+
+```powershell
+npm run release:with-legacy
+```
+
+Bu komut sirasiyla:
+
+1. `vite build` ile web çıktısını `dist/` altında üretir; legacy runtime için `src/` ve varsa `data/` klasörü de korunur.
+2. Updater private key yoksa local release’i updater artefakti olmadan almaya devam eder. Varsayilan lokal anahtar yolu MCQ repo'su icin `~/.tauri/multiple-choice-questions-updater.key` dosyasidir.
+3. `npm run release:dry-run` ayni isimlendirme ve pointer planini hesaplar, ama release klasoru veya artefakt yazmaz.
+4. `release/` altinda timestamped klasor, `release-info.txt`, `OPEN_THIS_PORTABLE.txt` ve repo kokunde `LATEST_RELEASE_POINTER.txt` uretir.
+5. Desktop updater yayin akisi icin GitHub Actions tarafinda ayri `Release Desktop` workflow'u kullanilir.
+
+## GitHub Pages ve Desktop Updater
+
+- Web deploy: `.github/workflows/pages.yml`
+- Desktop release/updater: `.github/workflows/release-desktop.yml`
+- Ayrintili adimlar: `docs/RELEASE_CHECKLIST.md`
 
 ---
 
@@ -121,45 +198,17 @@ Not: Elinizdeki `.txt` veya `.md` dosyalarını JSON'a çevirmek için terminald
 
 ---
 
-## Kurulum ve Kullanım
+## Kurulum ve Kullanim
 
-Uygulamanın çalışması için herhangi bir sunucuya, kurulu bir programa ya da veritabanına ihtiyacınız yoktur.
-1. `index.html` dosyasını tarayıcınızda (Chrome, Safari, Firefox vb.) açın.
-2. Karşınıza çıkan **Set Yöneticisi** ekranından kendi ürettiğiniz `.json`, `.md` ya da `.txt` dosyasını seçin veya web sürümünde Drive'dan içe aktarın.
-3. Listeden çalışmak istediğiniz testleri seçip `Başla` butonuna basın!
-
-## Smoke Test (Playwright)
-
-Temel duman testlerini calistirmak icin:
-
-```powershell
-npm run test:smoke
-```
+1. `npm install`
+2. `npm run dev` veya sadece statik calisma icin `index.html` ac
+3. Karşınıza çıkan **Set Yöneticisi** ekranından kendi ürettiğiniz `.json`, `.md` ya da `.txt` dosyasını seçin veya web sürümünde Drive'dan içe aktarın.
+4. Listeden çalışmak istediğiniz testleri seçip `Başla` butonuna basın.
 
 Ilk kurulumda tarayici binary'si lazimsa:
 
 ```powershell
 npm run test:smoke:install
-```
-
-## Unit Test ve Build
-
-Temel unit testleri calistirmak icin:
-
-```powershell
-npm run test:unit
-```
-
-Tum temel dogrulamayi birlikte calistirmak icin:
-
-```powershell
-npm test
-```
-
-Vite tabanli web build almak icin:
-
-```powershell
-npm run build
 ```
 
 ## Buyume Icin Klasor Standarti

@@ -11,6 +11,7 @@ node_modules/
 # Custom build directories
 dist/
 release/
+LATEST_RELEASE_POINTER.txt
 
 # Playwright artifacts
 playwright-report/
@@ -18,3 +19,7 @@ test-results/
 
 # Local worktrees
 .worktrees/
+
+# Local runtime secrets
+runtime-config.local.json
+.env.local

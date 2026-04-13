@@ -4,6 +4,16 @@
   const internalState = {
     storage: null,
     currentScreen: "manager",
+    analyticsPanelState: {
+      isVisible: false,
+    },
+    desktopUpdateState: {
+      startupCheckScheduled: false,
+      startupCheckCompleted: false,
+      isChecking: false,
+      isInstalling: false,
+      buttonLabel: "Guncellemeleri Kontrol Et",
+    },
   };
 
   function setStorage(value) {
@@ -23,6 +33,12 @@
     get currentScreen() {
       return internalState.currentScreen;
     },
+    get analyticsPanelState() {
+      return internalState.analyticsPanelState;
+    },
+    get desktopUpdateState() {
+      return internalState.desktopUpdateState;
+    },
     setStorage,
     setCurrentScreen,
   };
@@ -33,6 +49,8 @@
     exports.AppState = AppState;
     exports.setStorage = setStorage;
     exports.setCurrentScreen = setCurrentScreen;
+    exports.analyticsPanelState = internalState.analyticsPanelState;
+    exports.desktopUpdateState = internalState.desktopUpdateState;
     exports.default = AppState;
   }
 })(typeof window !== "undefined" ? window : globalThis);

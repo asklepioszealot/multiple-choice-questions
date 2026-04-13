@@ -853,6 +853,265 @@
         font-size: 16px;
         padding: 12px 30px;
       }
+      .analytics-panel {
+        margin-bottom: 24px;
+        padding: 20px;
+        border: 1px solid var(--color-border);
+        border-radius: 18px;
+        background: rgba(15, 23, 42, 0.03);
+      }
+      .analytics-panel[hidden] {
+        display: none !important;
+      }
+      .analytics-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .analytics-panel-copy {
+        display: grid;
+        gap: 6px;
+      }
+      .analytics-panel-eyebrow {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+      .analytics-panel-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+      }
+      .analytics-panel-summary {
+        margin: 0;
+        font-size: 14px;
+        color: var(--color-text-secondary);
+      }
+      .analytics-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin: 0;
+      }
+      .analytics-card {
+        background: rgba(15, 23, 42, 0.04);
+        border: 1px solid var(--color-border);
+        border-radius: 16px;
+        padding: 16px 18px;
+      }
+      .analytics-card-label {
+        display: block;
+        font-size: 13px;
+        color: var(--color-text-secondary);
+        margin-bottom: 6px;
+      }
+      .analytics-card-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+      }
+      .analytics-card-meta {
+        margin-top: 6px;
+        font-size: 13px;
+        color: var(--color-text-secondary);
+      }
+      .analytics-last-study {
+        grid-column: 1 / -1;
+        padding: 14px 18px;
+      }
+      .analytics-toggle-btn.is-active {
+        background: rgba(15, 23, 42, 0.12);
+      }
+      .analytics-close-btn {
+        width: 42px;
+        height: 42px;
+        flex: 0 0 42px;
+        border-radius: 12px;
+        border: 1px solid var(--color-border);
+        background: var(--color-bg-primary);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+      }
+      .analytics-close-btn:hover {
+        background: rgba(15, 23, 42, 0.08);
+        color: var(--color-text-primary);
+        transform: translateY(-1px);
+      }
+      .sync-conflict-panel {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.58);
+        z-index: 60;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .sync-conflict-card {
+        width: min(720px, 100%);
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: 18px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+        padding: 28px;
+      }
+      .sync-conflict-card h2 {
+        margin-bottom: 8px;
+      }
+      .sync-conflict-columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin: 18px 0;
+      }
+      .sync-conflict-column {
+        background: rgba(15, 23, 42, 0.04);
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      .sync-conflict-column h3 {
+        margin-bottom: 6px;
+        font-size: 15px;
+      }
+      .sync-conflict-details {
+        margin: 10px 0 0;
+        padding-left: 18px;
+        color: var(--color-text-secondary);
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+      }
+      .sync-conflict-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .editor-screen {
+        max-width: 1200px;
+        margin: 0 auto 48px;
+      }
+      .editor-shell {
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: 18px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+        padding: 24px;
+      }
+      .editor-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+      }
+      .editor-validation-summary {
+        margin-bottom: 18px;
+      }
+      .editor-validation-list {
+        margin: 12px 0 0;
+        padding-left: 0;
+        list-style: none;
+        display: grid;
+        gap: 10px;
+      }
+      .editor-validation-item {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .editor-layout {
+        display: grid;
+        grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+        gap: 20px;
+      }
+      .editor-sidebar,
+      .editor-main {
+        background: rgba(15, 23, 42, 0.03);
+        border: 1px solid var(--color-border);
+        border-radius: 16px;
+        padding: 18px;
+      }
+      .editor-question-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 420px;
+        overflow-y: auto;
+        margin: 16px 0;
+      }
+      .editor-question-item {
+        width: 100%;
+        border: 1px solid var(--color-border);
+        background: var(--color-bg-secondary);
+        color: var(--color-text-primary);
+        border-radius: 12px;
+        padding: 10px 12px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .editor-question-item.active {
+        border-color: var(--color-accent);
+        background: var(--color-accent-soft);
+      }
+      .editor-form-grid {
+        display: grid;
+        gap: 14px;
+      }
+      .editor-field label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .editor-textarea,
+      .editor-input,
+      .editor-select {
+        width: 100%;
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: var(--color-bg-secondary);
+        color: var(--color-text-primary);
+        font: inherit;
+      }
+      .editor-textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+      .editor-option-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .editor-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      @media (max-width: 900px) {
+        .sync-conflict-columns,
+        .editor-layout {
+          grid-template-columns: 1fr;
+        }
+        .analytics-summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 600px) {
+        .analytics-summary {
+          grid-template-columns: 1fr;
+        }
+      }
       .manager-preferences {
         margin-top: 28px;
         display: flex;
@@ -900,11 +1159,242 @@
         border-radius: 6px;
         cursor: pointer;
       }
+      .auth-screen {
+        max-width: 720px;
+        margin: 48px auto;
+      }
+      .auth-card {
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: 18px;
+        padding: 36px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      }
+      .auth-card h1 {
+        font-size: 32px;
+        margin-bottom: 12px;
+        color: var(--color-text-primary);
+      }
+      .auth-card p {
+        color: var(--color-text-secondary);
+        font-size: 16px;
+      }
+      .auth-actions {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-top: 28px;
+      }
+      .auth-meta {
+        margin-top: 18px;
+        font-size: 14px;
+        color: var(--color-text-secondary);
+      }
+      .auth-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .auth-input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--color-border);
+        background: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      .auth-remember {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--color-text-secondary);
+      }
+      .auth-status {
+        min-height: 20px;
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--color-text-secondary);
+      }
+      .auth-status.error {
+        color: #d64545;
+      }
+      .auth-status.success {
+        color: #20895a;
+      }
+      .auth-session-bar {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+      }
+      .auth-status-badge {
+        display: none;
+        align-items: center;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: var(--color-accent-soft);
+        color: var(--color-accent-hover);
+        border: 1px solid var(--color-border);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .sync-status {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border);
+        background: rgba(15, 23, 42, 0.04);
+        color: var(--color-text-secondary);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .sync-status.syncing {
+        display: inline-flex;
+        background: rgba(59, 130, 246, 0.1);
+        color: #1d4ed8;
+      }
+      .sync-status.synced {
+        display: inline-flex;
+        background: rgba(16, 185, 129, 0.12);
+        color: #047857;
+      }
+      .sync-status.error {
+        display: inline-flex;
+        background: rgba(239, 68, 68, 0.12);
+        color: #b91c1c;
+      }
+      .sync-retry-btn {
+        display: none;
+        align-items: center;
+      }
+      .auth-logout-btn {
+        display: none;
+        align-items: center;
+      }
+      .desktop-update-btn[hidden] {
+        display: none !important;
+      }
     </style>
   </head>
   <body>
+    <div id="auth-screen" class="auth-screen" style="display: none">
+      <div class="auth-card">
+        <h1>📚 Çoktan Seçmeli Sorular</h1>
+        <p>Çalışma oturumunu başlatmak için bir giriş yöntemi seç.</p>
+        <div class="auth-fields">
+          <input
+            class="auth-input"
+            id="auth-email"
+            type="email"
+            placeholder="E-posta"
+            style="display: none"
+          />
+          <input
+            class="auth-input"
+            id="auth-password"
+            type="password"
+            placeholder="Şifre"
+            style="display: none"
+          />
+          <label
+            class="auth-remember"
+            id="auth-remember-label"
+            style="display: none"
+          >
+            <input id="auth-remember-me" type="checkbox" style="display: none" />
+            Beni hatırla
+          </label>
+        </div>
+        <div class="auth-actions">
+          <button
+            class="btn btn-secondary"
+            id="auth-signin-btn"
+            onclick="signInAuth()"
+            style="display: none"
+          >
+            Giriş yap
+          </button>
+          <button
+            class="btn btn-secondary"
+            id="auth-signup-btn"
+            onclick="signUpAuth()"
+            style="display: none"
+          >
+            Kayıt ol
+          </button>
+          <button class="btn" id="demo-auth-btn" onclick="continueAsDemoAuth()">
+            Demo ile devam et
+          </button>
+        </div>
+        <div class="auth-status" id="auth-status"></div>
+        <div class="auth-meta" id="auth-screen-message">
+          Çalışmana devam etmek için demo modu ile giriş yap.
+        </div>
+      </div>
+    </div>
+
     <!-- Set Yöneticisi -->
     <div id="set-manager" class="set-manager">
+      <div class="auth-session-bar">
+        <span id="auth-status-badge" class="auth-status-badge"></span>
+        <span id="sync-status" class="sync-status"></span>
+        <button
+          class="btn btn-small btn-secondary sync-retry-btn"
+          id="sync-retry-btn"
+          onclick="retryCloudSync()"
+        >
+          Tekrar dene
+        </button>
+        <button
+          class="btn btn-small btn-secondary desktop-update-btn"
+          id="check-updates-btn"
+          onclick="checkDesktopUpdates()"
+          hidden
+        >
+          Guncellemeleri Kontrol Et
+        </button>
+        <button
+          class="btn btn-small btn-secondary auth-logout-btn"
+          id="auth-logout-btn"
+          onclick="signOutAuth()"
+        >
+          Çıkış yap
+        </button>
+      </div>
+      <div id="sync-conflict-panel" class="sync-conflict-panel">
+        <div class="sync-conflict-card">
+          <h2>Sync çatışması bulundu</h2>
+          <p id="sync-conflict-message"></p>
+          <div class="sync-conflict-columns">
+            <div class="sync-conflict-column">
+              <h3>Yerel çalışma alanı</h3>
+              <p id="sync-conflict-local-summary"></p>
+              <ul id="sync-conflict-local-details" class="sync-conflict-details"></ul>
+            </div>
+            <div class="sync-conflict-column">
+              <h3>Bulut verisi</h3>
+              <p id="sync-conflict-remote-summary"></p>
+              <ul id="sync-conflict-remote-details" class="sync-conflict-details"></ul>
+            </div>
+          </div>
+          <div class="sync-conflict-actions">
+            <button class="btn btn-secondary" onclick="useCloudConflictResolution()">
+              Bulutu kullan
+            </button>
+            <button class="btn" onclick="useLocalConflictResolution()">
+              Yereli buluta yaz
+            </button>
+          </div>
+        </div>
+      </div>
       <div class="set-manager-header">
         <h1>📚 Çoktan Seçmeli Sorular</h1>
         <p>Çalışmak istediğin soru setlerini yükle ve başla</p>
@@ -912,8 +1402,8 @@
 
       <div class="set-list" id="set-list">
         <div class="set-empty">
-          Henüz test seti yüklenmedi.<br />Aşağıdaki butondan JSON dosyası
-          yükleyin.
+          Henüz test seti yüklenmedi.<br />Aşağıdaki butonlardan soru dosyası
+          yükleyin ya da yeni bir set oluşturun.
         </div>
       </div>
       <div class="set-list-tools" id="set-list-tools" style="display: none">
@@ -959,9 +1449,32 @@
         >
           ☁️ Drive'dan Dosya Ekle
         </button>
-        <label class="btn btn-secondary" for="file-picker"
-          >📂 Soru Dosyası Yükle (.json, .md)</label
+        <button
+          class="btn btn-secondary"
+          id="import-set-btn"
+          onclick="openSetImport()"
+          type="button"
         >
+          📂 Soru Dosyası Yükle (.json, .md, .txt)
+        </button>
+        <button
+          class="btn btn-secondary"
+          id="new-set-btn"
+          onclick="openNewSetEditor()"
+          type="button"
+        >
+          ✨ Yeni set
+        </button>
+        <button
+          class="btn btn-secondary analytics-toggle-btn"
+          id="analytics-toggle-btn"
+          onclick="toggleAnalyticsPanel()"
+          type="button"
+          aria-expanded="false"
+          aria-controls="analytics-dashboard-manager"
+        >
+          📊 İstatistikler
+        </button>
         <input
           type="file"
           id="file-picker"
@@ -970,10 +1483,64 @@
           hidden
           onchange="handleFileSelect(event)"
         />
+        <button class="btn btn-secondary" id="edit-btn" onclick="openSelectedSetEditor()" disabled>
+          ✏ Düzenle
+        </button>
         <button class="btn" id="start-btn" onclick="startStudy()" disabled>
           ▶ Başla
         </button>
       </div>
+      <section id="analytics-dashboard-manager" class="analytics-panel" hidden>
+        <div class="analytics-panel-header">
+          <div class="analytics-panel-copy">
+            <div class="analytics-panel-eyebrow">İstatistikler</div>
+            <div class="analytics-panel-title">Çalışma Özeti</div>
+            <p id="analytics-summary-manager" class="analytics-panel-summary">
+              Henüz seçili set verisi yok.
+            </p>
+          </div>
+          <button
+            class="analytics-close-btn"
+            id="analytics-close-btn"
+            onclick="closeAnalyticsPanel()"
+            type="button"
+            aria-label="İstatistikler panelini kapat"
+            title="İstatistikler panelini kapat"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="analytics-summary">
+          <div class="analytics-card">
+            <span class="analytics-card-label">Setler</span>
+            <div class="analytics-card-value" id="analytics-sets-value">0 / 0</div>
+            <div class="analytics-card-meta" id="analytics-sets-meta">
+              Yuklu / secili set
+            </div>
+          </div>
+          <div class="analytics-card">
+            <span class="analytics-card-label">Soru havuzu</span>
+            <div class="analytics-card-value" id="analytics-questions-value">0 / 0</div>
+            <div class="analytics-card-meta">Toplam / cozulen soru</div>
+          </div>
+          <div class="analytics-card">
+            <span class="analytics-card-label">Sonuc</span>
+            <div class="analytics-card-value" id="analytics-results-value">0 / 0</div>
+            <div class="analytics-card-meta">Dogru / yanlis</div>
+          </div>
+          <div class="analytics-card">
+            <span class="analytics-card-label">Tamamlanma</span>
+            <div class="analytics-card-value" id="analytics-completion-value">%0</div>
+            <div class="analytics-card-meta">Secili calisma havuzu</div>
+          </div>
+          <div class="analytics-card analytics-last-study">
+            <span class="analytics-card-label">Oturum</span>
+            <div class="analytics-card-meta" id="analytics-last-study">
+              Son calisma: Henuz baslanmadi
+            </div>
+          </div>
+        </div>
+      </section>
       <div class="manager-preferences">
         <div class="manager-theme-toggle">
           <span>☀️</span>
@@ -1014,6 +1581,141 @@
         <kbd>A-E</kbd> Şık seç &nbsp; <kbd>S</kbd> Çözüm &nbsp;
         <kbd>←</kbd><kbd>→</kbd> Gezin &nbsp; <kbd>F</kbd> Tam ekran &nbsp;
         <kbd>ESC</kbd> Çık
+      </div>
+    </div>
+    <div id="editor-screen" class="editor-screen" style="display: none">
+      <div class="editor-shell">
+        <div class="editor-topbar">
+          <button class="btn btn-secondary" onclick="closeEditor()">Yoneticiye don</button>
+          <div>
+            <h2>MCQ Editor</h2>
+            <div class="auth-meta" id="editor-source-format-label">
+              Normalize edilen soru modeli uzerinde calisir.
+            </div>
+            <div class="auth-meta" id="editor-dirty-pill">Durum: Kaydedildi</div>
+          </div>
+          <div class="set-actions">
+            <button
+              class="btn btn-secondary"
+              id="editor-export-source-btn"
+              onclick="exportEditorSource()"
+            >
+              Kaynak formatta disa aktar
+            </button>
+            <button class="btn btn-secondary" onclick="exportEditorJson()">JSON disa aktar</button>
+            <button class="btn" id="editor-save-btn" onclick="saveEditor()">Kaydet</button>
+          </div>
+        </div>
+        <div id="editor-status" class="auth-status"></div>
+        <div id="editor-validation-summary" class="auth-status editor-validation-summary"></div>
+        <div class="editor-layout">
+          <div class="editor-sidebar">
+            <div class="editor-field">
+              <label for="editor-set-name">Set adi</label>
+              <input
+                id="editor-set-name"
+                class="editor-input"
+                oninput="updateEditorSetName(this.value)"
+                onchange="updateEditorSetName(this.value)"
+              />
+            </div>
+            <div id="editor-question-list" class="editor-question-list"></div>
+            <div class="set-actions">
+              <button class="btn btn-secondary" onclick="addEditorQuestion()">+ Soru ekle</button>
+              <button
+                class="btn btn-secondary"
+                id="editor-move-question-up-btn"
+                onclick="moveCurrentEditorQuestion(-1)"
+              >
+                Yukari tas
+              </button>
+              <button
+                class="btn btn-secondary"
+                id="editor-move-question-down-btn"
+                onclick="moveCurrentEditorQuestion(1)"
+              >
+                Asagi tas
+              </button>
+              <button
+                class="btn btn-secondary"
+                id="editor-duplicate-question-btn"
+                onclick="duplicateCurrentEditorQuestion()"
+              >
+                Soruyu kopyala
+              </button>
+              <button
+                class="btn btn-secondary"
+                id="editor-remove-question-btn"
+                onclick="removeCurrentEditorQuestion()"
+              >
+                Soru sil
+              </button>
+            </div>
+          </div>
+          <div class="editor-main">
+            <div class="editor-tabs">
+              <button class="btn btn-secondary" onclick="showEditorVisual()">Form</button>
+              <button
+                class="btn btn-secondary"
+                id="editor-raw-tab-btn"
+                onclick="showEditorRaw()"
+              >
+                Raw JSON
+              </button>
+            </div>
+            <div id="editor-visual-panel">
+              <div class="editor-form-grid">
+                <div class="editor-field">
+                  <label for="editor-question-text">Soru metni</label>
+                  <textarea
+                    id="editor-question-text"
+                    class="editor-textarea"
+                    oninput="updateEditorQuestionText(this.value)"
+                    onchange="updateEditorQuestionText(this.value)"
+                  ></textarea>
+                </div>
+                <div class="editor-field">
+                  <label for="editor-subject">Konu</label>
+                  <input
+                    id="editor-subject"
+                    class="editor-input"
+                    oninput="updateEditorQuestionSubject(this.value)"
+                    onchange="updateEditorQuestionSubject(this.value)"
+                  />
+                </div>
+                <div class="editor-field">
+                  <label>Secenekler</label>
+                  <div id="editor-options"></div>
+                  <button class="btn btn-secondary" onclick="addEditorOption()">+ Secenek ekle</button>
+                </div>
+                <div class="editor-field">
+                  <label for="editor-correct">Dogru cevap</label>
+                  <select
+                    id="editor-correct"
+                    class="editor-select"
+                    onchange="updateEditorCorrectIndex(this.value)"
+                  ></select>
+                </div>
+                <div class="editor-field">
+                  <label for="editor-explanation">Aciklama</label>
+                  <textarea
+                    id="editor-explanation"
+                    class="editor-textarea"
+                    oninput="updateEditorQuestionExplanation(this.value)"
+                    onchange="updateEditorQuestionExplanation(this.value)"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+            <div id="editor-raw-panel" style="display: none">
+              <div class="editor-field">
+                <label for="editor-raw-input" id="editor-raw-label">Raw JSON</label>
+                <textarea id="editor-raw-input" class="editor-textarea"></textarea>
+              </div>
+              <button class="btn btn-secondary" onclick="applyEditorRaw()">Raw kaynagi uygula</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div id="undo-toast" class="undo-toast">
@@ -1151,12 +1853,22 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
     <script src="./src/core/storage.js"></script>
+    <script src="./src/core/runtime-config.js"></script>
+    <script src="./src/core/platform-adapter.js"></script>
     <script src="./src/core/set-codec.js"></script>
+    <script src="./src/features/auth/auth-shell.js"></script>
+    <script src="./src/features/analytics/analytics.js"></script>
+    <script src="./src/features/desktop-update/desktop-update.js"></script>
+    <script src="./src/features/editor/editor.js"></script>
+    <script src="./src/features/set-manager/set-manager.js"></script>
+    <script src="./src/features/google-drive/google-drive.js"></script>
+    <script src="./src/features/sync/conflict-resolution.js"></script>
     <script src="./src/features/study/study-actions.js"></script>
     <script src="./src/features/study/study-export.js"></script>
     <script src="./src/features/study/study-session.js"></script>
     <script src="./src/features/study/study-ui.js"></script>
     <script src="./src/features/study-state/study-state.js"></script>
+    <script src="./src/app/sync-status.js"></script>
     <script src="./src/app/state.js"></script>
     <script src="./src/app/screen.js"></script>
     <script src="./src/app/bootstrap.js"></script>
