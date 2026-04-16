@@ -151,6 +151,8 @@ describe("study-state helpers", () => {
       selectedSetIds: ["demo"],
       selectedAnswers: { "set:demo::idx:1": 0 },
       solutionVisible: { "set:demo::idx:1": true },
+      questionFontSize: 29,
+      optionFontSize: 18,
       autoAdvanceEnabled: false,
       updatedAt: "2026-04-04T12:00:00.000Z",
     });
@@ -159,8 +161,8 @@ describe("study-state helpers", () => {
       selectedSetIds: ["demo"],
       selectedAnswers: { "set:demo::idx:1": 0 },
       solutionVisible: { "set:demo::idx:1": true },
-      questionFontSize: 25,
-      optionFontSize: 17,
+      questionFontSize: 29,
+      optionFontSize: 18,
       fullscreenQuestionFontSize: 22,
       fullscreenOptionFontSize: 15,
       session: {

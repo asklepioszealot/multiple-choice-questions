@@ -365,6 +365,8 @@
     selectedSetIds,
     selectedAnswers,
     solutionVisible,
+    questionFontSize,
+    optionFontSize,
     fullscreenQuestionFontSize,
     fullscreenOptionFontSize,
     autoAdvanceEnabled,
@@ -374,6 +376,8 @@
       selectedSetIds,
       selectedAnswers,
       solutionVisible,
+      questionFontSize,
+      optionFontSize,
       fullscreenQuestionFontSize,
       fullscreenOptionFontSize,
       session: {
