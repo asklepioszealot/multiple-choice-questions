@@ -1599,7 +1599,31 @@
           </div>
           <div class="manager-typography-grid">
             <div class="manager-typography-field">
-              <label for="fullscreen-question-font-size">Soru boyutu</label>
+              <label for="question-font-size">Soru boyutu</label>
+              <input
+                type="number"
+                id="question-font-size"
+                min="12"
+                max="40"
+                step="1"
+                onchange="setQuestionFontSize(this.value)"
+                oninput="setQuestionFontSize(this.value)"
+              />
+            </div>
+            <div class="manager-typography-field">
+              <label for="option-font-size">Şık boyutu</label>
+              <input
+                type="number"
+                id="option-font-size"
+                min="12"
+                max="40"
+                step="1"
+                onchange="setOptionFontSize(this.value)"
+                oninput="setOptionFontSize(this.value)"
+              />
+            </div>
+            <div class="manager-typography-field">
+              <label for="fullscreen-question-font-size">Tam ekran soru</label>
               <input
                 type="number"
                 id="fullscreen-question-font-size"
@@ -1611,7 +1635,7 @@
               />
             </div>
             <div class="manager-typography-field">
-              <label for="fullscreen-option-font-size">Şık boyutu</label>
+              <label for="fullscreen-option-font-size">Tam ekran şık</label>
               <input
                 type="number"
                 id="fullscreen-option-font-size"
@@ -1627,7 +1651,7 @@
             <button
               class="btn btn-secondary btn-small"
               type="button"
-              onclick="resetFullscreenTypographyPreferences()"
+              onclick="resetTypographyPreferences()"
             >
               Varsayılana dön
             </button>

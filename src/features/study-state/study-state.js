@@ -6,7 +6,9 @@
   }
 
   const STUDY_TYPOGRAPHY_STORAGE_KEY = "mc_study_typography";
-  const DEFAULT_FULLSCREEN_FONT_SIZES = Object.freeze({
+  const DEFAULT_TYPOGRAPHY_FONT_SIZES = Object.freeze({
+    questionFontSize: 25,
+    optionFontSize: 17,
     fullscreenQuestionFontSize: 22,
     fullscreenOptionFontSize: 15,
   });
@@ -22,17 +24,25 @@
     return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, resolvedValue));
   }
 
-  function normalizeFullscreenTypography(value) {
+  function normalizeStudyTypographyPreferences(value) {
     const normalized = normalizePlainObject(value);
 
     return {
+      questionFontSize: clampFontSize(
+        normalized.questionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.questionFontSize,
+      ),
+      optionFontSize: clampFontSize(
+        normalized.optionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.optionFontSize,
+      ),
       fullscreenQuestionFontSize: clampFontSize(
         normalized.fullscreenQuestionFontSize,
-        DEFAULT_FULLSCREEN_FONT_SIZES.fullscreenQuestionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.fullscreenQuestionFontSize,
       ),
       fullscreenOptionFontSize: clampFontSize(
         normalized.fullscreenOptionFontSize,
-        DEFAULT_FULLSCREEN_FONT_SIZES.fullscreenOptionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.fullscreenOptionFontSize,
       ),
     };
   }
@@ -129,7 +139,7 @@
       selectedAnswers: normalizePlainObject(normalized.selectedAnswers),
       solutionVisible: normalizePlainObject(normalized.solutionVisible),
       session: normalizeSessionState(normalized.session),
-      ...normalizeFullscreenTypography(normalized),
+      ...normalizeStudyTypographyPreferences(normalized),
       autoAdvanceEnabled: normalized.autoAdvanceEnabled !== false,
       updatedAt:
         typeof normalized.updatedAt === "string" && normalized.updatedAt.trim()
@@ -220,13 +230,13 @@
         createStorageKey(storageKeyPrefix, STUDY_TYPOGRAPHY_STORAGE_KEY),
       );
       if (!savedTypography) {
-        return normalizeFullscreenTypography(fallbackPreferences);
+        return normalizeStudyTypographyPreferences(fallbackPreferences);
       }
 
       const parsedTypography = JSON.parse(savedTypography);
-      return normalizeFullscreenTypography(parsedTypography);
+      return normalizeStudyTypographyPreferences(parsedTypography);
     } catch {
-      return normalizeFullscreenTypography(fallbackPreferences);
+      return normalizeStudyTypographyPreferences(fallbackPreferences);
     }
   }
 
@@ -327,11 +337,15 @@
 
   function persistStudyTypographyPreferences({
     storage,
+    questionFontSize,
+    optionFontSize,
     fullscreenQuestionFontSize,
     fullscreenOptionFontSize,
     storageKeyPrefix = "",
   }) {
-    const normalizedPreferences = normalizeFullscreenTypography({
+    const normalizedPreferences = normalizeStudyTypographyPreferences({
+      questionFontSize,
+      optionFontSize,
       fullscreenQuestionFontSize,
       fullscreenOptionFontSize,
     });
@@ -428,6 +442,8 @@
     storage?.setItem?.(
       createStorageKey(storageKeyPrefix, STUDY_TYPOGRAPHY_STORAGE_KEY),
       JSON.stringify({
+        questionFontSize: normalizedSnapshot.questionFontSize,
+        optionFontSize: normalizedSnapshot.optionFontSize,
         fullscreenQuestionFontSize: normalizedSnapshot.fullscreenQuestionFontSize,
         fullscreenOptionFontSize: normalizedSnapshot.fullscreenOptionFontSize,
       }),
@@ -441,6 +457,7 @@
     legacyQuestionId,
     resolveQuestionKey,
     normalizeStudyStateSnapshot,
+    normalizeStudyTypographyPreferences,
     clampFontSize,
     migrateLegacyAssessmentState,
     readSavedSession,
@@ -460,6 +477,7 @@
     exports.legacyQuestionId = legacyQuestionId;
     exports.resolveQuestionKey = resolveQuestionKey;
     exports.normalizeStudyStateSnapshot = normalizeStudyStateSnapshot;
+    exports.normalizeStudyTypographyPreferences = normalizeStudyTypographyPreferences;
     exports.clampFontSize = clampFontSize;
     exports.migrateLegacyAssessmentState = migrateLegacyAssessmentState;
     exports.readSavedSession = readSavedSession;

@@ -162,7 +162,9 @@
 
   function normalizeStudyStateSnapshot(snapshot) {
     const normalized = snapshot && typeof snapshot === "object" ? snapshot : {};
-    const DEFAULT_FULLSCREEN_FONT_SIZES = {
+    const DEFAULT_TYPOGRAPHY_FONT_SIZES = {
+      questionFontSize: 25,
+      optionFontSize: 17,
       fullscreenQuestionFontSize: 22,
       fullscreenOptionFontSize: 15,
     };
@@ -218,13 +220,21 @@
                   : "hepsi",
             }
           : null,
+      questionFontSize: clampFontSize(
+        normalized.questionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.questionFontSize,
+      ),
+      optionFontSize: clampFontSize(
+        normalized.optionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.optionFontSize,
+      ),
       fullscreenQuestionFontSize: clampFontSize(
         normalized.fullscreenQuestionFontSize,
-        DEFAULT_FULLSCREEN_FONT_SIZES.fullscreenQuestionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.fullscreenQuestionFontSize,
       ),
       fullscreenOptionFontSize: clampFontSize(
         normalized.fullscreenOptionFontSize,
-        DEFAULT_FULLSCREEN_FONT_SIZES.fullscreenOptionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.fullscreenOptionFontSize,
       ),
       autoAdvanceEnabled: normalized.autoAdvanceEnabled !== false,
       updatedAt:
@@ -419,6 +429,8 @@
           selectedAnswers: normalizedSnapshot.selectedAnswers,
           solutionVisible: normalizedSnapshot.solutionVisible,
           session: normalizedSnapshot.session,
+          questionFontSize: normalizedSnapshot.questionFontSize,
+          optionFontSize: normalizedSnapshot.optionFontSize,
           fullscreenQuestionFontSize: normalizedSnapshot.fullscreenQuestionFontSize,
           fullscreenOptionFontSize: normalizedSnapshot.fullscreenOptionFontSize,
           autoAdvanceEnabled: normalizedSnapshot.autoAdvanceEnabled,
