@@ -317,6 +317,28 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#question-text")).toContainText("Markdown");
   });
 
+  test("raw code view expands to content height", async ({ page }) => {
+    const fixturePath = path.resolve(
+      process.cwd(),
+      "tests",
+      "fixtures",
+      "smoke-set.md",
+    );
+
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.setInputFiles("#file-picker", fixturePath);
+    await page.locator("#edit-btn").click();
+    await page.locator("#editor-raw-tab-btn").click();
+
+    const rawInput = page.locator("#editor-raw-input");
+    await expect(rawInput).toHaveCSS("resize", "none");
+    await expect(rawInput).toHaveCSS("overflow-y", "auto");
+    await expect(rawInput).toHaveJSProperty("clientHeight", await rawInput.evaluate((el) => el.scrollHeight));
+  });
+
   test("manager analytics summary updates after answering and returning", async ({
     page,
   }) => {

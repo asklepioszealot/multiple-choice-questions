@@ -736,6 +736,27 @@
         .join("");
     }
 
+    function syncRawEditorHeight(rawInputEl) {
+      if (!rawInputEl) {
+        return;
+      }
+
+      rawInputEl.style.height = "auto";
+      const computedStyle =
+        typeof globalScope.getComputedStyle === "function"
+          ? globalScope.getComputedStyle(rawInputEl)
+          : null;
+      const borderTopWidth = Number.parseFloat(
+        computedStyle?.borderTopWidth || "0",
+      );
+      const borderBottomWidth = Number.parseFloat(
+        computedStyle?.borderBottomWidth || "0",
+      );
+      rawInputEl.style.height = `${
+        rawInputEl.scrollHeight + borderTopWidth + borderBottomWidth
+      }px`;
+    }
+
     function render() {
       const screenEl = documentRef?.getElementById("editor-screen");
       const setNameEl = documentRef?.getElementById("editor-set-name");
@@ -796,6 +817,9 @@
       }
       if (rawPanel) {
         rawPanel.style.display = draft.mode === "raw" ? "block" : "none";
+      }
+      if (rawInputEl) {
+        syncRawEditorHeight(rawInputEl);
       }
       if (removeQuestionBtn) {
         removeQuestionBtn.disabled = draft.activeQuestionIndex < 0;
