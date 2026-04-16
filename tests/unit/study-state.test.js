@@ -5,6 +5,7 @@ import {
   legacyQuestionId,
   loadPersistedStudyState,
   migrateLegacyAssessmentState,
+  normalizeStudyStateSnapshot,
   pickNewerStudyStateSnapshot,
   persistStudyState,
   readSavedSession,
@@ -157,6 +158,8 @@ describe("study-state helpers", () => {
       selectedSetIds: ["demo"],
       selectedAnswers: { "set:demo::idx:1": 0 },
       solutionVisible: { "set:demo::idx:1": true },
+      fullscreenQuestionFontSize: 22,
+      fullscreenOptionFontSize: 15,
       session: {
         currentQuestionIndex: 1,
         currentQuestionKey: "set:demo::idx:1",
@@ -164,6 +167,13 @@ describe("study-state helpers", () => {
       },
       autoAdvanceEnabled: false,
       updatedAt: "2026-04-04T12:00:00.000Z",
+    });
+  });
+
+  it("fills fullscreen typography defaults when they are missing", () => {
+    expect(normalizeStudyStateSnapshot({})).toMatchObject({
+      fullscreenQuestionFontSize: 22,
+      fullscreenOptionFontSize: 15,
     });
   });
 
@@ -180,6 +190,8 @@ describe("study-state helpers", () => {
       selectedSetIds: ["remote"],
       selectedAnswers: { "set:remote::idx:0": 1 },
       solutionVisible: {},
+      fullscreenQuestionFontSize: 22,
+      fullscreenOptionFontSize: 15,
       session: null,
       autoAdvanceEnabled: false,
       updatedAt: "2026-04-04T12:00:00.000Z",

@@ -5,6 +5,38 @@
     return prefix ? `${prefix}::${key}` : key;
   }
 
+  const STUDY_TYPOGRAPHY_STORAGE_KEY = "mc_study_typography";
+  const DEFAULT_FULLSCREEN_FONT_SIZES = Object.freeze({
+    fullscreenQuestionFontSize: 22,
+    fullscreenOptionFontSize: 15,
+  });
+  const FONT_SIZE_MIN = 12;
+  const FONT_SIZE_MAX = 40;
+
+  function clampFontSize(value, fallback) {
+    const numericValue = Number(value);
+    const resolvedValue = Number.isFinite(numericValue)
+      ? Math.round(numericValue)
+      : fallback;
+
+    return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, resolvedValue));
+  }
+
+  function normalizeFullscreenTypography(value) {
+    const normalized = normalizePlainObject(value);
+
+    return {
+      fullscreenQuestionFontSize: clampFontSize(
+        normalized.fullscreenQuestionFontSize,
+        DEFAULT_FULLSCREEN_FONT_SIZES.fullscreenQuestionFontSize,
+      ),
+      fullscreenOptionFontSize: clampFontSize(
+        normalized.fullscreenOptionFontSize,
+        DEFAULT_FULLSCREEN_FONT_SIZES.fullscreenOptionFontSize,
+      ),
+    };
+  }
+
   function buildQuestionKey(setId, question, index) {
     const normalizedSetId = String(setId ?? "unknown");
     const questionIdValue =
@@ -97,6 +129,7 @@
       selectedAnswers: normalizePlainObject(normalized.selectedAnswers),
       solutionVisible: normalizePlainObject(normalized.solutionVisible),
       session: normalizeSessionState(normalized.session),
+      ...normalizeFullscreenTypography(normalized),
       autoAdvanceEnabled: normalized.autoAdvanceEnabled !== false,
       updatedAt:
         typeof normalized.updatedAt === "string" && normalized.updatedAt.trim()
@@ -177,10 +210,31 @@
     }
   }
 
+  function readSavedTypographyPreferences(
+    storage,
+    fallbackPreferences = null,
+    storageKeyPrefix = "",
+  ) {
+    try {
+      const savedTypography = storage?.getItem?.(
+        createStorageKey(storageKeyPrefix, STUDY_TYPOGRAPHY_STORAGE_KEY),
+      );
+      if (!savedTypography) {
+        return normalizeFullscreenTypography(fallbackPreferences);
+      }
+
+      const parsedTypography = JSON.parse(savedTypography);
+      return normalizeFullscreenTypography(parsedTypography);
+    } catch {
+      return normalizeFullscreenTypography(fallbackPreferences);
+    }
+  }
+
   function loadPersistedStudyState({
     storage,
     loadedSets,
     fallbackSession = null,
+    fallbackTypography = null,
     storageKeyPrefix = "",
   }) {
     let selectedAnswers = {};
@@ -211,6 +265,11 @@
       fallbackSession,
       storageKeyPrefix,
     );
+    const typographyPreferences = readSavedTypographyPreferences(
+      storage,
+      fallbackTypography,
+      storageKeyPrefix,
+    );
     const migrated = migrateLegacyAssessmentState({
       loadedSets,
       selectedAnswers,
@@ -231,6 +290,7 @@
       selectedAnswers: migrated.selectedAnswers,
       solutionVisible: migrated.solutionVisible,
       pendingSession,
+      ...typographyPreferences,
       changed: migrated.changed,
     };
   }
@@ -265,6 +325,25 @@
     return sessionState;
   }
 
+  function persistStudyTypographyPreferences({
+    storage,
+    fullscreenQuestionFontSize,
+    fullscreenOptionFontSize,
+    storageKeyPrefix = "",
+  }) {
+    const normalizedPreferences = normalizeFullscreenTypography({
+      fullscreenQuestionFontSize,
+      fullscreenOptionFontSize,
+    });
+
+    storage?.setItem?.(
+      createStorageKey(storageKeyPrefix, STUDY_TYPOGRAPHY_STORAGE_KEY),
+      JSON.stringify(normalizedPreferences),
+    );
+
+    return normalizedPreferences;
+  }
+
   function buildStudyStateSnapshot({
     activeQuestion,
     currentQuestionIndex,
@@ -272,6 +351,8 @@
     selectedSetIds,
     selectedAnswers,
     solutionVisible,
+    fullscreenQuestionFontSize,
+    fullscreenOptionFontSize,
     autoAdvanceEnabled,
     updatedAt,
   }) {
@@ -279,6 +360,8 @@
       selectedSetIds,
       selectedAnswers,
       solutionVisible,
+      fullscreenQuestionFontSize,
+      fullscreenOptionFontSize,
       session: {
         currentQuestionIndex: Number.isInteger(currentQuestionIndex)
           ? currentQuestionIndex
@@ -342,6 +425,13 @@
       createStorageKey(storageKeyPrefix, "mc_auto_advance"),
       normalizedSnapshot.autoAdvanceEnabled ? "1" : "0",
     );
+    storage?.setItem?.(
+      createStorageKey(storageKeyPrefix, STUDY_TYPOGRAPHY_STORAGE_KEY),
+      JSON.stringify({
+        fullscreenQuestionFontSize: normalizedSnapshot.fullscreenQuestionFontSize,
+        fullscreenOptionFontSize: normalizedSnapshot.fullscreenOptionFontSize,
+      }),
+    );
 
     return normalizedSnapshot;
   }
@@ -351,10 +441,13 @@
     legacyQuestionId,
     resolveQuestionKey,
     normalizeStudyStateSnapshot,
+    clampFontSize,
     migrateLegacyAssessmentState,
     readSavedSession,
+    readSavedTypographyPreferences,
     loadPersistedStudyState,
     persistStudyState,
+    persistStudyTypographyPreferences,
     buildStudyStateSnapshot,
     pickNewerStudyStateSnapshot,
     persistStudyStateSnapshot,
@@ -367,10 +460,13 @@
     exports.legacyQuestionId = legacyQuestionId;
     exports.resolveQuestionKey = resolveQuestionKey;
     exports.normalizeStudyStateSnapshot = normalizeStudyStateSnapshot;
+    exports.clampFontSize = clampFontSize;
     exports.migrateLegacyAssessmentState = migrateLegacyAssessmentState;
     exports.readSavedSession = readSavedSession;
+    exports.readSavedTypographyPreferences = readSavedTypographyPreferences;
     exports.loadPersistedStudyState = loadPersistedStudyState;
     exports.persistStudyState = persistStudyState;
+    exports.persistStudyTypographyPreferences = persistStudyTypographyPreferences;
     exports.buildStudyStateSnapshot = buildStudyStateSnapshot;
     exports.pickNewerStudyStateSnapshot = pickNewerStudyStateSnapshot;
     exports.persistStudyStateSnapshot = persistStudyStateSnapshot;

@@ -1,5 +1,7 @@
       const ANSWER_LOCK_KEY = "mc_answer_lock";
       const AUTO_ADVANCE_KEY = "mc_auto_advance";
+      const DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE = 22;
+      const DEFAULT_FULLSCREEN_OPTION_FONT_SIZE = 15;
 
       // --- ESKİ DEĞİŞKENLER ---
       let currentQuestionIndex = 0;
@@ -9,6 +11,8 @@
       let selectedAnswers = {};
       let solutionVisible = {};
       let pendingSession = null;
+      let fullscreenQuestionFontSize = DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE;
+      let fullscreenOptionFontSize = DEFAULT_FULLSCREEN_OPTION_FONT_SIZE;
       let isFullscreen = false;
       let answerLockEnabled = false;
       let autoAdvanceEnabled = false;
@@ -70,6 +74,7 @@
         getFullscreenToggleState,
         getAnswerLockStatusText,
         getAutoAdvanceStatusText,
+        applyStudyTypographyPreferences,
       } = window.AppStudyUI;
       const {
         buildQuestionKey,
@@ -79,6 +84,7 @@
         pickNewerStudyStateSnapshot,
         persistStudyState,
         persistStudyStateSnapshot,
+        persistStudyTypographyPreferences,
         readSavedSession,
       } = window.AppStudyState;
       const setManager = createSetManager({
@@ -461,9 +467,27 @@
           selectedSetIds: getSelectedSetIds(),
           selectedAnswers,
           solutionVisible,
+          fullscreenQuestionFontSize,
+          fullscreenOptionFontSize,
           autoAdvanceEnabled,
           updatedAt: options.updatedAt,
         });
+      }
+
+      function hasCustomFullscreenTypographyState(snapshot) {
+        if (!snapshot || typeof snapshot !== "object") {
+          return false;
+        }
+
+        const questionSize = Number(snapshot.fullscreenQuestionFontSize);
+        const optionSize = Number(snapshot.fullscreenOptionFontSize);
+
+        return Boolean(
+          (Number.isFinite(questionSize) &&
+            questionSize !== DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE) ||
+            (Number.isFinite(optionSize) &&
+              optionSize !== DEFAULT_FULLSCREEN_OPTION_FONT_SIZE),
+        );
       }
 
       function hasMeaningfulStudyStateSnapshot(snapshot) {
@@ -484,7 +508,8 @@
           (Array.isArray(snapshot.selectedSetIds) && snapshot.selectedSetIds.length > 0) ||
             Object.keys(snapshot.selectedAnswers || {}).length > 0 ||
             Object.keys(snapshot.solutionVisible || {}).length > 0 ||
-            hasMeaningfulSession,
+            hasMeaningfulSession ||
+            hasCustomFullscreenTypographyState(snapshot),
         );
       }
 
@@ -494,11 +519,14 @@
           snapshot,
           storageKeyPrefix: options.storageKeyPrefix ?? getStorageKeyPrefix(),
         });
+        const typographyState = applyFullscreenTypographyState(normalizedSnapshot);
 
         selectedAnswers = normalizedSnapshot.selectedAnswers;
         solutionVisible = normalizedSnapshot.solutionVisible;
         pendingSession = normalizedSnapshot.session;
         autoAdvanceEnabled = normalizedSnapshot.autoAdvanceEnabled !== false;
+        fullscreenQuestionFontSize = typographyState.fullscreenQuestionFontSize;
+        fullscreenOptionFontSize = typographyState.fullscreenOptionFontSize;
 
         if (Array.isArray(normalizedSnapshot.selectedSetIds)) {
           setManager.setSelectedSetIds(normalizedSnapshot.selectedSetIds, {
@@ -508,6 +536,7 @@
         }
 
         syncAutoAdvanceToggleUI();
+        syncFullscreenTypographyControls();
         renderSetList();
       }
 
@@ -1355,6 +1384,74 @@
         }
       }
 
+      function getFullscreenTypographyState() {
+        return {
+          fullscreenQuestionFontSize,
+          fullscreenOptionFontSize,
+        };
+      }
+
+      function syncFullscreenTypographyControls() {
+        const questionInput = document.getElementById(
+          "fullscreen-question-font-size",
+        );
+        const optionInput = document.getElementById(
+          "fullscreen-option-font-size",
+        );
+
+        if (questionInput) {
+          questionInput.value = String(fullscreenQuestionFontSize);
+        }
+        if (optionInput) {
+          optionInput.value = String(fullscreenOptionFontSize);
+        }
+      }
+
+      function applyFullscreenTypographyState(nextState) {
+        const normalizedState = {
+          fullscreenQuestionFontSize: Number.isFinite(
+            Number(nextState?.fullscreenQuestionFontSize),
+          )
+            ? Math.round(Number(nextState.fullscreenQuestionFontSize))
+            : DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE,
+          fullscreenOptionFontSize: Number.isFinite(
+            Number(nextState?.fullscreenOptionFontSize),
+          )
+            ? Math.round(Number(nextState.fullscreenOptionFontSize))
+            : DEFAULT_FULLSCREEN_OPTION_FONT_SIZE,
+        };
+
+        fullscreenQuestionFontSize = normalizedState.fullscreenQuestionFontSize;
+        fullscreenOptionFontSize = normalizedState.fullscreenOptionFontSize;
+        applyStudyTypographyPreferences(normalizedState, document);
+        syncFullscreenTypographyControls();
+        return normalizedState;
+      }
+
+      function setFullscreenQuestionFontSize(value) {
+        applyFullscreenTypographyState({
+          fullscreenQuestionFontSize: value,
+          fullscreenOptionFontSize,
+        });
+        saveState();
+      }
+
+      function setFullscreenOptionFontSize(value) {
+        applyFullscreenTypographyState({
+          fullscreenQuestionFontSize,
+          fullscreenOptionFontSize: value,
+        });
+        saveState();
+      }
+
+      function resetFullscreenTypographyPreferences() {
+        applyFullscreenTypographyState({
+          fullscreenQuestionFontSize: DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE,
+          fullscreenOptionFontSize: DEFAULT_FULLSCREEN_OPTION_FONT_SIZE,
+        });
+        saveState();
+      }
+
       function setAutoAdvance(isEnabled) {
         autoAdvanceEnabled = Boolean(isEnabled);
         setScopedStorageItem(
@@ -1805,6 +1902,12 @@
             solutionVisible,
             storageKeyPrefix: getStorageKeyPrefix(),
           });
+          persistStudyTypographyPreferences({
+            storage,
+            fullscreenQuestionFontSize,
+            fullscreenOptionFontSize,
+            storageKeyPrefix: getStorageKeyPrefix(),
+          });
           pendingSession = sessionState;
           scheduleRemoteStudyStateSync(buildCurrentStudyStateSnapshot());
         } catch (e) {
@@ -1837,6 +1940,7 @@
             storage,
             loadedSets: getLoadedSets(),
             fallbackSession: null,
+            fallbackTypography: getFullscreenTypographyState(),
             storageKeyPrefix:
               typeof storageKeyPrefix === "string"
                 ? storageKeyPrefix
@@ -1845,11 +1949,13 @@
           selectedAnswers = loadedState.selectedAnswers;
           solutionVisible = loadedState.solutionVisible;
           pendingSession = loadedState.pendingSession;
+          applyFullscreenTypographyState(loadedState);
         } catch (e) {
           console.error("State loading error", e);
         }
         syncAnswerLockToggleUI();
         syncAutoAdvanceToggleUI();
+        syncFullscreenTypographyControls();
       }
 
       function populateTopicFilter() {
@@ -1958,6 +2064,9 @@
         toggleTheme,
         setAnswerLock,
         setAutoAdvance,
+        setFullscreenQuestionFontSize,
+        setFullscreenOptionFontSize,
+        resetFullscreenTypographyPreferences,
         undoLastRemoval,
         closeEditor,
         saveEditor,
