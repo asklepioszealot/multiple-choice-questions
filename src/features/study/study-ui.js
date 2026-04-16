@@ -1,6 +1,45 @@
 (function attachStudyUI(globalScope) {
   "use strict";
 
+  const FONT_SIZE_MIN = 12;
+  const FONT_SIZE_MAX = 40;
+  const DEFAULT_TYPOGRAPHY_FONT_SIZES = Object.freeze({
+    questionFontSize: 25,
+    optionFontSize: 17,
+    fullscreenQuestionFontSize: 22,
+    fullscreenOptionFontSize: 15,
+  });
+
+  function clampFontSize(value, fallback) {
+    const numericValue = Number(value);
+    const resolvedValue = Number.isFinite(numericValue)
+      ? Math.round(numericValue)
+      : fallback;
+
+    return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, resolvedValue));
+  }
+
+  function normalizeStudyTypographyPreferences(preferences = {}) {
+    return {
+      questionFontSize: clampFontSize(
+        preferences.questionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.questionFontSize,
+      ),
+      optionFontSize: clampFontSize(
+        preferences.optionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.optionFontSize,
+      ),
+      fullscreenQuestionFontSize: clampFontSize(
+        preferences.fullscreenQuestionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.fullscreenQuestionFontSize,
+      ),
+      fullscreenOptionFontSize: clampFontSize(
+        preferences.fullscreenOptionFontSize,
+        DEFAULT_TYPOGRAPHY_FONT_SIZES.fullscreenOptionFontSize,
+      ),
+    };
+  }
+
   function createStudyChromeState({
     currentQuestionIndex,
     totalQuestions,
@@ -57,31 +96,28 @@
       : "Otomatik sonraki soru: Kapalı";
   }
 
-  function applyStudyTypographyPreferences(preferences = {}, documentRef = globalScope.document) {
+  function applyStudyTypographyPreferences(
+    preferences = {},
+    documentRef = globalScope.document,
+  ) {
+    const normalizedPreferences = normalizeStudyTypographyPreferences(preferences);
     const root = documentRef?.documentElement;
     if (!root || !root.style || typeof root.style.setProperty !== "function") {
-      return null;
+      return normalizedPreferences;
     }
 
-    const fullscreenQuestionFontSize =
-      Number.isFinite(Number(preferences.fullscreenQuestionFontSize))
-        ? `${Math.round(Number(preferences.fullscreenQuestionFontSize))}px`
-        : "";
-    const fullscreenOptionFontSize =
-      Number.isFinite(Number(preferences.fullscreenOptionFontSize))
-        ? `${Math.round(Number(preferences.fullscreenOptionFontSize))}px`
-        : "";
-
+    root.style.setProperty("--mcq-font-question", `${normalizedPreferences.questionFontSize}px`);
+    root.style.setProperty("--mcq-font-option", `${normalizedPreferences.optionFontSize}px`);
     root.style.setProperty(
       "--mcq-font-question-fullscreen",
-      fullscreenQuestionFontSize,
+      `${normalizedPreferences.fullscreenQuestionFontSize}px`,
     );
-    root.style.setProperty("--mcq-font-option-fullscreen", fullscreenOptionFontSize);
+    root.style.setProperty(
+      "--mcq-font-option-fullscreen",
+      `${normalizedPreferences.fullscreenOptionFontSize}px`,
+    );
 
-    return {
-      fullscreenQuestionFontSize,
-      fullscreenOptionFontSize,
-    };
+    return normalizedPreferences;
   }
 
   const AppStudyUI = Object.freeze({
@@ -89,6 +125,7 @@
     getFullscreenToggleState,
     getAnswerLockStatusText,
     getAutoAdvanceStatusText,
+    normalizeStudyTypographyPreferences,
     applyStudyTypographyPreferences,
   });
 
@@ -99,6 +136,7 @@
     exports.getFullscreenToggleState = getFullscreenToggleState;
     exports.getAnswerLockStatusText = getAnswerLockStatusText;
     exports.getAutoAdvanceStatusText = getAutoAdvanceStatusText;
+    exports.normalizeStudyTypographyPreferences = normalizeStudyTypographyPreferences;
     exports.applyStudyTypographyPreferences = applyStudyTypographyPreferences;
     exports.AppStudyUI = AppStudyUI;
     exports.default = AppStudyUI;

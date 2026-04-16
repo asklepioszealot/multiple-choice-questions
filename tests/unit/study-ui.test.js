@@ -62,7 +62,7 @@ describe("study-ui helpers", () => {
     );
   });
 
-  it("applies fullscreen typography preferences to CSS variables", () => {
+  it("applies typography preferences to CSS variables", () => {
     const setProperty = vi.fn();
     const documentRef = {
       documentElement: {
@@ -75,16 +75,22 @@ describe("study-ui helpers", () => {
     expect(
       applyStudyTypographyPreferences(
         {
+          questionFontSize: 25,
+          optionFontSize: 17,
           fullscreenQuestionFontSize: 28,
           fullscreenOptionFontSize: 18,
         },
         documentRef,
       ),
     ).toEqual({
-      fullscreenQuestionFontSize: "28px",
-      fullscreenOptionFontSize: "18px",
+      questionFontSize: 25,
+      optionFontSize: 17,
+      fullscreenQuestionFontSize: 28,
+      fullscreenOptionFontSize: 18,
     });
 
+    expect(setProperty).toHaveBeenCalledWith("--mcq-font-question", "25px");
+    expect(setProperty).toHaveBeenCalledWith("--mcq-font-option", "17px");
     expect(setProperty).toHaveBeenCalledWith(
       "--mcq-font-question-fullscreen",
       "28px",
@@ -92,6 +98,45 @@ describe("study-ui helpers", () => {
     expect(setProperty).toHaveBeenCalledWith(
       "--mcq-font-option-fullscreen",
       "18px",
+    );
+  });
+
+  it("clamps and applies regular plus fullscreen typography preferences", () => {
+    const setProperty = vi.fn();
+    const documentRef = {
+      documentElement: {
+        style: {
+          setProperty,
+        },
+      },
+    };
+
+    expect(
+      applyStudyTypographyPreferences(
+        {
+          questionFontSize: 5,
+          optionFontSize: 999,
+          fullscreenQuestionFontSize: 0,
+          fullscreenOptionFontSize: 41,
+        },
+        documentRef,
+      ),
+    ).toEqual({
+      questionFontSize: 12,
+      optionFontSize: 40,
+      fullscreenQuestionFontSize: 12,
+      fullscreenOptionFontSize: 40,
+    });
+
+    expect(setProperty).toHaveBeenCalledWith("--mcq-font-question", "12px");
+    expect(setProperty).toHaveBeenCalledWith("--mcq-font-option", "40px");
+    expect(setProperty).toHaveBeenCalledWith(
+      "--mcq-font-question-fullscreen",
+      "12px",
+    );
+    expect(setProperty).toHaveBeenCalledWith(
+      "--mcq-font-option-fullscreen",
+      "40px",
     );
   });
 });

@@ -6,6 +6,7 @@ import {
   loadPersistedStudyState,
   migrateLegacyAssessmentState,
   normalizeStudyStateSnapshot,
+  normalizeStudyTypographyPreferences,
   pickNewerStudyStateSnapshot,
   persistStudyState,
   readSavedSession,
@@ -158,6 +159,8 @@ describe("study-state helpers", () => {
       selectedSetIds: ["demo"],
       selectedAnswers: { "set:demo::idx:1": 0 },
       solutionVisible: { "set:demo::idx:1": true },
+      questionFontSize: 25,
+      optionFontSize: 17,
       fullscreenQuestionFontSize: 22,
       fullscreenOptionFontSize: 15,
       session: {
@@ -170,10 +173,28 @@ describe("study-state helpers", () => {
     });
   });
 
-  it("fills fullscreen typography defaults when they are missing", () => {
+  it("fills typography defaults when they are missing", () => {
     expect(normalizeStudyStateSnapshot({})).toMatchObject({
+      questionFontSize: 25,
+      optionFontSize: 17,
       fullscreenQuestionFontSize: 22,
       fullscreenOptionFontSize: 15,
+    });
+  });
+
+  it("clamps typography preferences immediately during normalization", () => {
+    expect(
+      normalizeStudyTypographyPreferences({
+        questionFontSize: 5,
+        optionFontSize: 999,
+        fullscreenQuestionFontSize: 0,
+        fullscreenOptionFontSize: 41,
+      }),
+    ).toEqual({
+      questionFontSize: 12,
+      optionFontSize: 40,
+      fullscreenQuestionFontSize: 12,
+      fullscreenOptionFontSize: 40,
     });
   });
 
@@ -190,6 +211,8 @@ describe("study-state helpers", () => {
       selectedSetIds: ["remote"],
       selectedAnswers: { "set:remote::idx:0": 1 },
       solutionVisible: {},
+      questionFontSize: 25,
+      optionFontSize: 17,
       fullscreenQuestionFontSize: 22,
       fullscreenOptionFontSize: 15,
       session: null,
