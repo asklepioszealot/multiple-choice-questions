@@ -334,9 +334,20 @@ test.describe("MCQ smoke", () => {
     await page.locator("#editor-raw-tab-btn").click();
 
     const rawInput = page.locator("#editor-raw-input");
+    const initialClientHeight = await rawInput.evaluate((el) => el.clientHeight);
+    await rawInput.evaluate((el) => {
+      el.value = `${el.value}\n\nSoru 99: Ek satir testi?\nA) Bir\nB) Iki\nDoğru Cevap: A\nAçıklama: Uzayan içerik`;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
     await expect(rawInput).toHaveCSS("resize", "none");
     await expect(rawInput).toHaveCSS("overflow-y", "auto");
-    await expect(rawInput).toHaveJSProperty("clientHeight", await rawInput.evaluate((el) => el.scrollHeight));
+    const { clientHeight, scrollHeight } = await rawInput.evaluate((el) => ({
+      clientHeight: el.clientHeight,
+      scrollHeight: el.scrollHeight,
+    }));
+    expect(clientHeight).toBe(scrollHeight);
+    expect(clientHeight).toBeGreaterThan(initialClientHeight);
   });
 
   test("manager analytics summary updates after answering and returning", async ({
