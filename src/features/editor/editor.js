@@ -757,6 +757,16 @@
       }px`;
     }
 
+    function bindRawEditorAutoResize(rawInputEl) {
+      if (!rawInputEl) {
+        return;
+      }
+
+      rawInputEl.oninput = () => {
+        syncRawEditorHeight(rawInputEl);
+      };
+    }
+
     function render() {
       const screenEl = documentRef?.getElementById("editor-screen");
       const setNameEl = documentRef?.getElementById("editor-set-name");
@@ -819,6 +829,7 @@
         rawPanel.style.display = draft.mode === "raw" ? "block" : "none";
       }
       if (rawInputEl) {
+        bindRawEditorAutoResize(rawInputEl);
         syncRawEditorHeight(rawInputEl);
       }
       if (removeQuestionBtn) {
