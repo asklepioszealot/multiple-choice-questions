@@ -17,6 +17,11 @@
     return Math.min(Math.max(requestedIndex, 0), totalQuestions - 1);
   }
 
+  function getAdjacentQuestionIndex(currentQuestionIndex, totalQuestions, offset) {
+    const step = Number.isInteger(offset) ? offset : 0;
+    return getBoundedQuestionIndex(currentQuestionIndex + step, totalQuestions);
+  }
+
   function buildStudyQuestions({
     loadedSets,
     selectedSetIds,
@@ -180,6 +185,7 @@
   const AppStudy = Object.freeze({
     buildQuestionOrder,
     getBoundedQuestionIndex,
+    getAdjacentQuestionIndex,
     buildStudyQuestions,
     collectStudySubjects,
     createFilteredStudyView,
@@ -192,6 +198,7 @@
   if (typeof exports !== "undefined") {
     exports.buildQuestionOrder = buildQuestionOrder;
     exports.getBoundedQuestionIndex = getBoundedQuestionIndex;
+    exports.getAdjacentQuestionIndex = getAdjacentQuestionIndex;
     exports.buildStudyQuestions = buildStudyQuestions;
     exports.collectStudySubjects = collectStudySubjects;
     exports.createFilteredStudyView = createFilteredStudyView;
