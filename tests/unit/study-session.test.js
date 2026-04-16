@@ -3,6 +3,7 @@ import {
   buildStudyQuestions,
   collectStudySubjects,
   createFilteredStudyView,
+  getAdjacentQuestionIndex,
   getBoundedQuestionIndex,
   selectStudyAnswer,
   toggleStudySolution,
@@ -164,5 +165,11 @@ describe("study-session helpers", () => {
     expect(getBoundedQuestionIndex(-1, 5)).toBe(0);
     expect(getBoundedQuestionIndex(7, 5)).toBe(4);
     expect(getBoundedQuestionIndex(3, 0)).toBe(0);
+  });
+
+  it("steps navigation indexes within the available question count", () => {
+    expect(getAdjacentQuestionIndex(0, 5, 1)).toBe(1);
+    expect(getAdjacentQuestionIndex(0, 5, -1)).toBe(0);
+    expect(getAdjacentQuestionIndex(4, 5, 1)).toBe(4);
   });
 });

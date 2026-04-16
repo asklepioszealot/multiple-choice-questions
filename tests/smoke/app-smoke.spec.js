@@ -667,6 +667,63 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#question-text")).toContainText("Soru C?");
   });
 
+  test("next navigation updates immediately and suppresses carried-over transitions", async ({
+    page,
+  }) => {
+    await seedLocalSets(page, {
+      sets: {
+        demo: {
+          setName: "Instant Next Demo",
+          fileName: "instant-next-demo.json",
+          questions: [
+            {
+              q: "Birinci soru?",
+              options: ["A1", "A2", "A3", "A4"],
+              correct: 0,
+              subject: "Genel",
+              explanation: "A",
+            },
+            {
+              q: "Ikinci soru?",
+              options: ["B1", "B2", "B3", "B4"],
+              correct: 1,
+              subject: "Genel",
+              explanation: "B",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["demo"],
+    });
+
+    await page.locator("#start-btn").click();
+    await selectOption(page, 0);
+
+    await page.locator("#next-btn").click();
+
+    const immediateState = await page.evaluate(() => {
+      const questionText = document.getElementById("question-text")?.textContent || "";
+      const firstOption = document.querySelector("#options-container .option");
+      const optionClasses = Array.from(
+        document.querySelectorAll("#options-container .option"),
+      ).map((option) => option.className);
+
+      return {
+        questionText,
+        transitionProperty: firstOption
+          ? window.getComputedStyle(firstOption).transitionProperty
+          : null,
+        optionClasses,
+      };
+    });
+
+    expect(immediateState.questionText).toContain("Ikinci soru?");
+    expect(immediateState.transitionProperty).toBe("none");
+    expect(immediateState.optionClasses.every((className) => className === "option")).toBe(
+      true,
+    );
+  });
+
   test("clicking the same answer twice clears the question", async ({ page }) => {
     await seedLocalSets(page, {
       sets: {

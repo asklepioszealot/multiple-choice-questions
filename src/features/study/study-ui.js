@@ -9,6 +9,7 @@
     fullscreenQuestionFontSize: 22,
     fullscreenOptionFontSize: 15,
   });
+  let pendingQuestionResetFrameIds = new Set();
 
   function clampFontSize(value, fallback) {
     const numericValue = Number(value);
@@ -96,6 +97,71 @@
       : "Otomatik sonraki soru: Kapalı";
   }
 
+  function clearPendingQuestionResetFrames(cancelAnimationFrameRef) {
+    if (typeof cancelAnimationFrameRef !== "function") {
+      pendingQuestionResetFrameIds = new Set();
+      return;
+    }
+
+    pendingQuestionResetFrameIds.forEach((frameId) => {
+      cancelAnimationFrameRef(frameId);
+    });
+    pendingQuestionResetFrameIds = new Set();
+  }
+
+  function runWithQuestionInstantReset(
+    callback,
+    documentRef = globalScope.document,
+    requestAnimationFrameRef = null,
+    cancelAnimationFrameRef = null,
+  ) {
+    if (typeof callback !== "function") {
+      return undefined;
+    }
+
+    const questionCard = documentRef?.getElementById("question-card");
+    if (!questionCard || !questionCard.classList) {
+      return callback();
+    }
+
+    const raf =
+      typeof requestAnimationFrameRef === "function"
+        ? requestAnimationFrameRef
+        : typeof globalScope.requestAnimationFrame === "function"
+          ? globalScope.requestAnimationFrame.bind(globalScope)
+          : null;
+    const cancelRaf =
+      typeof cancelAnimationFrameRef === "function"
+        ? cancelAnimationFrameRef
+        : typeof globalScope.cancelAnimationFrame === "function"
+          ? globalScope.cancelAnimationFrame.bind(globalScope)
+          : null;
+
+    clearPendingQuestionResetFrames(cancelRaf);
+    questionCard.classList.add("mcq--instant-reset");
+
+    let callbackResult;
+    try {
+      callbackResult = callback();
+    } finally {
+      if (raf) {
+        const outerFrameId = raf(() => {
+          pendingQuestionResetFrameIds.delete(outerFrameId);
+          const innerFrameId = raf(() => {
+            pendingQuestionResetFrameIds.delete(innerFrameId);
+            questionCard.classList.remove("mcq--instant-reset");
+          });
+          pendingQuestionResetFrameIds.add(innerFrameId);
+        });
+        pendingQuestionResetFrameIds.add(outerFrameId);
+      } else {
+        questionCard.classList.remove("mcq--instant-reset");
+      }
+    }
+
+    return callbackResult;
+  }
+
   function applyStudyTypographyPreferences(
     preferences = {},
     documentRef = globalScope.document,
@@ -125,6 +191,7 @@
     getFullscreenToggleState,
     getAnswerLockStatusText,
     getAutoAdvanceStatusText,
+    runWithQuestionInstantReset,
     normalizeStudyTypographyPreferences,
     applyStudyTypographyPreferences,
   });
@@ -136,6 +203,7 @@
     exports.getFullscreenToggleState = getFullscreenToggleState;
     exports.getAnswerLockStatusText = getAnswerLockStatusText;
     exports.getAutoAdvanceStatusText = getAutoAdvanceStatusText;
+    exports.runWithQuestionInstantReset = runWithQuestionInstantReset;
     exports.normalizeStudyTypographyPreferences = normalizeStudyTypographyPreferences;
     exports.applyStudyTypographyPreferences = applyStudyTypographyPreferences;
     exports.AppStudyUI = AppStudyUI;

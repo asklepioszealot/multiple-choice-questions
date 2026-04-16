@@ -69,6 +69,7 @@
         buildStudyQuestions,
         collectStudySubjects,
         createFilteredStudyView,
+        getAdjacentQuestionIndex,
         getBoundedQuestionIndex,
         selectStudyAnswer,
         toggleStudySolution,
@@ -79,6 +80,7 @@
         getAnswerLockStatusText,
         getAutoAdvanceStatusText,
         applyStudyTypographyPreferences,
+        runWithQuestionInstantReset,
       } = window.AppStudyUI;
       const {
         buildQuestionKey,
@@ -1771,25 +1773,27 @@
 
       function previousQuestion() {
         clearAutoAdvanceTimer();
-        const nextIndex = getBoundedQuestionIndex(
-          currentQuestionIndex - 1,
+        const nextIndex = getAdjacentQuestionIndex(
+          currentQuestionIndex,
           filteredQuestions.length,
+          -1,
         );
         if (nextIndex !== currentQuestionIndex) {
           currentQuestionIndex = nextIndex;
-          displayQuestion();
+          runWithQuestionInstantReset(() => displayQuestion());
         }
       }
 
       function nextQuestion() {
         clearAutoAdvanceTimer();
-        const nextIndex = getBoundedQuestionIndex(
-          currentQuestionIndex + 1,
+        const nextIndex = getAdjacentQuestionIndex(
+          currentQuestionIndex,
           filteredQuestions.length,
+          1,
         );
         if (nextIndex !== currentQuestionIndex) {
           currentQuestionIndex = nextIndex;
-          displayQuestion();
+          runWithQuestionInstantReset(() => displayQuestion());
         }
       }
 

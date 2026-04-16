@@ -5,6 +5,7 @@ import {
   getAnswerLockStatusText,
   getAutoAdvanceStatusText,
   getFullscreenToggleState,
+  runWithQuestionInstantReset,
 } from "../../src/features/study/study-ui.js";
 
 describe("study-ui helpers", () => {
@@ -138,5 +139,44 @@ describe("study-ui helpers", () => {
       "--mcq-font-option-fullscreen",
       "40px",
     );
+  });
+
+  it("applies an instant reset class while rendering the next question", () => {
+    const frames = [];
+    const classList = new Set();
+    const questionCard = {
+      classList: {
+        add: vi.fn((value) => classList.add(value)),
+        remove: vi.fn((value) => classList.delete(value)),
+      },
+    };
+    const documentRef = {
+      getElementById: vi.fn(() => questionCard),
+    };
+    const requestAnimationFrameRef = vi.fn((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    const callback = vi.fn();
+
+    runWithQuestionInstantReset(
+      callback,
+      documentRef,
+      requestAnimationFrameRef,
+      vi.fn(),
+    );
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(questionCard.classList.add).toHaveBeenCalledWith("mcq--instant-reset");
+    expect(classList.has("mcq--instant-reset")).toBe(true);
+    expect(frames).toHaveLength(1);
+
+    frames.shift()();
+
+    expect(frames).toHaveLength(1);
+    frames.shift()();
+
+    expect(questionCard.classList.remove).toHaveBeenCalledWith("mcq--instant-reset");
+    expect(classList.has("mcq--instant-reset")).toBe(false);
   });
 });
