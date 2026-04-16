@@ -24,6 +24,10 @@
         --color-correct-hover: #10b981; /* Emerald 500 */
         --color-wrong: #f87171; /* Red 400 */
         --color-wrong-hover: #ef4444; /* Red 500 */
+        --mcq-font-question: 25px;
+        --mcq-font-option: 17px;
+        --mcq-font-question-fullscreen: 22px;
+        --mcq-font-option-fullscreen: 15px;
       }
 
       [data-theme="dark"] {
@@ -382,7 +386,7 @@
       }
 
       .question-card.fullscreen-active .question-text {
-        font-size: 22px;
+        font-size: var(--mcq-font-question-fullscreen);
         line-height: 1.5;
         margin-bottom: 22px;
       }
@@ -394,7 +398,7 @@
 
       .question-card.fullscreen-active .option {
         padding: 14px 18px;
-        font-size: 15px;
+        font-size: var(--mcq-font-option-fullscreen);
         align-items: flex-start;
       }
 
@@ -421,7 +425,7 @@
       }
 
       .question-text {
-        font-size: 25px;
+        font-size: var(--mcq-font-question);
         line-height: 1.6;
         margin-bottom: 30px;
         color: var(--color-text-primary);
@@ -441,7 +445,7 @@
         cursor: pointer;
         transition: all 0.2s ease;
         background: var(--color-bg-primary);
-        font-size: 17px;
+        font-size: var(--mcq-font-option);
         display: flex;
         align-items: center;
         gap: 12px;
@@ -678,16 +682,11 @@
           min-width: 0;
         }
 
-        .question-card.fullscreen-active .question-text {
-          font-size: 19px;
-        }
-
-        .question-card.fullscreen-active .option {
-          font-size: 14px;
-        }
-
         .question-card.fullscreen-active .solution-content {
           font-size: 15px;
+        }
+        .manager-typography-grid {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -1120,6 +1119,54 @@
         align-items: flex-start;
         gap: 14px;
       }
+      .manager-typography-panel {
+        width: 100%;
+        padding: 18px 20px;
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .manager-typography-panel-header {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .manager-typography-panel-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--color-text-primary);
+      }
+      .manager-typography-panel-copy {
+        font-size: 13px;
+        color: var(--color-text-secondary);
+      }
+      .manager-typography-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .manager-typography-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .manager-typography-field label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--color-text-secondary);
+      }
+      .manager-typography-field input[type="number"] {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+      }
+      .manager-typography-actions {
+        display: flex;
+        justify-content: flex-end;
+      }
       .manager-theme-toggle {
         display: flex;
         gap: 10px;
@@ -1543,6 +1590,49 @@
         </div>
       </section>
       <div class="manager-preferences">
+        <div class="manager-typography-panel">
+          <div class="manager-typography-panel-header">
+            <div class="manager-typography-panel-title">Tam ekran tipografi</div>
+            <div class="manager-typography-panel-copy">
+              Soru ve seçenek yazı boyutlarını tam ekran için ayrı ayarla.
+            </div>
+          </div>
+          <div class="manager-typography-grid">
+            <div class="manager-typography-field">
+              <label for="fullscreen-question-font-size">Soru boyutu</label>
+              <input
+                type="number"
+                id="fullscreen-question-font-size"
+                min="12"
+                max="40"
+                step="1"
+                onchange="setFullscreenQuestionFontSize(this.value)"
+                oninput="setFullscreenQuestionFontSize(this.value)"
+              />
+            </div>
+            <div class="manager-typography-field">
+              <label for="fullscreen-option-font-size">Şık boyutu</label>
+              <input
+                type="number"
+                id="fullscreen-option-font-size"
+                min="12"
+                max="40"
+                step="1"
+                onchange="setFullscreenOptionFontSize(this.value)"
+                oninput="setFullscreenOptionFontSize(this.value)"
+              />
+            </div>
+          </div>
+          <div class="manager-typography-actions">
+            <button
+              class="btn btn-secondary btn-small"
+              type="button"
+              onclick="resetFullscreenTypographyPreferences()"
+            >
+              Varsayılana dön
+            </button>
+          </div>
+        </div>
         <div class="manager-theme-toggle">
           <span>☀️</span>
           <label class="toggle-switch">

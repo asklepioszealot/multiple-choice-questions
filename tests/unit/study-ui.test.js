@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  applyStudyTypographyPreferences,
   createStudyChromeState,
   getAnswerLockStatusText,
   getAutoAdvanceStatusText,
@@ -58,6 +59,39 @@ describe("study-ui helpers", () => {
     );
     expect(getAutoAdvanceStatusText(false)).toBe(
       "Otomatik sonraki soru: Kapalı",
+    );
+  });
+
+  it("applies fullscreen typography preferences to CSS variables", () => {
+    const setProperty = vi.fn();
+    const documentRef = {
+      documentElement: {
+        style: {
+          setProperty,
+        },
+      },
+    };
+
+    expect(
+      applyStudyTypographyPreferences(
+        {
+          fullscreenQuestionFontSize: 28,
+          fullscreenOptionFontSize: 18,
+        },
+        documentRef,
+      ),
+    ).toEqual({
+      fullscreenQuestionFontSize: "28px",
+      fullscreenOptionFontSize: "18px",
+    });
+
+    expect(setProperty).toHaveBeenCalledWith(
+      "--mcq-font-question-fullscreen",
+      "28px",
+    );
+    expect(setProperty).toHaveBeenCalledWith(
+      "--mcq-font-option-fullscreen",
+      "18px",
     );
   });
 });

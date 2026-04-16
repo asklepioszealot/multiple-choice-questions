@@ -162,6 +162,22 @@
 
   function normalizeStudyStateSnapshot(snapshot) {
     const normalized = snapshot && typeof snapshot === "object" ? snapshot : {};
+    const DEFAULT_FULLSCREEN_FONT_SIZES = {
+      fullscreenQuestionFontSize: 22,
+      fullscreenOptionFontSize: 15,
+    };
+    const FONT_SIZE_MIN = 12;
+    const FONT_SIZE_MAX = 40;
+
+    function clampFontSize(value, fallback) {
+      const numericValue = Number(value);
+      const resolvedValue = Number.isFinite(numericValue)
+        ? Math.round(numericValue)
+        : fallback;
+
+      return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, resolvedValue));
+    }
+
     return {
       selectedSetIds: Array.isArray(normalized.selectedSetIds)
         ? normalized.selectedSetIds.filter(
@@ -202,6 +218,14 @@
                   : "hepsi",
             }
           : null,
+      fullscreenQuestionFontSize: clampFontSize(
+        normalized.fullscreenQuestionFontSize,
+        DEFAULT_FULLSCREEN_FONT_SIZES.fullscreenQuestionFontSize,
+      ),
+      fullscreenOptionFontSize: clampFontSize(
+        normalized.fullscreenOptionFontSize,
+        DEFAULT_FULLSCREEN_FONT_SIZES.fullscreenOptionFontSize,
+      ),
       autoAdvanceEnabled: normalized.autoAdvanceEnabled !== false,
       updatedAt:
         typeof normalized.updatedAt === "string" && normalized.updatedAt.trim()
@@ -395,6 +419,8 @@
           selectedAnswers: normalizedSnapshot.selectedAnswers,
           solutionVisible: normalizedSnapshot.solutionVisible,
           session: normalizedSnapshot.session,
+          fullscreenQuestionFontSize: normalizedSnapshot.fullscreenQuestionFontSize,
+          fullscreenOptionFontSize: normalizedSnapshot.fullscreenOptionFontSize,
           autoAdvanceEnabled: normalizedSnapshot.autoAdvanceEnabled,
           updatedAt: normalizedSnapshot.updatedAt,
         },
