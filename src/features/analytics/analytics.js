@@ -14,6 +14,12 @@
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
   }
 
+  function resolveQuestionSubject(question) {
+    return typeof question?.subject === "string" && question.subject.trim()
+      ? question.subject.trim()
+      : "Genel";
+  }
+
   function buildAnalyticsSummary({
     loadedSets,
     pendingSession,
@@ -39,6 +45,7 @@
     let solvedQuestions = 0;
     let correctAnswers = 0;
     let wrongAnswers = 0;
+    const subjectBreakdownMap = new Map();
 
     scopedSetIds.forEach((setId) => {
       const setRecord = loadedSetsMap[setId];
@@ -52,11 +59,18 @@
         }
 
         solvedQuestions += 1;
+        const subject = resolveQuestionSubject(question);
+        const subjectStats =
+          subjectBreakdownMap.get(subject) || { correct: 0, subject, total: 0, wrong: 0 };
+        subjectStats.total += 1;
         if (selectedAnswersMap[questionKey] === question.correct) {
           correctAnswers += 1;
+          subjectStats.correct += 1;
         } else {
           wrongAnswers += 1;
+          subjectStats.wrong += 1;
         }
+        subjectBreakdownMap.set(subject, subjectStats);
       });
     });
 
@@ -82,6 +96,7 @@
       scopedSetCount: scopedSetIds.length,
       selectedSetCount: chosenSetIds.length,
       solvedQuestions,
+      subjectBreakdown: Array.from(subjectBreakdownMap.values()),
       totalQuestions,
       wrongAnswers,
     };
@@ -105,6 +120,8 @@
       lastStudy: documentRef?.getElementById("analytics-last-study") || null,
       questionsValue: documentRef?.getElementById("analytics-questions-value") || null,
       resultsValue: documentRef?.getElementById("analytics-results-value") || null,
+      subjectBreakdownBody:
+        documentRef?.getElementById("analytics-subject-breakdown") || null,
       setsMeta: documentRef?.getElementById("analytics-sets-meta") || null,
       setsValue: documentRef?.getElementById("analytics-sets-value") || null,
       summary: documentRef?.getElementById(MANAGER_SUMMARY_ID) || null,
@@ -166,6 +183,9 @@
 
     function renderSummary(summary = {}) {
       const elements = resolveElements(documentRef);
+      const subjectBreakdown = Array.isArray(summary.subjectBreakdown)
+        ? summary.subjectBreakdown
+        : [];
 
       if (elements.summary) {
         elements.summary.textContent = formatAnalyticsHeadline(summary);
@@ -187,6 +207,58 @@
       }
       if (elements.lastStudy) {
         elements.lastStudy.textContent = summary.lastStudyText || "Son calisma: Henuz baslanmadi";
+      }
+      if (elements.subjectBreakdownBody) {
+        const emptyRow = () => {
+          const row = documentRef?.createElement("tr");
+          const cell = documentRef?.createElement("td");
+          if (!row || !cell) {
+            return;
+          }
+
+          cell.colSpan = 4;
+          cell.className = "analytics-subject-breakdown-empty";
+          cell.textContent = "Konu bazli veri yok";
+          row.appendChild(cell);
+          elements.subjectBreakdownBody.appendChild(row);
+        };
+
+        elements.subjectBreakdownBody.replaceChildren();
+        if (subjectBreakdown.length === 0) {
+          emptyRow();
+        } else {
+          subjectBreakdown.forEach((item) => {
+            const row = documentRef?.createElement("tr");
+            if (!row) {
+              return;
+            }
+
+            const subjectCell = documentRef?.createElement("th");
+            const resultCell = documentRef?.createElement("td");
+            const wrongCell = documentRef?.createElement("td");
+            const accuracyCell = documentRef?.createElement("td");
+            if (!subjectCell || !resultCell || !wrongCell || !accuracyCell) {
+              return;
+            }
+
+            const total = Number(item?.total) || 0;
+            const correct = Number(item?.correct) || 0;
+            const wrong = Number(item?.wrong) || 0;
+            const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+            subjectCell.scope = "row";
+            subjectCell.textContent = item?.subject || "Genel";
+            resultCell.textContent = `${correct} / ${total}`;
+            wrongCell.textContent = String(wrong);
+            accuracyCell.textContent = `%${accuracy}`;
+
+            row.appendChild(subjectCell);
+            row.appendChild(resultCell);
+            row.appendChild(wrongCell);
+            row.appendChild(accuracyCell);
+            elements.subjectBreakdownBody.appendChild(row);
+          });
+        }
       }
     }
 

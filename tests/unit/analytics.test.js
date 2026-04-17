@@ -66,6 +66,37 @@ describe("analytics summary", () => {
     expect(summary.lastStudyText).toBe("Son calisma: Henuz baslanmadi");
   });
 
+  it("groups solved answers by subject with correct and wrong counts", () => {
+    const summary = buildAnalyticsSummary({
+      loadedSets: {
+        demo: {
+          questions: [
+            { q: "Soru 1?", options: ["A", "B"], correct: 0, subject: "Genel" },
+            { q: "Soru 2?", options: ["A", "B"], correct: 1, subject: "Genel" },
+            { q: "Soru 3?", options: ["A", "B"], correct: 1, subject: "Matematik" },
+            { q: "Soru 4?", options: ["A", "B"], correct: 0, subject: "Matematik" },
+            { q: "Soru 5?", options: ["A", "B"], correct: 0 },
+          ],
+        },
+      },
+      selectedAnswers: {
+        "demo:0": 0,
+        "demo:1": 0,
+        "demo:2": 1,
+        "demo:3": 1,
+        "demo:4": 0,
+      },
+      resolveQuestionKey(question, setId, index) {
+        return `${setId}:${index}`;
+      },
+    });
+
+    expect(summary.subjectBreakdown).toEqual([
+      { subject: "Genel", correct: 2, total: 3, wrong: 1 },
+      { subject: "Matematik", correct: 1, total: 2, wrong: 1 },
+    ]);
+  });
+
   it("keeps the manager analytics panel hidden by default and toggles it on demand", () => {
     document.body.innerHTML = `
       <button id="analytics-toggle-btn" type="button"></button>
@@ -109,6 +140,9 @@ describe("analytics summary", () => {
       <div id="analytics-results-value"></div>
       <div id="analytics-completion-value"></div>
       <div id="analytics-last-study"></div>
+      <table>
+        <tbody id="analytics-subject-breakdown"></tbody>
+      </table>
     `;
 
     const controller = createAnalyticsPanelController({
@@ -129,6 +163,10 @@ describe("analytics summary", () => {
       wrongAnswers: 3,
       completionRate: 55,
       lastStudyText: "Son calisma: 4. soru",
+      subjectBreakdown: [
+        { subject: "Genel", correct: 2, wrong: 1, total: 3 },
+        { subject: "Matematik", correct: 1, wrong: 1, total: 2 },
+      ],
     });
 
     expect(document.getElementById("analytics-summary-manager").textContent).toContain(
@@ -140,6 +178,13 @@ describe("analytics summary", () => {
     expect(document.getElementById("analytics-completion-value").textContent).toBe("%55");
     expect(document.getElementById("analytics-last-study").textContent).toBe(
       "Son calisma: 4. soru",
+    );
+    expect(document.getElementById("analytics-subject-breakdown").children).toHaveLength(2);
+    expect(document.getElementById("analytics-subject-breakdown").textContent).toContain(
+      "Genel",
+    );
+    expect(document.getElementById("analytics-subject-breakdown").textContent).toContain(
+      "2 / 3",
     );
   });
 });

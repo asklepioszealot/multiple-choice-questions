@@ -927,6 +927,51 @@
         grid-column: 1 / -1;
         padding: 14px 18px;
       }
+      .analytics-subject-breakdown-card {
+        grid-column: 1 / -1;
+        padding: 16px 18px 18px;
+      }
+      .analytics-subject-breakdown-wrap {
+        overflow-x: auto;
+      }
+      .analytics-subject-breakdown-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 13px;
+      }
+      .analytics-subject-breakdown-table th,
+      .analytics-subject-breakdown-table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        text-align: left;
+        white-space: nowrap;
+      }
+      .analytics-subject-breakdown-table thead th {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+      .analytics-subject-breakdown-table tbody th {
+        font-weight: 600;
+        color: var(--color-text-primary);
+      }
+      .analytics-subject-breakdown-table tbody tr:last-child th,
+      .analytics-subject-breakdown-table tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      .analytics-subject-breakdown-table td:nth-child(2),
+      .analytics-subject-breakdown-table td:nth-child(3),
+      .analytics-subject-breakdown-table td:nth-child(4) {
+        text-align: right;
+      }
+      .analytics-subject-breakdown-empty {
+        font-style: italic;
+        color: var(--color-text-secondary);
+        text-align: center !important;
+      }
       .analytics-toggle-btn.is-active {
         background: rgba(15, 23, 42, 0.12);
       }
@@ -1590,6 +1635,28 @@
             <span class="analytics-card-label">Oturum</span>
             <div class="analytics-card-meta" id="analytics-last-study">
               Son calisma: Henuz baslanmadi
+            </div>
+          </div>
+          <div class="analytics-card analytics-subject-breakdown-card">
+            <span class="analytics-card-label">Konu bazli performans</span>
+            <div class="analytics-subject-breakdown-wrap">
+              <table class="analytics-subject-breakdown-table">
+                <thead>
+                  <tr>
+                    <th>Konu</th>
+                    <th>Dogru / toplam</th>
+                    <th>Yanlis</th>
+                    <th>Basari</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-subject-breakdown">
+                  <tr>
+                    <td class="analytics-subject-breakdown-empty" colspan="4">
+                      Konu bazli veri yok
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
