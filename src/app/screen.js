@@ -1,7 +1,7 @@
-(function attachAppScreen(globalScope) {
-  "use strict";
+// src/app/screen.js
+import * as state from "./state.js";
 
-  function resolveStudyContainer() {
+function resolveStudyContainer() {
     return (
       globalScope.document?.getElementById("app-container")
       || globalScope.document?.getElementById("main-app")
@@ -9,11 +9,11 @@
   }
 
   function showScreen(name) {
-    globalScope.AppState?.setCurrentScreen?.(name);
+    state.setCurrentScreen(name);
 
-    const managerScreen = globalScope.document?.getElementById("set-manager");
-    const authScreen = globalScope.document?.getElementById("auth-screen");
-    const editorScreen = globalScope.document?.getElementById("editor-screen");
+    const managerScreen = document.getElementById("set-manager");
+    const authScreen = document.getElementById("auth-screen");
+    const editorScreen = document.getElementById("editor-screen");
     const studyContainer = resolveStudyContainer();
 
     if (authScreen) authScreen.style.display = "none";
@@ -31,11 +31,6 @@
     showScreen,
   });
 
-  globalScope.AppScreen = AppScreen;
-
-  if (typeof exports !== "undefined") {
-    exports.AppScreen = AppScreen;
-    exports.showScreen = showScreen;
-    exports.default = AppScreen;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+  export {
+    showScreen,
+  };

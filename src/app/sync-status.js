@@ -1,7 +1,7 @@
-(function attachSyncStatus(globalScope) {
-  "use strict";
+// src/app/sync-status.js
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  function buildSnapshot(state, detail = "") {
+function buildSnapshot(state, detail = "") {
     const normalizedDetail =
       typeof detail === "string" ? detail.trim() : String(detail || "").trim();
 
@@ -81,11 +81,6 @@
     createSyncStatusController,
   });
 
-  globalScope.AppSyncStatus = AppSyncStatus;
-
-  if (typeof exports !== "undefined") {
-    exports.createSyncStatusController = createSyncStatusController;
-    exports.AppSyncStatus = AppSyncStatus;
-    exports.default = AppSyncStatus;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+  export {
+    createSyncStatusController,
+  };

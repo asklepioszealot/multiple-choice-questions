@@ -1,7 +1,6 @@
-(function attachStudyUI(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  const FONT_SIZE_MIN = 12;
+const FONT_SIZE_MIN = 12;
   const FONT_SIZE_MAX = 40;
   const DEFAULT_TYPOGRAPHY_FONT_SIZES = Object.freeze({
     questionFontSize: 25,
@@ -187,26 +186,22 @@
   }
 
   const AppStudyUI = Object.freeze({
-    createStudyChromeState,
-    getFullscreenToggleState,
-    getAnswerLockStatusText,
-    getAutoAdvanceStatusText,
-    runWithQuestionInstantReset,
-    normalizeStudyTypographyPreferences,
-    applyStudyTypographyPreferences,
-  });
+  createStudyChromeState,
+  getFullscreenToggleState,
+  getAnswerLockStatusText,
+  getAutoAdvanceStatusText,
+  runWithQuestionInstantReset,
+  normalizeStudyTypographyPreferences,
+  applyStudyTypographyPreferences
+});
 
-  globalScope.AppStudyUI = AppStudyUI;
-
-  if (typeof exports !== "undefined") {
-    exports.createStudyChromeState = createStudyChromeState;
-    exports.getFullscreenToggleState = getFullscreenToggleState;
-    exports.getAnswerLockStatusText = getAnswerLockStatusText;
-    exports.getAutoAdvanceStatusText = getAutoAdvanceStatusText;
-    exports.runWithQuestionInstantReset = runWithQuestionInstantReset;
-    exports.normalizeStudyTypographyPreferences = normalizeStudyTypographyPreferences;
-    exports.applyStudyTypographyPreferences = applyStudyTypographyPreferences;
-    exports.AppStudyUI = AppStudyUI;
-    exports.default = AppStudyUI;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  createStudyChromeState,
+  getFullscreenToggleState,
+  getAnswerLockStatusText,
+  getAutoAdvanceStatusText,
+  runWithQuestionInstantReset,
+  normalizeStudyTypographyPreferences,
+  applyStudyTypographyPreferences,
+  AppStudyUI
+};

@@ -1,7 +1,6 @@
-(function attachSyncConflict(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  function toSafeArray(value) {
+function toSafeArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
@@ -1051,18 +1050,14 @@
   }
 
   const AppSyncConflict = Object.freeze({
-    buildWorkspaceRecordMatchKey,
-    createRemoteWorkspaceSeed,
-    detectSyncConflict,
-  });
+  buildWorkspaceRecordMatchKey,
+  createRemoteWorkspaceSeed,
+  detectSyncConflict
+});
 
-  globalScope.AppSyncConflict = AppSyncConflict;
-
-  if (typeof exports !== "undefined") {
-    exports.buildWorkspaceRecordMatchKey = buildWorkspaceRecordMatchKey;
-    exports.createRemoteWorkspaceSeed = createRemoteWorkspaceSeed;
-    exports.detectSyncConflict = detectSyncConflict;
-    exports.AppSyncConflict = AppSyncConflict;
-    exports.default = AppSyncConflict;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  buildWorkspaceRecordMatchKey,
+  createRemoteWorkspaceSeed,
+  detectSyncConflict,
+  AppSyncConflict
+};

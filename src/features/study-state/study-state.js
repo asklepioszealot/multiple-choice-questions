@@ -1,7 +1,6 @@
-(function attachStudyState(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  function createStorageKey(prefix, key) {
+function createStorageKey(prefix, key) {
     return prefix ? `${prefix}::${key}` : key;
   }
 
@@ -457,42 +456,38 @@
   }
 
   const AppStudyState = Object.freeze({
-    buildQuestionKey,
-    legacyQuestionId,
-    resolveQuestionKey,
-    normalizeStudyStateSnapshot,
-    normalizeStudyTypographyPreferences,
-    clampFontSize,
-    migrateLegacyAssessmentState,
-    readSavedSession,
-    readSavedTypographyPreferences,
-    loadPersistedStudyState,
-    persistStudyState,
-    persistStudyTypographyPreferences,
-    buildStudyStateSnapshot,
-    pickNewerStudyStateSnapshot,
-    persistStudyStateSnapshot,
-  });
+  buildQuestionKey,
+  legacyQuestionId,
+  resolveQuestionKey,
+  normalizeStudyStateSnapshot,
+  normalizeStudyTypographyPreferences,
+  clampFontSize,
+  migrateLegacyAssessmentState,
+  readSavedSession,
+  readSavedTypographyPreferences,
+  loadPersistedStudyState,
+  persistStudyState,
+  persistStudyTypographyPreferences,
+  buildStudyStateSnapshot,
+  pickNewerStudyStateSnapshot,
+  persistStudyStateSnapshot
+});
 
-  globalScope.AppStudyState = AppStudyState;
-
-  if (typeof exports !== "undefined") {
-    exports.buildQuestionKey = buildQuestionKey;
-    exports.legacyQuestionId = legacyQuestionId;
-    exports.resolveQuestionKey = resolveQuestionKey;
-    exports.normalizeStudyStateSnapshot = normalizeStudyStateSnapshot;
-    exports.normalizeStudyTypographyPreferences = normalizeStudyTypographyPreferences;
-    exports.clampFontSize = clampFontSize;
-    exports.migrateLegacyAssessmentState = migrateLegacyAssessmentState;
-    exports.readSavedSession = readSavedSession;
-    exports.readSavedTypographyPreferences = readSavedTypographyPreferences;
-    exports.loadPersistedStudyState = loadPersistedStudyState;
-    exports.persistStudyState = persistStudyState;
-    exports.persistStudyTypographyPreferences = persistStudyTypographyPreferences;
-    exports.buildStudyStateSnapshot = buildStudyStateSnapshot;
-    exports.pickNewerStudyStateSnapshot = pickNewerStudyStateSnapshot;
-    exports.persistStudyStateSnapshot = persistStudyStateSnapshot;
-    exports.AppStudyState = AppStudyState;
-    exports.default = AppStudyState;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  buildQuestionKey,
+  legacyQuestionId,
+  resolveQuestionKey,
+  normalizeStudyStateSnapshot,
+  normalizeStudyTypographyPreferences,
+  clampFontSize,
+  migrateLegacyAssessmentState,
+  readSavedSession,
+  readSavedTypographyPreferences,
+  loadPersistedStudyState,
+  persistStudyState,
+  persistStudyTypographyPreferences,
+  buildStudyStateSnapshot,
+  pickNewerStudyStateSnapshot,
+  persistStudyStateSnapshot,
+  AppStudyState
+};

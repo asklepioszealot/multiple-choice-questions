@@ -1,7 +1,6 @@
-(function attachSetCodec(globalScope) {
-  "use strict";
+// src/core/set-codec.js
 
-  function toSafeArray(value) {
+function toSafeArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
@@ -496,21 +495,16 @@
     serializeSetToMarkdown,
   });
 
-  globalScope.AppSetCodec = AppSetCodec;
-
-  if (typeof exports !== "undefined") {
-    exports.buildSetRecord = buildSetRecord;
-    exports.detectSourceFormat = detectSourceFormat;
-    exports.formatEditableText = formatEditableText;
-    exports.htmlToEditableText = htmlToEditableText;
-    exports.normalizeQuestions = normalizeQuestions;
-    exports.normalizeSetRecord = normalizeSetRecord;
-    exports.parseMarkdownToJSON = parseMarkdownToJSON;
-    exports.parseSetText = parseSetText;
-    exports.serializeSetRecord = serializeSetRecord;
-    exports.serializeSetToJson = serializeSetToJson;
-    exports.serializeSetToMarkdown = serializeSetToMarkdown;
-    exports.AppSetCodec = AppSetCodec;
-    exports.default = AppSetCodec;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+  export {
+    buildSetRecord,
+    detectSourceFormat,
+    formatEditableText,
+    htmlToEditableText,
+    normalizeQuestions,
+    normalizeSetRecord,
+    parseMarkdownToJSON,
+    parseSetText,
+    serializeSetRecord,
+    serializeSetToJson,
+    serializeSetToMarkdown,
+  };

@@ -1,7 +1,6 @@
-(function attachStudy(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  function buildQuestionOrder(questionCount) {
+function buildQuestionOrder(questionCount) {
     return [...Array(Math.max(questionCount, 0)).keys()];
   }
 
@@ -183,28 +182,24 @@
   }
 
   const AppStudy = Object.freeze({
-    buildQuestionOrder,
-    getBoundedQuestionIndex,
-    getAdjacentQuestionIndex,
-    buildStudyQuestions,
-    collectStudySubjects,
-    createFilteredStudyView,
-    selectStudyAnswer,
-    toggleStudySolution,
-  });
+  buildQuestionOrder,
+  getBoundedQuestionIndex,
+  getAdjacentQuestionIndex,
+  buildStudyQuestions,
+  collectStudySubjects,
+  createFilteredStudyView,
+  selectStudyAnswer,
+  toggleStudySolution
+});
 
-  globalScope.AppStudy = AppStudy;
-
-  if (typeof exports !== "undefined") {
-    exports.buildQuestionOrder = buildQuestionOrder;
-    exports.getBoundedQuestionIndex = getBoundedQuestionIndex;
-    exports.getAdjacentQuestionIndex = getAdjacentQuestionIndex;
-    exports.buildStudyQuestions = buildStudyQuestions;
-    exports.collectStudySubjects = collectStudySubjects;
-    exports.createFilteredStudyView = createFilteredStudyView;
-    exports.selectStudyAnswer = selectStudyAnswer;
-    exports.toggleStudySolution = toggleStudySolution;
-    exports.AppStudy = AppStudy;
-    exports.default = AppStudy;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  buildQuestionOrder,
+  getBoundedQuestionIndex,
+  getAdjacentQuestionIndex,
+  buildStudyQuestions,
+  collectStudySubjects,
+  createFilteredStudyView,
+  selectStudyAnswer,
+  toggleStudySolution,
+  AppStudy
+};

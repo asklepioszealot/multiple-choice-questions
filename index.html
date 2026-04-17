@@ -2035,28 +2035,12 @@
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
-    <script src="./src/core/storage.js"></script>
-    <script src="./src/core/runtime-config.js"></script>
-    <script src="./src/core/platform-adapter.js"></script>
-    <script src="./src/core/set-codec.js"></script>
-    <script src="./src/features/auth/auth-shell.js"></script>
-    <script src="./src/features/analytics/analytics.js"></script>
-    <script src="./src/features/desktop-update/desktop-update.js"></script>
-    <script src="./src/features/editor/editor.js"></script>
-    <script src="./src/features/set-manager/set-manager.js"></script>
-    <script src="./src/features/google-drive/google-drive.js"></script>
-    <script src="./src/features/sync/conflict-resolution.js"></script>
-    <script src="./src/features/study/study-actions.js"></script>
-    <script src="./src/features/study/study-export.js"></script>
-    <script src="./src/features/study/study-session.js"></script>
-    <script src="./src/features/study/study-ui.js"></script>
-    <script src="./src/features/study-state/study-state.js"></script>
-    <script src="./src/app/sync-status.js"></script>
-    <script src="./src/app/state.js"></script>
-    <script src="./src/app/screen.js"></script>
-    <script src="./src/app/bootstrap.js"></script>
-    <script src="./src/ui/theme.js"></script>
-    <script src="./src/app/main.js"></script>
+
+    <!-- Güvenlik için DOMPurify -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha512-H+rglffZ6f5gF7UJgv/55jk8u8X2tRB6oB4I3ofT//w/S1qbnTqPE9X9I8xX9vDq8B6M18k2hZ+7dFp2c8pZ/w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Ana Uygulama Modülü -->
+    <script type="module" src="./src/app/main.js"></script>
   </body>
 </html>
 

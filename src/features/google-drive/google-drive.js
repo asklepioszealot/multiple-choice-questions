@@ -1,7 +1,6 @@
-(function attachGoogleDrive(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
   const DRIVE_MIME_TYPES = "application/json,text/markdown,text/plain";
   const DRIVE_DISABLED_MESSAGE =
     "Google Drive entegrasyonu bu yapıda etkin değil. Runtime config gerekli.";
@@ -272,14 +271,10 @@
   }
 
   const AppGoogleDrive = Object.freeze({
-    createGoogleDriveFeature,
-  });
+  createGoogleDriveFeature
+});
 
-  globalScope.AppGoogleDrive = AppGoogleDrive;
-
-  if (typeof exports !== "undefined") {
-    exports.createGoogleDriveFeature = createGoogleDriveFeature;
-    exports.AppGoogleDrive = AppGoogleDrive;
-    exports.default = AppGoogleDrive;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  createGoogleDriveFeature,
+  AppGoogleDrive
+};

@@ -1,9 +1,5 @@
-(function attachThemeManager(globalScope) {
-  "use strict";
-
-  if (globalScope.ThemeManager) {
-    return;
-  }
+// src/ui/theme.js
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
   function setToggleState(toggleId, isDark) {
     const toggle = document.getElementById(toggleId);
@@ -74,9 +70,8 @@
     return setThemeState(isDark, options);
   }
 
-  globalScope.ThemeManager = Object.freeze({
+  const ThemeManager = Object.freeze({
     toggleTheme,
     initThemeFromStorage,
     setThemeState,
   });
-})(window);
