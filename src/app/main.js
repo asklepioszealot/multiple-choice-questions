@@ -1807,7 +1807,7 @@
             questionNum - 1,
             filteredQuestions.length,
           );
-          displayQuestion();
+          runWithQuestionInstantReset(() => displayQuestion());
           input.value = "";
         } else {
           alert(
