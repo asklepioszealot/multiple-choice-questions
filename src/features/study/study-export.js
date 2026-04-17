@@ -1,7 +1,6 @@
-(function attachStudyExport(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  function buildPrintableStudyHtml({
+function buildPrintableStudyHtml({
     title = "Çoktan Seçmeli Test",
     questions,
     getExplanationHtml,
@@ -70,14 +69,10 @@
   }
 
   const AppStudyExport = Object.freeze({
-    buildPrintableStudyHtml,
-  });
+  buildPrintableStudyHtml
+});
 
-  globalScope.AppStudyExport = AppStudyExport;
-
-  if (typeof exports !== "undefined") {
-    exports.buildPrintableStudyHtml = buildPrintableStudyHtml;
-    exports.AppStudyExport = AppStudyExport;
-    exports.default = AppStudyExport;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  buildPrintableStudyHtml,
+  AppStudyExport
+};

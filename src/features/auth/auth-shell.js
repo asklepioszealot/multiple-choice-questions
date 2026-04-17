@@ -1,7 +1,6 @@
-(function attachAuthShell(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  const AUTH_SESSION_KEY = "mc_auth_session";
+const AUTH_SESSION_KEY = "mc_auth_session";
   const DEMO_SESSION = Object.freeze({
     mode: "demo",
     userId: "demo-user",
@@ -442,14 +441,10 @@
   }
 
   const AppAuthShell = Object.freeze({
-    createAuthFeature,
-  });
+  createAuthFeature
+});
 
-  globalScope.AppAuthShell = AppAuthShell;
-
-  if (typeof exports !== "undefined") {
-    exports.createAuthFeature = createAuthFeature;
-    exports.AppAuthShell = AppAuthShell;
-    exports.default = AppAuthShell;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  createAuthFeature,
+  AppAuthShell
+};

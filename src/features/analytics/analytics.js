@@ -1,7 +1,6 @@
-(function attachAnalyticsFeature(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  const MANAGER_DASHBOARD_ID = "analytics-dashboard-manager";
+const MANAGER_DASHBOARD_ID = "analytics-dashboard-manager";
   const MANAGER_TOGGLE_ID = "analytics-toggle-btn";
   const MANAGER_CLOSE_ID = "analytics-close-btn";
   const MANAGER_SUMMARY_ID = "analytics-summary-manager";
@@ -278,18 +277,14 @@
   }
 
   const AppAnalytics = Object.freeze({
-    buildAnalyticsSummary,
-    createAnalyticsPanelController,
-    formatAnalyticsHeadline,
-  });
+  buildAnalyticsSummary,
+  createAnalyticsPanelController,
+  formatAnalyticsHeadline
+});
 
-  globalScope.AppAnalytics = AppAnalytics;
-
-  if (typeof exports !== "undefined") {
-    exports.buildAnalyticsSummary = buildAnalyticsSummary;
-    exports.createAnalyticsPanelController = createAnalyticsPanelController;
-    exports.formatAnalyticsHeadline = formatAnalyticsHeadline;
-    exports.AppAnalytics = AppAnalytics;
-    exports.default = AppAnalytics;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  buildAnalyticsSummary,
+  createAnalyticsPanelController,
+  formatAnalyticsHeadline,
+  AppAnalytics
+};

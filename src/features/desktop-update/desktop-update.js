@@ -1,7 +1,6 @@
-(function attachDesktopUpdateFeature(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  const DEFAULT_BUTTON_LABEL = "Guncellemeleri Kontrol Et";
+const DEFAULT_BUTTON_LABEL = "Guncellemeleri Kontrol Et";
 
   function getSharedDesktopUpdateState(stateRef = globalScope.AppState) {
     const state = stateRef?.desktopUpdateState;
@@ -304,24 +303,20 @@
   }
 
   const AppDesktopUpdate = Object.freeze({
-    createDesktopUpdateFeature,
-    DEFAULT_BUTTON_LABEL,
-    formatDesktopUpdatePrompt,
-    getDesktopUpdateNotes,
-    getTauriCoreApi,
-    isWindowsDesktopClient,
-  });
+  createDesktopUpdateFeature,
+  DEFAULT_BUTTON_LABEL,
+  formatDesktopUpdatePrompt,
+  getDesktopUpdateNotes,
+  getTauriCoreApi,
+  isWindowsDesktopClient
+});
 
-  globalScope.AppDesktopUpdate = AppDesktopUpdate;
-
-  if (typeof exports !== "undefined") {
-    exports.createDesktopUpdateFeature = createDesktopUpdateFeature;
-    exports.DEFAULT_BUTTON_LABEL = DEFAULT_BUTTON_LABEL;
-    exports.formatDesktopUpdatePrompt = formatDesktopUpdatePrompt;
-    exports.getDesktopUpdateNotes = getDesktopUpdateNotes;
-    exports.getTauriCoreApi = getTauriCoreApi;
-    exports.isWindowsDesktopClient = isWindowsDesktopClient;
-    exports.AppDesktopUpdate = AppDesktopUpdate;
-    exports.default = AppDesktopUpdate;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  createDesktopUpdateFeature,
+  DEFAULT_BUTTON_LABEL,
+  formatDesktopUpdatePrompt,
+  getDesktopUpdateNotes,
+  getTauriCoreApi,
+  isWindowsDesktopClient,
+  AppDesktopUpdate
+};

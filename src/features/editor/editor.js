@@ -1,7 +1,6 @@
-(function attachEditorFeature(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  function toSafeArray(value) {
+function toSafeArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
@@ -1168,34 +1167,30 @@
   }
 
   const AppEditor = Object.freeze({
-    addDraftQuestion,
-    createEditorDraft,
-    createEditorFeature,
-    createNewEditorDraft,
-    duplicateDraftQuestion,
-    getEditorValidationIssues,
-    moveDraftQuestion,
-    parseRawEditorDraft,
-    serializeEditorDraft,
-    updateDraftQuestionField,
-    validateEditorDraft,
-  });
+  addDraftQuestion,
+  createEditorDraft,
+  createEditorFeature,
+  createNewEditorDraft,
+  duplicateDraftQuestion,
+  getEditorValidationIssues,
+  moveDraftQuestion,
+  parseRawEditorDraft,
+  serializeEditorDraft,
+  updateDraftQuestionField,
+  validateEditorDraft
+});
 
-  globalScope.AppEditor = AppEditor;
-
-  if (typeof exports !== "undefined") {
-    exports.addDraftQuestion = addDraftQuestion;
-    exports.createEditorDraft = createEditorDraft;
-    exports.createEditorFeature = createEditorFeature;
-    exports.createNewEditorDraft = createNewEditorDraft;
-    exports.duplicateDraftQuestion = duplicateDraftQuestion;
-    exports.getEditorValidationIssues = getEditorValidationIssues;
-    exports.moveDraftQuestion = moveDraftQuestion;
-    exports.parseRawEditorDraft = parseRawEditorDraft;
-    exports.serializeEditorDraft = serializeEditorDraft;
-    exports.updateDraftQuestionField = updateDraftQuestionField;
-    exports.validateEditorDraft = validateEditorDraft;
-    exports.AppEditor = AppEditor;
-    exports.default = AppEditor;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  addDraftQuestion,
+  createEditorDraft,
+  createEditorFeature,
+  createNewEditorDraft,
+  duplicateDraftQuestion,
+  getEditorValidationIssues,
+  moveDraftQuestion,
+  parseRawEditorDraft,
+  serializeEditorDraft,
+  updateDraftQuestionField,
+  validateEditorDraft,
+  AppEditor
+};

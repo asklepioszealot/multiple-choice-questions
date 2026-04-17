@@ -1,7 +1,6 @@
-(function attachStudyActions(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  function buildQuestionOrder(questionCount) {
+function buildQuestionOrder(questionCount) {
     return [...Array(Math.max(questionCount, 0)).keys()];
   }
 
@@ -191,22 +190,18 @@
   }
 
   const AppStudyActions = Object.freeze({
-    buildScoreSummary,
-    formatScoreSummaryHtml,
-    createRetryWrongAnswersState,
-    createResetStudyState,
-    shuffleQuestionOrder,
-  });
+  buildScoreSummary,
+  formatScoreSummaryHtml,
+  createRetryWrongAnswersState,
+  createResetStudyState,
+  shuffleQuestionOrder
+});
 
-  globalScope.AppStudyActions = AppStudyActions;
-
-  if (typeof exports !== "undefined") {
-    exports.buildScoreSummary = buildScoreSummary;
-    exports.formatScoreSummaryHtml = formatScoreSummaryHtml;
-    exports.createRetryWrongAnswersState = createRetryWrongAnswersState;
-    exports.createResetStudyState = createResetStudyState;
-    exports.shuffleQuestionOrder = shuffleQuestionOrder;
-    exports.AppStudyActions = AppStudyActions;
-    exports.default = AppStudyActions;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  buildScoreSummary,
+  formatScoreSummaryHtml,
+  createRetryWrongAnswersState,
+  createResetStudyState,
+  shuffleQuestionOrder,
+  AppStudyActions
+};

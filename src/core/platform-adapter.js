@@ -1,7 +1,7 @@
-(function attachPlatformAdapter(globalScope) {
-  "use strict";
+// src/core/platform-adapter.js
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
+export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
 
   function createAuthSessionStorage(storage) {
     const localApi = {
@@ -698,15 +698,9 @@
     createSupabaseAdapter,
   });
 
-  globalScope.AppPlatformAdapter = AppPlatformAdapter;
-
-  if (typeof exports !== "undefined") {
-    exports.AUTH_REMEMBER_ME_KEY = AUTH_REMEMBER_ME_KEY;
-    exports.createAuthSessionStorage = createAuthSessionStorage;
-    exports.createLocalDemoAdapter = createLocalDemoAdapter;
-    exports.createPlatformAdapter = createPlatformAdapter;
-    exports.createSupabaseAdapter = createSupabaseAdapter;
-    exports.AppPlatformAdapter = AppPlatformAdapter;
-    exports.default = AppPlatformAdapter;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+  export {
+    createAuthSessionStorage,
+    createLocalDemoAdapter,
+    createPlatformAdapter,
+    createSupabaseAdapter,
+  };

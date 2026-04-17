@@ -1,7 +1,6 @@
-(function attachSetManager(globalScope) {
-  "use strict";
+const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-  function toSafeArray(value) {
+function toSafeArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
@@ -790,14 +789,10 @@
   }
 
   const AppSetManager = Object.freeze({
-    createSetManager,
-  });
+  createSetManager
+});
 
-  globalScope.AppSetManager = AppSetManager;
-
-  if (typeof exports !== "undefined") {
-    exports.createSetManager = createSetManager;
-    exports.AppSetManager = AppSetManager;
-    exports.default = AppSetManager;
-  }
-})(typeof window !== "undefined" ? window : globalThis);
+export {
+  createSetManager,
+  AppSetManager
+};
