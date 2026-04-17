@@ -52,6 +52,11 @@ Bu plan, uygulamayi tek dosya yapisindan adim adim moduler yapiya tasimak icindi
 - Editor icin unsaved-change korumasi, dirty durum rozeti ve hizli soru kopyalama yardimcilari eklendi.
 - Sync reconciliation artik flashcards-app'e benzer sekilde once `sourcePath`, sonra `fileName` kimligiyle set eslestirip gereksiz conflictleri azaltir.
 - Manager icinde flashcards-app benzeri, varsayilan olarak gizli analytics paneli eklendi.
+- Raw editor gorunumu artik icerige gore otomatik uzar; manuel resize kapatildi.
+- Study tipografisi artik normal ve tam ekran modlari icin soru/sik bazinda ayarlanabilir, local + remote study-state ile korunur.
+- Soru gecisleri `Next`, `Previous` ve jump akislarinda transition gecikmesi tasimadan anlik resetlenir.
+- Analytics paneli konu bazli dogru/yanlis/toplam ve basari ozeti gosterecek sekilde zenginlestirildi.
+- Flashcards parity slice'i kapsaminda editor auto-size, fullscreen typography controls ve instant navigation davranisi MCQ tarafina tasindi.
 - Desktop update feature, updater-ready Tauri config ve release artifact tooling eklendi.
 - GitHub Pages ve desktop release workflow parity zemini kuruldu.
 - MCQ repo'suna ozel updater key yolu ve `release:dry-run` release plan disiplini eklendi.
@@ -61,7 +66,7 @@ Bu plan, uygulamayi tek dosya yapisindan adim adim moduler yapiya tasimak icindi
 
 1. Editor v2 ustune daha zengin authoring yardimlari ve gerekirse unsaved-change korumalari ekle.
 2. Sync conflict cozumunu gerekirse merge/diff iyilestirmeleriyle derinlestir.
-3. Analytics panelini gerekirse konu bazli detaylarla zenginlestir; study ekranina tasima.
+3. Analytics gorunumunu gerekirse study ekranina tasima ve daha ileri drill-down detaylari ekle.
 
 ## Hazir olma kriterleri
 
