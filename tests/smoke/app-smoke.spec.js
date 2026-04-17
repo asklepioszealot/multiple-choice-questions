@@ -724,6 +724,101 @@ test.describe("MCQ smoke", () => {
     );
   });
 
+  test("jump navigation updates immediately and suppresses carried-over transitions", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const pendingFrames = [];
+      window.__mcqPendingFrames = pendingFrames;
+      window.requestAnimationFrame = (callback) => {
+        pendingFrames.push(callback);
+        return pendingFrames.length;
+      };
+      window.cancelAnimationFrame = (frameId) => {
+        pendingFrames[frameId - 1] = null;
+      };
+    });
+
+    await seedLocalSets(page, {
+      sets: {
+        demo: {
+          setName: "Instant Jump Demo",
+          fileName: "instant-jump-demo.json",
+          questions: [
+            {
+              q: "Birinci soru?",
+              options: ["A1", "A2", "A3", "A4"],
+              correct: 0,
+              subject: "Genel",
+              explanation: "A",
+            },
+            {
+              q: "Ikinci soru?",
+              options: ["B1", "B2", "B3", "B4"],
+              correct: 1,
+              subject: "Genel",
+              explanation: "B",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["demo"],
+    });
+
+    await page.locator("#start-btn").click();
+    await selectOption(page, 0);
+
+    await jumpToQuestion(page, 2);
+
+    const immediateState = await page.evaluate(() => {
+      const questionCard = document.getElementById("question-card");
+      const questionText = document.getElementById("question-text")?.textContent || "";
+      const optionClasses = Array.from(
+        document.querySelectorAll("#options-container .option"),
+      ).map((option) => option.className);
+
+      return {
+        questionText,
+        hasResetClass: questionCard?.classList.contains("mcq--instant-reset") || false,
+        optionClasses,
+        pendingFrameCount: window.__mcqPendingFrames?.length || 0,
+      };
+    });
+
+    expect(immediateState.questionText).toContain("Ikinci soru?");
+    expect(immediateState.hasResetClass).toBe(true);
+    expect(immediateState.pendingFrameCount).toBeGreaterThan(0);
+    expect(immediateState.optionClasses.every((className) => className === "option")).toBe(
+      true,
+    );
+
+    await page.evaluate(() => {
+      const pendingFrames = window.__mcqPendingFrames || [];
+      const firstFrame = pendingFrames.shift();
+      if (typeof firstFrame === "function") {
+        firstFrame(performance.now());
+      }
+    });
+
+    await page.evaluate(() => {
+      const pendingFrames = window.__mcqPendingFrames || [];
+      const secondFrame = pendingFrames.shift();
+      if (typeof secondFrame === "function") {
+        secondFrame(performance.now());
+      }
+    });
+
+    await expect
+      .poll(async () =>
+        page.evaluate(() =>
+          document
+            .getElementById("question-card")
+            .classList.contains("mcq--instant-reset"),
+        ),
+      )
+      .toBe(false);
+  });
+
   test("clicking the same answer twice clears the question", async ({ page }) => {
     await seedLocalSets(page, {
       sets: {
