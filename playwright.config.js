@@ -1,4 +1,6 @@
 /** @type {import('@playwright/test').PlaywrightTestConfig} */
+const testPort = Number(process.env.MCQ_TEST_PORT || 4174);
+
 module.exports = {
   testDir: "./tests/smoke",
   timeout: 30_000,
@@ -10,5 +12,11 @@ module.exports = {
     headless: true,
     viewport: { width: 1280, height: 800 },
     ignoreHTTPSErrors: true,
+  },
+  webServer: {
+    command: `npx vite preview --host 127.0.0.1 --port ${testPort} --strictPort`,
+    url: `http://127.0.0.1:${testPort}`,
+    timeout: 30_000,
+    reuseExistingServer: !process.env.CI,
   },
 };

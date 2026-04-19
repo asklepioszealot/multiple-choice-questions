@@ -1,3 +1,5 @@
+import { escapeMarkup } from "../../shared/utils.js";
+
 const globalScope = typeof window !== "undefined" ? window : globalThis;
 
 function toSafeArray(value) {
@@ -666,7 +668,7 @@ function toSafeArray(value) {
               : " editor-question-item";
           const label = question.q.trim() || `Soru ${index + 1}`;
           const issueMarker = issueIndexes.has(index) ? " ! " : "";
-          return `<button class="${activeClass.trim()}" onclick="selectEditorQuestion(${index})">${issueMarker}${label}</button>`;
+          return `<button class="${activeClass.trim()}" type="button" data-editor-question-index="${index}">${escapeMarkup(issueMarker + label)}</button>`;
         })
         .join("");
     }
@@ -696,9 +698,9 @@ function toSafeArray(value) {
         ...validationIssues.map((issue) => {
           const jumpTarget =
             Number.isInteger(issue.questionIndex) && issue.questionIndex >= 0
-              ? `<button class="btn btn-small btn-secondary" type="button" onclick="selectEditorQuestion(${issue.questionIndex})">Soru ${issue.questionIndex + 1}</button>`
+              ? `<button class="btn btn-small btn-secondary" type="button" data-editor-jump-question-index="${issue.questionIndex}">Soru ${issue.questionIndex + 1}</button>`
               : '<span class="auth-meta">Genel</span>';
-          return `<li class="editor-validation-item">${jumpTarget}<span>${issue.message}</span></li>`;
+          return `<li class="editor-validation-item">${jumpTarget}<span>${escapeMarkup(issue.message)}</span></li>`;
         }),
         "</ul>",
       ].join("");
@@ -718,10 +720,10 @@ function toSafeArray(value) {
             <div class="editor-option-row">
               <input
                 class="auth-input"
-                value="${option.replace(/"/g, "&quot;")}"
-                onchange="updateEditorOption(${index}, this.value)"
+                value="${escapeMarkup(option)}"
+                data-editor-option-index="${index}"
               />
-              <button class="btn btn-small btn-secondary" onclick="removeEditorOption(${index})" type="button">Sil</button>
+              <button class="btn btn-small btn-secondary" data-editor-remove-option-index="${index}" type="button">Sil</button>
             </div>
           `,
         )

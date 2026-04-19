@@ -1,3 +1,6 @@
+import { escapeMarkup } from "../../shared/utils.js";
+import { parseApkgToSetRecord as parseApkgToSetRecordFromModule } from "../importers/apkg-import.js";
+
 const globalScope = typeof window !== "undefined" ? window : globalThis;
 
 function toSafeArray(value) {
@@ -24,11 +27,28 @@ function toSafeArray(value) {
     return /\.(md|txt)$/i.test(String(fileName || "")) ? "markdown" : "json";
   }
 
+  function isApkgFile(fileName) {
+    return /\.apkg$/i.test(String(fileName || ""));
+  }
+
+  function toArrayBuffer(value) {
+    if (value instanceof ArrayBuffer) {
+      return value;
+    }
+
+    if (ArrayBuffer.isView(value)) {
+      return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+    }
+
+    return null;
+  }
+
   function createSetManager({
     storage,
     buildSetRecord,
     normalizeQuestions,
     parseSetText,
+    parseApkgToSetRecord,
     getSelectedAnswers,
     resolveQuestionKey,
     getStorageKeyPrefix,
@@ -83,7 +103,13 @@ function toSafeArray(value) {
             sourceFormat: "json",
             rawSource: String(text || ""),
           };
-        };
+          };
+    const parseApkgToSetRecordRef =
+      typeof parseApkgToSetRecord === "function"
+        ? parseApkgToSetRecord
+        : typeof parseApkgToSetRecordFromModule === "function"
+          ? parseApkgToSetRecordFromModule
+          : null;
     const getSelectedAnswersRef =
       typeof getSelectedAnswers === "function"
         ? getSelectedAnswers
@@ -342,17 +368,22 @@ function toSafeArray(value) {
           ? removeCandidateSets.has(setId)
           : selectedSets.has(setId);
         const progress = buildSetProgress(setId, setObj);
+        const escapedSetId = escapeMarkup(setId);
+        const escapedSetName = escapeMarkup(setObj.setName);
+        const escapedStats = escapeMarkup(
+          `📚 ${progress.totalQuestions} Soru | 📊 İlerleme: ${progress.solvedCount}/${progress.totalQuestions} (%${progress.progressPercent}) | ✅ ${progress.correctCount} ❌ ${progress.wrongCount}`,
+        );
 
         setListEl.innerHTML += `
           <div class="set-item">
-            <div class="set-item-left" onclick="toggleSetCheck('${setId}')">
-              <input type="checkbox" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSetCheck('${setId}')">
+            <div class="set-item-left" data-set-toggle-id="${escapedSetId}" role="button" tabindex="0">
+              <input type="checkbox" ${isSelected ? "checked" : ""} data-set-checkbox-id="${escapedSetId}">
               <div class="set-info">
-                <div class="set-name">${setObj.setName}</div>
-                <div class="set-stats">📚 ${progress.totalQuestions} Soru | 📊 İlerleme: ${progress.solvedCount}/${progress.totalQuestions} (%${progress.progressPercent}) | ✅ ${progress.correctCount} ❌ ${progress.wrongCount}</div>
+                <div class="set-name">${escapedSetName}</div>
+                <div class="set-stats">${escapedStats}</div>
               </div>
             </div>
-            <button class="delete-btn-circle" title="Seti kaldır" onclick="deleteSet('${setId}')">-</button>
+            <button class="delete-btn-circle" title="Seti kaldır" data-set-delete-id="${escapedSetId}" type="button">-</button>
           </div>
         `;
       });
@@ -401,6 +432,26 @@ function toSafeArray(value) {
       return persistLoadedRecord(persistedRecord);
     }
 
+    async function loadSetFromBinary(arrayBuffer, fileName, importOptions = {}) {
+      if (typeof parseApkgToSetRecordRef !== "function") {
+        throw new Error("APKG importer is not available.");
+      }
+
+      const importedRecord = buildImportedRecord(
+        await parseApkgToSetRecordRef(arrayBuffer, fileName),
+        fileName,
+        importOptions,
+      );
+      const persistedRecord = onSetImportedRef
+        ? normalizeLoadedSet(
+            importedRecord.id,
+            (await onSetImportedRef(importedRecord)) || importedRecord,
+          )
+        : importedRecord;
+
+      return persistLoadedRecord(persistedRecord);
+    }
+
     async function importFiles(files = [], options = {}) {
       const list = Array.isArray(files) ? files : [];
       const resolveImportOptions =
@@ -412,21 +463,35 @@ function toSafeArray(value) {
 
       for (const file of list) {
         try {
-          const text =
-            typeof file?.text === "function"
-              ? await file.text()
-              : typeof file?.contents === "string"
-                ? file.contents
-                : "";
           const fileName =
             typeof file?.name === "string" && file.name.trim()
               ? file.name.trim()
               : "set.json";
-          const setId = await loadSetFromText(
-            text,
-            fileName,
-            resolveImportOptions(file) || {},
-          );
+          const importOptions = resolveImportOptions(file) || {};
+          let setId = null;
+
+          if (isApkgFile(fileName)) {
+            const arrayBuffer =
+              typeof file?.arrayBuffer === "function"
+                ? await file.arrayBuffer()
+                : toArrayBuffer(file?.contents);
+            if (!arrayBuffer) {
+              throw new Error("APKG binary data is not available.");
+            }
+            setId = await loadSetFromBinary(arrayBuffer, fileName, importOptions);
+          } else {
+            const text =
+              typeof file?.text === "function"
+                ? await file.text()
+                : typeof file?.contents === "string"
+                  ? file.contents
+                  : "";
+            setId = await loadSetFromText(
+              text,
+              fileName,
+              importOptions,
+            );
+          }
           selectedSets.add(setId);
         } catch (error) {
           logger.error("Set okuma hatası:", error);
@@ -772,6 +837,7 @@ function toSafeArray(value) {
       importNativeFiles,
       getSelectedSetIds,
       handleFileSelect,
+      loadSetFromBinary,
       loadSetFromText,
       loadStoredSets,
       removeSelectedSets,

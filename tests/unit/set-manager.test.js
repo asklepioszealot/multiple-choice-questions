@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createSetManager } from "../../src/features/set-manager/set-manager.js";
 
 function createMemoryStorage(seed = {}) {
@@ -242,6 +242,67 @@ describe("set-manager controller", () => {
       sourcePath: "C:\\sets\\linked-demo.md",
       fileName: "linked-demo.md",
     });
+  });
+
+  it("imports apkg files through the binary importer path", async () => {
+    renderManagerDom();
+    const storage = createMemoryStorage();
+    const parseApkgToSetRecord = vi.fn().mockResolvedValue({
+      id: "anki-demo",
+      setName: "Anki Demo",
+      fileName: "anki-demo.json",
+      sourceFormat: "json",
+      rawSource: '{"setName":"Anki Demo","questions":[]}',
+      questions: [
+        {
+          q: "Soru?",
+          options: ["A", "B"],
+          correct: 0,
+          explanation: "",
+          subject: "Genel",
+        },
+      ],
+    });
+
+    const setManager = createSetManager({
+      storage,
+      normalizeQuestions(data) {
+        return data.questions;
+      },
+      parseSetText() {
+        throw new Error("Text parser should not run for APKG files");
+      },
+      parseApkgToSetRecord,
+      getSelectedAnswers() {
+        return {};
+      },
+      resolveQuestionKey(question, setId, index) {
+        return `${setId}:${index}:${question.q}`;
+      },
+      documentRef: document,
+      setTimeoutRef() {
+        return 1;
+      },
+      clearTimeoutRef() {},
+    });
+
+    const binary = new Uint8Array([1, 2, 3]).buffer;
+    await setManager.importNativeFiles([
+      {
+        name: "anki-demo.apkg",
+        path: "C:\\sets\\anki-demo.apkg",
+        async arrayBuffer() {
+          return binary;
+        },
+      },
+    ]);
+
+    expect(parseApkgToSetRecord).toHaveBeenCalledWith(binary, "anki-demo.apkg");
+    expect(setManager.getLoadedSets()["anki-demo"]).toMatchObject({
+      fileName: "anki-demo.json",
+      sourcePath: "C:\\sets\\anki-demo.apkg",
+    });
+    expect(setManager.getSelectedSetIds()).toEqual(["anki-demo"]);
   });
 
   it("selects a loaded set and persists the selection list", async () => {

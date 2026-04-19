@@ -1,10 +1,79 @@
 const path = require("path");
-const { pathToFileURL } = require("url");
 const { test, expect } = require("playwright/test");
+const { zipSync } = require("fflate");
+const initSqlJs = require("sql.js/dist/sql-wasm.js");
+
+const FIELD_SEPARATOR = "\u001f";
 
 function appUrl() {
-  const indexPath = path.resolve(process.cwd(), "index.html");
-  return pathToFileURL(indexPath).toString();
+  const appPort = Number(process.env.MCQ_TEST_PORT || 4174);
+  return `http://127.0.0.1:${appPort}/`;
+}
+
+function resolveSqlWasmPath() {
+  return path.resolve(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm");
+}
+
+async function createApkgUpload(options = {}) {
+  const {
+    fileName = "smoke-import.apkg",
+    notes = [
+      {
+        id: 11,
+        deckId: 1001,
+        fields: [
+          "Beyin sapı hangi sistemin parçasıdır?",
+          "Endokrin sistem",
+          "Merkezi sinir sistemi",
+          "Periferik sinir sistemi",
+          "Sindirim sistemi",
+          "B",
+          "Medulla, pons ve mezensefalonu içerir.",
+        ],
+        tags: "noroloji",
+      },
+    ],
+    decks = { "1001": { name: "Tıp::Nöroloji" } },
+    mediaManifest = {},
+    mediaEntries = {},
+  } = options;
+
+  const SQL = await initSqlJs({
+    locateFile: () => resolveSqlWasmPath(),
+  });
+  const database = new SQL.Database();
+
+  database.run("CREATE TABLE col (decks TEXT)");
+  database.run("CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT, tags TEXT)");
+  database.run("CREATE TABLE cards (nid INTEGER, did INTEGER)");
+  database.run("INSERT INTO col (decks) VALUES (?)", [JSON.stringify(decks)]);
+  notes.forEach((note) => {
+    database.run("INSERT INTO notes (id, flds, tags) VALUES (?, ?, ?)", [
+      note.id,
+      note.fields.join(FIELD_SEPARATOR),
+      note.tags || "",
+    ]);
+    if (note.deckId !== undefined && note.deckId !== null) {
+      database.run("INSERT INTO cards (nid, did) VALUES (?, ?)", [note.id, note.deckId]);
+    }
+  });
+
+  const collectionBytes = database.export();
+  database.close();
+
+  const archiveBytes = zipSync({
+    "collection.anki2": collectionBytes,
+    media:
+      typeof Buffer !== "undefined"
+        ? Uint8Array.from(Buffer.from(JSON.stringify(mediaManifest), "utf8"))
+        : Uint8Array.from(new TextEncoder().encode(JSON.stringify(mediaManifest))),
+    ...mediaEntries,
+  });
+  return {
+    name: fileName,
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from(archiveBytes),
+  };
 }
 
 function legacyQuestionId(questionText, subject = "Genel") {
@@ -147,18 +216,20 @@ test.describe("MCQ smoke", () => {
     await expect(driveButton).toBeVisible();
     await expect(driveButton).toHaveClass(/btn-secondary/);
     await expect(page.locator("#check-updates-btn")).toBeHidden();
-    await expect(page.evaluate(() => typeof window.authGoogleDrive)).resolves.toBe(
-      "function",
-    );
-    const themeToggleSwitch = page.locator("#set-manager .toggle-switch").first();
-    await expect(themeToggleSwitch).toBeVisible();
+    await expect(page.locator("#manager-settings-panel")).toBeHidden();
+    await page.click("#manager-settings-toggle-btn");
+    await expect(page.locator("#manager-settings-panel")).toBeVisible();
+    await page.click("#manager-settings-toggle-btn");
+    await expect(page.locator("#manager-settings-panel")).toBeHidden();
 
-    await themeToggleSwitch.click();
+    const themeSelect = page.locator("#theme-select-manager");
+    await expect(themeSelect).toBeVisible();
+    await themeSelect.selectOption("dark");
     await expect
       .poll(async () => page.evaluate(() => document.documentElement.getAttribute("data-theme")))
       .toBe("dark");
 
-    await themeToggleSwitch.click();
+    await themeSelect.selectOption("light");
     await expect
       .poll(async () => page.evaluate(() => document.documentElement.getAttribute("data-theme")))
       .toBeNull();
@@ -171,6 +242,73 @@ test.describe("MCQ smoke", () => {
     await expect(mainApp).toBeVisible();
     await expect(setManager).toBeHidden();
     await expect(mainApp.locator(".kbd-hint")).toHaveCount(0);
+  });
+
+  test("set manager imports a supported apkg file and starts study", async ({ page }) => {
+    const fixture = await createApkgUpload();
+
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.setInputFiles("#file-picker", fixture);
+    await expect(page.locator("#set-list .set-name", { hasText: "smoke-import" })).toBeVisible();
+    await expect(page.locator("#start-btn")).toBeEnabled();
+
+    await page.click("#start-btn");
+    await expect(page.locator("#main-app")).toBeVisible();
+    await expect(page.locator("#question-text")).toContainText("Beyin sapı");
+    await expect(page.locator("#options-container .option").nth(1)).toContainText(
+      "Merkezi sinir sistemi",
+    );
+
+    await page.click("#show-solution-btn");
+    await expect(page.locator("#solution")).toContainText("Medulla");
+  });
+
+  test("apkg import preserves safe image and audio media in study mode", async ({ page }) => {
+    const fixture = await createApkgUpload({
+      fileName: "media-import.apkg",
+      notes: [
+        {
+          id: 21,
+          deckId: 1001,
+          fields: [
+            '<p>Bu yapı nedir?<img src="brain.png" alt="Beyin sapı" /></p>',
+            "Omurilik",
+            "Beyin sapı",
+            "B",
+            '[sound:stem.mp3]<p>Doğru cevap budur.</p>',
+          ],
+          tags: "noroloji",
+        },
+      ],
+      mediaManifest: {
+        "0": "brain.png",
+        "1": "stem.mp3",
+      },
+      mediaEntries: {
+        0: Uint8Array.from([137, 80, 78, 71]),
+        1: Uint8Array.from([73, 68, 51]),
+      },
+    });
+
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.setInputFiles("#file-picker", fixture);
+    await expect(page.locator("#set-list .set-name", { hasText: "media-import" })).toBeVisible();
+    await page.click("#start-btn");
+
+    const questionImage = page.locator("#question-text img");
+    await expect(questionImage).toBeVisible();
+    await expect(questionImage).toHaveAttribute("src", /data:image\/png;base64,/);
+
+    await page.click("#show-solution-btn");
+    const solutionAudio = page.locator("#solution audio");
+    await expect(solutionAudio).toBeVisible();
+    await expect(solutionAudio).toHaveAttribute("src", /data:audio\/mpeg;base64,/);
   });
 
   test("editor updates a selected set and returns to manager", async ({ page }) => {
@@ -224,8 +362,18 @@ test.describe("MCQ smoke", () => {
       "En az iki dolu secenek gerekli.",
     );
     await page.evaluate(() => {
-      window.updateEditorOption(0, "Birinci");
-      window.updateEditorOption(1, "Ikinci");
+      const updateOption = (index, value) => {
+        const input = document.querySelector(`[data-editor-option-index="${index}"]`);
+        if (!input) {
+          throw new Error(`Option input ${index} not found`);
+        }
+        input.value = value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      };
+
+      updateOption(0, "Birinci");
+      updateOption(1, "Ikinci");
     });
     await page.locator("#editor-correct").selectOption("1");
     await page.fill("#editor-explanation", "Yeni aciklama");
@@ -375,7 +523,7 @@ test.describe("MCQ smoke", () => {
 
     await page.click("#start-btn");
     await selectOption(page, 1);
-    await page.locator('button[onclick="showSetManager()"]').click();
+    await page.locator("#show-set-manager-btn").click();
 
     await expect(page.locator("#analytics-dashboard-manager")).toBeHidden();
     await page.click("#analytics-toggle-btn");
@@ -660,7 +808,7 @@ test.describe("MCQ smoke", () => {
     await page.locator("#next-btn").click();
 
     await expect(page.locator("#question-counter")).toHaveText("Soru 3 / 3");
-    await page.locator('button[onclick="showSetManager()"]').click();
+    await page.locator("#show-set-manager-btn").click();
     await page.locator("#start-btn").click();
 
     await expect(page.locator("#question-counter")).toHaveText("Soru 3 / 3");
@@ -986,7 +1134,7 @@ test.describe("MCQ smoke", () => {
       expect(dialog.message()).toContain("Seçili/aktif setlerdeki");
       await dialog.accept();
     });
-    await page.locator('button[onclick="resetQuiz()"]').click();
+    await page.locator("#reset-quiz-btn").click();
 
     const assessments = await page.evaluate(() =>
       JSON.parse(localStorage.getItem("mc_assessments") || "{}"),
@@ -1037,7 +1185,7 @@ test.describe("MCQ smoke", () => {
       /wrong/,
     );
 
-    await page.locator('button[onclick="showSetManager()"]').click();
+    await page.locator("#show-set-manager-btn").click();
     await setHiddenToggle(page, "#answer-lock-toggle-manager", false);
     await page.locator("#start-btn").click();
     await selectOption(page, 0);

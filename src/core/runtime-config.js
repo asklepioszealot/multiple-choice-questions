@@ -53,3 +53,15 @@ export function hasDriveConfig() {
 export function isDesktopRuntime() {
   return Boolean(globalScope.__TAURI__?.core?.invoke);
 }
+
+export const AppRuntimeConfig = Object.freeze({
+  getDriveConfig,
+  getRuntimeConfig,
+  hasDriveConfig,
+  hasSupabaseConfig,
+  isDesktopRuntime,
+});
+
+globalScope.AppRuntimeConfig = AppRuntimeConfig;
+
+export default AppRuntimeConfig;
