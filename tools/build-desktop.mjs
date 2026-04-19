@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
   detectUpdaterSigningPlan,
+  joinTargetPath,
   resolveMcqUpdaterKeyPath,
 } from "./release-plan.mjs";
 
@@ -27,7 +28,7 @@ export function buildDesktopBuildPlan({
   const shouldLoadDefaultKey = updaterSigningPlan.shouldLoadDefaultKey;
   const disableUpdaterArtifacts = !updaterSigningPlan.updaterArtifactsEnabled;
   const overrideConfigPath = disableUpdaterArtifacts
-    ? path.join(tempDir, `mcq-tauri-no-updater-${Date.now()}.json`)
+    ? joinTargetPath(tempDir, `mcq-tauri-no-updater-${Date.now()}.json`)
     : null;
   const args = ["build", "--bundles", "nsis"];
 

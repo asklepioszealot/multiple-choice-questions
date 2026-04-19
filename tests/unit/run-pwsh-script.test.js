@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPwshInvocation,
   normalizeWindowsWorkingDirectory,
+  resolvePowerShellScriptPath,
 } from "../../tools/run-pwsh-script.mjs";
 
 describe("run-pwsh-script", () => {
@@ -44,6 +45,26 @@ describe("run-pwsh-script", () => {
       "D:\\Git Projelerim\\multiple-choices-test\\.worktrees\\mcq-foundation-convergence\\tools\\build-release.ps1",
       "-NoLegacyCopy",
     ]);
+  });
+
+  it("resolves Windows-style relative script paths without host OS separators leaking in", () => {
+    expect(
+      resolvePowerShellScriptPath({
+        cwd: "D:\\Git Projelerim\\multiple-choices-test\\.worktrees\\mcq-foundation-convergence",
+        scriptPath: "./tools/build-release.ps1",
+      }),
+    ).toBe(
+      "D:\\Git Projelerim\\multiple-choices-test\\.worktrees\\mcq-foundation-convergence\\tools\\build-release.ps1",
+    );
+  });
+
+  it("preserves Windows absolute script paths on non-Windows hosts", () => {
+    expect(
+      resolvePowerShellScriptPath({
+        cwd: "/home/runner/work/mcq",
+        scriptPath: "D:\\Git Projelerim\\multiple-choices-test\\tools\\build-release.ps1",
+      }),
+    ).toBe("D:\\Git Projelerim\\multiple-choices-test\\tools\\build-release.ps1");
   });
 
   it("passes through dry-run flags for release planning", () => {
