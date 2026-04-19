@@ -2,21 +2,30 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; media-src 'self' data: https: blob:; connect-src 'self' https:; worker-src blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'none';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Çoktan Seçmeli Sorular</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Noto+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+      [hidden] {
+        display: none !important;
+      }
+
       :root {
+        --font-heading: "Figtree", "Segoe UI", sans-serif;
+        --font-body: "Noto Sans", "Segoe UI", sans-serif;
         --color-bg-primary: #f8fafc; /* Slate 50 */
         --color-bg-secondary: #ffffff;
         --color-header-bg: rgba(255, 255, 255, 0.85);
         --color-text-primary: #0f172a; /* Slate 900 */
         --color-text-secondary: #475569; /* Slate 600 */
+        --color-text-muted: #64748b; /* Slate 500 */
         --color-accent: #10b981; /* Emerald 500 */
         --color-accent-hover: #059669; /* Emerald 600 */
         --color-accent-soft: rgba(16, 185, 129, 0.12);
+        --color-accent-text: #ffffff;
         --color-emphasis: #047857; /* Emerald 700 */
         --color-emphasis-strong: #064e3b; /* Emerald 900 */
         --color-border: rgba(15, 23, 42, 0.1);
@@ -24,6 +33,7 @@
         --color-correct-hover: #10b981; /* Emerald 500 */
         --color-wrong: #f87171; /* Red 400 */
         --color-wrong-hover: #ef4444; /* Red 500 */
+        --color-focus-ring: rgba(16, 185, 129, 0.32);
         --mcq-font-question: 25px;
         --mcq-font-option: 17px;
         --mcq-font-question-fullscreen: 22px;
@@ -36,9 +46,11 @@
         --color-header-bg: rgba(30, 41, 59, 0.85);
         --color-text-primary: #f8fafc; /* Slate 50 */
         --color-text-secondary: #94a3b8; /* Slate 400 */
+        --color-text-muted: #7f9ab3;
         --color-accent: #34d399; /* Emerald 400 */
         --color-accent-hover: #10b981; /* Emerald 500 */
         --color-accent-soft: rgba(52, 211, 153, 0.15);
+        --color-accent-text: #04130d;
         --color-emphasis: #6ee7b7; /* Emerald 300 */
         --color-emphasis-strong: #a7f3d0; /* Emerald 200 */
         --color-border: rgba(255, 255, 255, 0.1);
@@ -46,6 +58,11 @@
         --color-correct-hover: #10b981;
         --color-wrong: #f87171;
         --color-wrong-hover: #ef4444;
+        --color-focus-ring: rgba(52, 211, 153, 0.38);
+      }
+
+      [data-color-scheme="dark"] {
+        color-scheme: dark;
       }
 
       * {
@@ -55,7 +72,7 @@
       }
 
       body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: var(--font-body);
         background: var(--color-bg-primary);
         color: var(--color-text-primary);
         line-height: 1.6;
@@ -64,6 +81,30 @@
         transition:
           background-color 0.3s ease,
           color 0.3s ease;
+      }
+
+      h1,
+      h2,
+      h3,
+      .auth-title,
+      .analytics-panel-title,
+      .manager-typography-panel-title {
+        font-family: var(--font-heading);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      select:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible {
+        outline: 3px solid var(--color-focus-ring);
+        outline-offset: 2px;
       }
 
       .container {
@@ -171,7 +212,11 @@
         cursor: pointer;
         transition: all 0.2s ease;
         background: var(--color-accent);
-        color: white;
+        color: var(--color-accent-text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
       }
 
       .btn:hover {
@@ -191,6 +236,30 @@
       .btn-small {
         padding: 7px 14px;
         font-size: 12px;
+      }
+
+      .theme-control {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .theme-control label {
+        color: var(--color-text-secondary);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .theme-control--stacked {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+
+      .theme-control--compact label {
+        min-width: auto;
       }
 
       .toggle-container {
@@ -1166,8 +1235,26 @@
         margin-top: 28px;
         display: flex;
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
         gap: 14px;
+      }
+      .manager-settings-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+      .manager-settings-icon-btn {
+        min-width: 44px;
+        padding-inline: 12px;
+      }
+      .manager-settings-icon-btn.is-active {
+        background: var(--color-accent-soft);
+        color: var(--color-accent);
+        border-color: color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
+      }
+      .manager-settings-panel {
+        width: 100%;
       }
       .manager-typography-panel {
         width: 100%;
@@ -1216,11 +1303,6 @@
       .manager-typography-actions {
         display: flex;
         justify-content: flex-end;
-      }
-      .manager-theme-toggle {
-        display: flex;
-        gap: 10px;
-        align-items: center;
       }
       .manager-toggle-row {
         justify-content: flex-start;
@@ -1411,11 +1493,15 @@
             Beni hatırla
           </label>
         </div>
+        <div class="theme-control theme-control--stacked">
+          <label for="theme-select-auth">Tema</label>
+          <select id="theme-select-auth"></select>
+        </div>
         <div class="auth-actions">
           <button
             class="btn btn-secondary"
             id="auth-signin-btn"
-            onclick="signInAuth()"
+            type="button"
             style="display: none"
           >
             Giriş yap
@@ -1423,12 +1509,12 @@
           <button
             class="btn btn-secondary"
             id="auth-signup-btn"
-            onclick="signUpAuth()"
+            type="button"
             style="display: none"
           >
             Kayıt ol
           </button>
-          <button class="btn" id="demo-auth-btn" onclick="continueAsDemoAuth()">
+          <button class="btn" id="demo-auth-btn" type="button">
             Demo ile devam et
           </button>
         </div>
@@ -1447,14 +1533,14 @@
         <button
           class="btn btn-small btn-secondary sync-retry-btn"
           id="sync-retry-btn"
-          onclick="retryCloudSync()"
+          type="button"
         >
           Tekrar dene
         </button>
         <button
           class="btn btn-small btn-secondary desktop-update-btn"
           id="check-updates-btn"
-          onclick="checkDesktopUpdates()"
+          type="button"
           hidden
         >
           Guncellemeleri Kontrol Et
@@ -1462,7 +1548,7 @@
         <button
           class="btn btn-small btn-secondary auth-logout-btn"
           id="auth-logout-btn"
-          onclick="signOutAuth()"
+          type="button"
         >
           Çıkış yap
         </button>
@@ -1484,10 +1570,10 @@
             </div>
           </div>
           <div class="sync-conflict-actions">
-            <button class="btn btn-secondary" onclick="useCloudConflictResolution()">
+            <button class="btn btn-secondary" id="sync-conflict-use-cloud-btn" type="button">
               Bulutu kullan
             </button>
-            <button class="btn" onclick="useLocalConflictResolution()">
+            <button class="btn" id="sync-conflict-use-local-btn" type="button">
               Yereli buluta yaz
             </button>
           </div>
@@ -1508,28 +1594,28 @@
         <button
           class="btn btn-small btn-secondary"
           id="delete-mode-btn"
-          onclick="toggleDeleteMode()"
+          type="button"
         >
           Silme Modu: Kapalı
         </button>
         <button
           class="btn btn-small btn-secondary"
           id="select-all-btn"
-          onclick="selectAllSets()"
+          type="button"
         >
           Tümünü Seç
         </button>
         <button
           class="btn btn-small btn-secondary"
           id="clear-selection-btn"
-          onclick="clearSetSelection()"
+          type="button"
         >
           Seçimi Kaldır
         </button>
         <button
           class="btn btn-small btn-danger"
           id="remove-selected-btn"
-          onclick="removeSelectedSets()"
+          type="button"
           disabled
         >
           Seçilileri Kaldır
@@ -1543,14 +1629,13 @@
         <button
           class="btn btn-secondary"
           id="drive-upload-btn"
-          onclick="authGoogleDrive()"
+          type="button"
         >
           ☁️ Drive'dan Dosya Ekle
         </button>
         <button
           class="btn btn-secondary"
           id="import-set-btn"
-          onclick="openSetImport()"
           type="button"
         >
           📂 Soru Dosyası Yükle (.json, .md, .txt)
@@ -1558,7 +1643,6 @@
         <button
           class="btn btn-secondary"
           id="new-set-btn"
-          onclick="openNewSetEditor()"
           type="button"
         >
           ✨ Yeni set
@@ -1566,7 +1650,6 @@
         <button
           class="btn btn-secondary analytics-toggle-btn"
           id="analytics-toggle-btn"
-          onclick="toggleAnalyticsPanel()"
           type="button"
           aria-expanded="false"
           aria-controls="analytics-dashboard-manager"
@@ -1576,15 +1659,14 @@
         <input
           type="file"
           id="file-picker"
-          accept=".json, .txt, .md"
+          accept=".json, .txt, .md, .apkg"
           multiple
           hidden
-          onchange="handleFileSelect(event)"
         />
-        <button class="btn btn-secondary" id="edit-btn" onclick="openSelectedSetEditor()" disabled>
+        <button class="btn btn-secondary" id="edit-btn" type="button" disabled>
           ✏ Düzenle
         </button>
-        <button class="btn" id="start-btn" onclick="startStudy()" disabled>
+        <button class="btn" id="start-btn" type="button" disabled>
           ▶ Başla
         </button>
       </div>
@@ -1600,7 +1682,6 @@
           <button
             class="analytics-close-btn"
             id="analytics-close-btn"
-            onclick="closeAnalyticsPanel()"
             type="button"
             aria-label="İstatistikler panelini kapat"
             title="İstatistikler panelini kapat"
@@ -1662,103 +1743,70 @@
         </div>
       </section>
       <div class="manager-preferences">
-        <div class="manager-typography-panel">
-          <div class="manager-typography-panel-header">
-            <div class="manager-typography-panel-title">Tam ekran tipografi</div>
-            <div class="manager-typography-panel-copy">
-              Soru ve seçenek yazı boyutlarını tam ekran için ayrı ayarla.
-            </div>
+        <div class="manager-settings-row">
+          <button
+            class="btn btn-small btn-secondary manager-settings-icon-btn"
+            id="manager-settings-toggle-btn"
+            type="button"
+            aria-expanded="false"
+            aria-controls="manager-settings-panel"
+            aria-label="Yazi boyutu ayarlarini ac"
+            title="Yazi boyutu ayarlarini ac"
+          >
+            ⚙
+          </button>
+          <div class="theme-control">
+            <label for="theme-select-manager">Tema</label>
+            <select id="theme-select-manager"></select>
           </div>
-          <div class="manager-typography-grid">
-            <div class="manager-typography-field">
-              <label for="question-font-size">Soru boyutu</label>
-              <input
-                type="number"
-                id="question-font-size"
-                min="12"
-                max="40"
-                step="1"
-                onchange="setQuestionFontSize(this.value)"
-              />
-            </div>
-            <div class="manager-typography-field">
-              <label for="option-font-size">Şık boyutu</label>
-              <input
-                type="number"
-                id="option-font-size"
-                min="12"
-                max="40"
-                step="1"
-                onchange="setOptionFontSize(this.value)"
-              />
-            </div>
-            <div class="manager-typography-field">
-              <label for="fullscreen-question-font-size">Tam ekran soru</label>
-              <input
-                type="number"
-                id="fullscreen-question-font-size"
-                min="12"
-                max="40"
-                step="1"
-                onchange="setFullscreenQuestionFontSize(this.value)"
-              />
-            </div>
-            <div class="manager-typography-field">
-              <label for="fullscreen-option-font-size">Tam ekran şık</label>
-              <input
-                type="number"
-                id="fullscreen-option-font-size"
-                min="12"
-                max="40"
-                step="1"
-                onchange="setFullscreenOptionFontSize(this.value)"
-              />
-            </div>
+          <div class="toggle-container manager-toggle-row">
+            <span id="answer-lock-status">Cevapları kilitle: Kapalı</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="answer-lock-toggle-manager" />
+              <span class="toggle-slider"></span>
+            </label>
           </div>
-          <div class="manager-typography-actions">
-            <button
-              class="btn btn-secondary btn-small"
-              type="button"
-              onclick="resetTypographyPreferences()"
-            >
-              Varsayılana dön
-            </button>
+          <div class="toggle-container manager-toggle-row">
+            <span id="auto-advance-status">Otomatik sonraki soru: Kapalı</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="auto-advance-toggle-manager" />
+              <span class="toggle-slider"></span>
+            </label>
           </div>
         </div>
-        <div class="manager-theme-toggle">
-          <span>☀️</span>
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              id="theme-toggle-manager"
-              onchange="toggleTheme(this.checked)"
-            />
-            <span class="toggle-slider"></span>
-          </label>
-          <span>🌙</span>
-        </div>
-        <div class="toggle-container manager-toggle-row">
-          <span id="answer-lock-status">Cevapları kilitle: Kapalı</span>
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              id="answer-lock-toggle-manager"
-              onchange="setAnswerLock(this.checked)"
-            />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="toggle-container manager-toggle-row">
-          <span id="auto-advance-status">Otomatik sonraki soru: Kapalı</span>
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              id="auto-advance-toggle-manager"
-              onchange="setAutoAdvance(this.checked)"
-            />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
+        <section id="manager-settings-panel" class="manager-settings-panel" hidden>
+          <div class="manager-typography-panel">
+            <div class="manager-typography-panel-header">
+              <div class="manager-typography-panel-title">Tam ekran tipografi</div>
+              <div class="manager-typography-panel-copy">
+                Soru ve seçenek yazı boyutlarını çalışma ve tam ekran için ayrı ayarla.
+              </div>
+            </div>
+            <div class="manager-typography-grid">
+              <div class="manager-typography-field">
+                <label for="question-font-size">Soru boyutu</label>
+                <input type="number" id="question-font-size" min="12" max="40" step="1" />
+              </div>
+              <div class="manager-typography-field">
+                <label for="option-font-size">Şık boyutu</label>
+                <input type="number" id="option-font-size" min="12" max="40" step="1" />
+              </div>
+              <div class="manager-typography-field">
+                <label for="fullscreen-question-font-size">Tam ekran soru</label>
+                <input type="number" id="fullscreen-question-font-size" min="12" max="40" step="1" />
+              </div>
+              <div class="manager-typography-field">
+                <label for="fullscreen-option-font-size">Tam ekran şık</label>
+                <input type="number" id="fullscreen-option-font-size" min="12" max="40" step="1" />
+              </div>
+            </div>
+            <div class="manager-typography-actions">
+              <button class="btn btn-secondary btn-small" id="reset-typography-btn" type="button">
+                Varsayılana dön
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
       <div class="kbd-hint" style="margin-top: 20px">
         <kbd>A-E</kbd> Şık seç &nbsp; <kbd>S</kbd> Çözüm &nbsp;
@@ -1769,7 +1817,7 @@
     <div id="editor-screen" class="editor-screen" style="display: none">
       <div class="editor-shell">
         <div class="editor-topbar">
-          <button class="btn btn-secondary" onclick="closeEditor()">Yoneticiye don</button>
+          <button class="btn btn-secondary" id="editor-back-btn" type="button">Yoneticiye don</button>
           <div>
             <h2>MCQ Editor</h2>
             <div class="auth-meta" id="editor-source-format-label">
@@ -1778,15 +1826,19 @@
             <div class="auth-meta" id="editor-dirty-pill">Durum: Kaydedildi</div>
           </div>
           <div class="set-actions">
+            <div class="theme-control theme-control--compact">
+              <label for="theme-select-editor">Tema</label>
+              <select id="theme-select-editor"></select>
+            </div>
             <button
               class="btn btn-secondary"
               id="editor-export-source-btn"
-              onclick="exportEditorSource()"
+              type="button"
             >
               Kaynak formatta disa aktar
             </button>
-            <button class="btn btn-secondary" onclick="exportEditorJson()">JSON disa aktar</button>
-            <button class="btn" id="editor-save-btn" onclick="saveEditor()">Kaydet</button>
+            <button class="btn btn-secondary" id="editor-json-btn" type="button">JSON disa aktar</button>
+            <button class="btn" id="editor-save-btn" type="button">Kaydet</button>
           </div>
         </div>
         <div id="editor-status" class="auth-status"></div>
@@ -1798,38 +1850,36 @@
               <input
                 id="editor-set-name"
                 class="editor-input"
-                oninput="updateEditorSetName(this.value)"
-                onchange="updateEditorSetName(this.value)"
               />
             </div>
             <div id="editor-question-list" class="editor-question-list"></div>
             <div class="set-actions">
-              <button class="btn btn-secondary" onclick="addEditorQuestion()">+ Soru ekle</button>
+              <button class="btn btn-secondary" id="editor-add-question-btn" type="button">+ Soru ekle</button>
               <button
                 class="btn btn-secondary"
                 id="editor-move-question-up-btn"
-                onclick="moveCurrentEditorQuestion(-1)"
+                type="button"
               >
                 Yukari tas
               </button>
               <button
                 class="btn btn-secondary"
                 id="editor-move-question-down-btn"
-                onclick="moveCurrentEditorQuestion(1)"
+                type="button"
               >
                 Asagi tas
               </button>
               <button
                 class="btn btn-secondary"
                 id="editor-duplicate-question-btn"
-                onclick="duplicateCurrentEditorQuestion()"
+                type="button"
               >
                 Soruyu kopyala
               </button>
               <button
                 class="btn btn-secondary"
                 id="editor-remove-question-btn"
-                onclick="removeCurrentEditorQuestion()"
+                type="button"
               >
                 Soru sil
               </button>
@@ -1837,11 +1887,11 @@
           </div>
           <div class="editor-main">
             <div class="editor-tabs">
-              <button class="btn btn-secondary" onclick="showEditorVisual()">Form</button>
+              <button class="btn btn-secondary" id="editor-visual-tab-btn" type="button">Form</button>
               <button
                 class="btn btn-secondary"
                 id="editor-raw-tab-btn"
-                onclick="showEditorRaw()"
+                type="button"
               >
                 Raw JSON
               </button>
@@ -1853,40 +1903,24 @@
                   <textarea
                     id="editor-question-text"
                     class="editor-textarea"
-                    oninput="updateEditorQuestionText(this.value)"
-                    onchange="updateEditorQuestionText(this.value)"
                   ></textarea>
                 </div>
                 <div class="editor-field">
                   <label for="editor-subject">Konu</label>
-                  <input
-                    id="editor-subject"
-                    class="editor-input"
-                    oninput="updateEditorQuestionSubject(this.value)"
-                    onchange="updateEditorQuestionSubject(this.value)"
-                  />
+                  <input id="editor-subject" class="editor-input" />
                 </div>
                 <div class="editor-field">
                   <label>Secenekler</label>
                   <div id="editor-options"></div>
-                  <button class="btn btn-secondary" onclick="addEditorOption()">+ Secenek ekle</button>
+                  <button class="btn btn-secondary" id="editor-add-option-btn" type="button">+ Secenek ekle</button>
                 </div>
                 <div class="editor-field">
                   <label for="editor-correct">Dogru cevap</label>
-                  <select
-                    id="editor-correct"
-                    class="editor-select"
-                    onchange="updateEditorCorrectIndex(this.value)"
-                  ></select>
+                  <select id="editor-correct" class="editor-select"></select>
                 </div>
                 <div class="editor-field">
                   <label for="editor-explanation">Aciklama</label>
-                  <textarea
-                    id="editor-explanation"
-                    class="editor-textarea"
-                    oninput="updateEditorQuestionExplanation(this.value)"
-                    onchange="updateEditorQuestionExplanation(this.value)"
-                  ></textarea>
+                  <textarea id="editor-explanation" class="editor-textarea"></textarea>
                 </div>
               </div>
             </div>
@@ -1895,7 +1929,7 @@
                 <label for="editor-raw-input" id="editor-raw-label">Raw JSON</label>
                 <textarea id="editor-raw-input" class="editor-textarea"></textarea>
               </div>
-              <button class="btn btn-secondary" onclick="applyEditorRaw()">Raw kaynagi uygula</button>
+              <button class="btn btn-secondary" id="apply-editor-raw-btn" type="button">Raw kaynagi uygula</button>
             </div>
           </div>
         </div>
@@ -1903,7 +1937,7 @@
     </div>
     <div id="undo-toast" class="undo-toast">
       <span id="undo-message">Set kaldırıldı.</span>
-      <button onclick="undoLastRemoval()">Geri Al</button>
+      <button id="undo-toast-btn" type="button">Geri Al</button>
     </div>
 
     <!-- Ana Çalışma Ekranı -->
@@ -1914,7 +1948,7 @@
           <p>Dr. Ahmet Kara 🩺</p>
         </div>
         <div class="header-controls">
-          <select id="topic-select" onchange="filterByTopic()">
+          <select id="topic-select">
             <option value="hepsi">Tüm Başlıklar</option>
           </select>
 
@@ -1925,46 +1959,30 @@
             max="20"
             placeholder="Soru No"
           />
-          <button class="btn btn-small" onclick="jumpToQuestion()">Git</button>
+          <button class="btn btn-small" id="jump-btn" type="button">Git</button>
 
-          <div class="toggle-container">
-            <span>☀️</span>
-            <label class="toggle-switch">
-              <input
-                type="checkbox"
-                id="theme-toggle"
-                onchange="toggleTheme()"
-              />
-              <span class="toggle-slider"></span>
-            </label>
-            <span>🌙</span>
+          <div class="theme-control">
+            <label for="theme-select-study">Tema</label>
+            <select id="theme-select-study"></select>
           </div>
 
-          <button class="btn btn-small btn-secondary" onclick="showSetManager()">
+          <button class="btn btn-small btn-secondary" id="show-set-manager-btn" type="button">
             ← Setlere Dön
           </button>
 
-          <button
-            class="btn-secondary btn btn-small"
-            onclick="shuffleQuestions()"
-          >
+          <button class="btn-secondary btn btn-small" id="shuffle-btn" type="button">
             🔀 Karıştır
           </button>
-          <button
-            class="btn-secondary btn btn-small"
-            onclick="retryWrongAnswers()"
-          >
+          <button class="btn-secondary btn btn-small" id="retry-wrong-btn" type="button">
             🔁 Yanlışları Çöz
           </button>
-          <button
-            class="btn-secondary btn btn-small"
-            onclick="exportPrintable()"
-          >
+          <button class="btn-secondary btn btn-small" id="export-printable-btn" type="button">
             🖨️ Yazdır
           </button>
           <button
             class="btn-secondary btn btn-small"
-            onclick="resetQuiz()"
+            id="reset-quiz-btn"
+            type="button"
             style="border-color: #dc2626; color: #dc2626"
           >
             🗑️ Sıfırla
@@ -1973,7 +1991,7 @@
       </div>
 
       <div class="navigation">
-        <button class="nav-btn" id="prev-btn" onclick="previousQuestion()" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+        <button class="nav-btn" id="prev-btn" type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           Önceki
         </button>
@@ -1982,7 +2000,7 @@
           <div class="subject-badge" id="subject-badge">Konu</div>
           <div class="score-display" id="score-display"></div>
         </div>
-        <button class="nav-btn" id="next-btn" onclick="nextQuestion()" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+        <button class="nav-btn" id="next-btn" type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
           Sonraki
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </button>
@@ -1992,8 +2010,8 @@
         <button
           class="fullscreen-toggle-btn"
           id="fullscreen-toggle-btn"
-          onclick="event.stopPropagation(); toggleFullscreen()"
           title="Tam ekran (F)"
+          type="button"
         >
           ⛶
         </button>
@@ -2005,7 +2023,7 @@
           <button
             class="show-solution-btn"
             id="show-solution-btn"
-            onclick="toggleSolution()"
+            type="button"
           >
             Çözümü Göster
           </button>
@@ -2016,7 +2034,7 @@
           </div>
         </div>
         <div class="fullscreen-nav-bar" id="fullscreen-nav-bar">
-          <button class="nav-btn" id="fullscreen-prev-btn" onclick="previousQuestion()">
+          <button class="nav-btn" id="fullscreen-prev-btn" type="button">
             Önceki
           </button>
           <div class="fullscreen-center-panel">
@@ -2026,7 +2044,7 @@
             <div class="subject-badge" id="fullscreen-subject-badge">Konu</div>
             <div class="score-display" id="fullscreen-score-display"></div>
           </div>
-          <button class="nav-btn" id="fullscreen-next-btn" onclick="nextQuestion()">
+          <button class="nav-btn" id="fullscreen-next-btn" type="button">
             Sonraki
           </button>
         </div>
@@ -2035,9 +2053,6 @@
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
-
-    <!-- Güvenlik için DOMPurify -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha512-H+rglffZ6f5gF7UJgv/55jk8u8X2tRB6oB4I3ofT//w/S1qbnTqPE9X9I8xX9vDq8B6M18k2hZ+7dFp2c8pZ/w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- Ana Uygulama Modülü -->
     <script type="module" src="./src/app/main.js"></script>

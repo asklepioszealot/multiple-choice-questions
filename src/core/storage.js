@@ -19,8 +19,12 @@ export function getSessionItem(key) { return sessionStorageRef.getItem(key); }
 export function setSessionItem(key, value) { sessionStorageRef.setItem(key, value); }
 export function removeSessionItem(key) { sessionStorageRef.removeItem(key); }
 
-const AppStorage = Object.freeze({
+export const AppStorage = Object.freeze({
   getItem, setItem, removeItem,
   getLocalItem, setLocalItem, removeLocalItem,
   getSessionItem, setSessionItem, removeSessionItem,
 });
+
+globalScope.AppStorage = AppStorage;
+
+export default AppStorage;

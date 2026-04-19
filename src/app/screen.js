@@ -1,6 +1,8 @@
 // src/app/screen.js
 import * as state from "./state.js";
 
+const globalScope = typeof window !== "undefined" ? window : globalThis;
+
 function resolveStudyContainer() {
     return (
       globalScope.document?.getElementById("app-container")

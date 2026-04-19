@@ -1,7 +1,8 @@
 const globalScope = typeof window !== "undefined" ? window : globalThis;
 
 const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
-  const DRIVE_MIME_TYPES = "application/json,text/markdown,text/plain";
+  const DRIVE_MIME_TYPES =
+    "application/json,text/markdown,text/plain,application/octet-stream,application/zip";
   const DRIVE_DISABLED_MESSAGE =
     "Google Drive entegrasyonu bu yapıda etkin değil. Runtime config gerekli.";
   const DRIVE_NOT_READY_MESSAGE =
@@ -14,6 +15,7 @@ const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
     hasDriveConfig,
     isDesktopRuntime,
     loadSetFromText,
+    loadSetFromBinary,
     selectSet,
     renderSetList,
     showUndoToast,
@@ -52,6 +54,12 @@ const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
         ? loadSetFromText
         : async function fallbackLoadSetFromText() {
             throw new Error("Set loader is not available.");
+          };
+    const loadSetFromBinaryRef =
+      typeof loadSetFromBinary === "function"
+        ? loadSetFromBinary
+        : async function fallbackLoadSetFromBinary() {
+            throw new Error("Binary set loader is not available.");
           };
     const selectSetRef =
       typeof selectSet === "function"
@@ -213,7 +221,7 @@ const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
         .setDeveloperKey(driveConfig.driveApiKey)
         .setAppId(driveConfig.driveAppId)
         .setCallback(pickerCallback)
-        .setTitle("Uygulamaya eklenecek soru setini seçin (.json, .md, .txt)")
+        .setTitle("Uygulamaya eklenecek soru setini seçin (.json, .md, .txt, .apkg)")
         .build();
 
       picker.setVisible(true);
@@ -247,8 +255,9 @@ const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.readonly";
           throw new Error("İndirme hatası: " + response.statusText);
         }
 
-        const text = await response.text();
-        const setId = await loadSetFromTextRef(text, fileName);
+        const setId = /\.apkg$/i.test(String(fileName || ""))
+          ? await loadSetFromBinaryRef(await response.arrayBuffer(), fileName)
+          : await loadSetFromTextRef(await response.text(), fileName);
         selectSetRef(setId);
         renderSetListRef();
         showUndoToastRef(`"${fileName}" yüklendi!`);

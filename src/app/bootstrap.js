@@ -12,6 +12,7 @@ detectSyncConflict,
 import { buildAnalyticsSummary, createAnalyticsPanelController } from "../features/analytics/analytics.js";
 import { createDesktopUpdateFeature } from "../features/desktop-update/desktop-update.js";
 import { buildSetRecord, formatEditableText, htmlToEditableText, normalizeQuestions, parseSetText, serializeSetRecord } from "../core/set-codec.js";
+import { sanitizeHtml } from "../core/security.js";
 import { createSetManager } from "../features/set-manager/set-manager.js";
 import { createEditorFeature } from "../features/editor/editor.js";
 import { createGoogleDriveFeature } from "../features/google-drive/google-drive.js";
@@ -20,16 +21,31 @@ import { buildPrintableStudyHtml } from "../features/study/study-export.js";
 import { buildStudyQuestions, collectStudySubjects, createFilteredStudyView, getAdjacentQuestionIndex, getBoundedQuestionIndex, selectStudyAnswer, toggleStudySolution } from "../features/study/study-session.js";
 import { createStudyChromeState, getFullscreenToggleState, getAnswerLockStatusText, getAutoAdvanceStatusText, applyStudyTypographyPreferences, runWithQuestionInstantReset } from "../features/study/study-ui.js";
 import { buildQuestionKey, buildStudyStateSnapshot, resolveQuestionKey as cardId, loadPersistedStudyState, pickNewerStudyStateSnapshot, persistStudyState, persistStudyStateSnapshot, persistStudyTypographyPreferences, readSavedSession } from "../features/study-state/study-state.js";
+import { ThemeManager } from "../ui/theme.js";
+import {
+ANSWER_LOCK_KEY,
+AUTO_ADVANCE_KEY,
+DEFAULT_STUDY_TYPOGRAPHY,
+THEME_CONTROL_IDS,
+THEME_KEY,
+} from "../shared/constants.js";
 import * as state from './state.js';
 
+function bindEvent(target, eventName, handler) {
+  target?.addEventListener(eventName, handler);
+}
+
+function bindAll(selector, eventName, handler, root = document) {
+  root.querySelectorAll(selector).forEach((target) => {
+    target.addEventListener(eventName, handler);
+  });
+}
 
 export async function startApp() {
-        const ANSWER_LOCK_KEY = "mc_answer_lock";
-        const AUTO_ADVANCE_KEY = "mc_auto_advance";
-        const DEFAULT_QUESTION_FONT_SIZE = 25;
-        const DEFAULT_OPTION_FONT_SIZE = 17;
-        const DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE = 22;
-        const DEFAULT_FULLSCREEN_OPTION_FONT_SIZE = 15;
+        const DEFAULT_QUESTION_FONT_SIZE = DEFAULT_STUDY_TYPOGRAPHY.questionFontSize;
+        const DEFAULT_OPTION_FONT_SIZE = DEFAULT_STUDY_TYPOGRAPHY.optionFontSize;
+        const DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE = DEFAULT_STUDY_TYPOGRAPHY.fullscreenQuestionFontSize;
+        const DEFAULT_FULLSCREEN_OPTION_FONT_SIZE = DEFAULT_STUDY_TYPOGRAPHY.fullscreenOptionFontSize;
   
         // --- ESKİ DEĞİŞKENLER ---
         let currentQuestionIndex = 0;
@@ -89,6 +105,7 @@ export async function startApp() {
           hasDriveConfig,
           isDesktopRuntime,
           loadSetFromText,
+          loadSetFromBinary,
           selectSet,
           renderSetList,
           showUndoToast,
@@ -990,6 +1007,10 @@ export async function startApp() {
         function loadSetFromText(text, fileName, importOptions = {}) {
           return setManager.loadSetFromText(text, fileName, importOptions);
         }
+
+        function loadSetFromBinary(arrayBuffer, fileName, importOptions = {}) {
+          return setManager.loadSetFromBinary(arrayBuffer, fileName, importOptions);
+        }
   
         function handleFileSelect(event) {
           return setManager.handleFileSelect(event);
@@ -1628,13 +1649,13 @@ export async function startApp() {
             subject: q.subject,
           });
   
-          document.getElementById("question-text").innerHTML = window.DOMPurify.sanitize(q.q);
+          document.getElementById("question-text").innerHTML = sanitizeHtml(q.q);
           document.getElementById("question-counter").textContent =
             chromeState.counterText;
           document.getElementById("subject-badge").textContent =
             chromeState.subjectText;
           document.getElementById("solution-content").innerHTML =
-            window.DOMPurify.sanitize(getExplanationHtml(q).replace(/<br>/g, "<br>"));
+            sanitizeHtml(getExplanationHtml(q));
   
           const optionsContainer = document.getElementById("options-container");
           optionsContainer.innerHTML = "";
@@ -1642,7 +1663,9 @@ export async function startApp() {
           q.options.forEach((option, index) => {
             const optionDiv = document.createElement("div");
             optionDiv.className = "option";
-            optionDiv.innerHTML = window.DOMPurify.sanitize(`<span class="option-label">${String.fromCharCode(65 + index)}</span><span>${option}</span>`);
+            optionDiv.innerHTML = sanitizeHtml(
+              `<span class="option-label">${String.fromCharCode(65 + index)}</span><span>${option}</span>`,
+            );
   
             if (
               selectedAnswers[cid] !== undefined &&
@@ -1787,14 +1810,52 @@ export async function startApp() {
           .getElementById("jump-input")
           .setAttribute("max", filteredQuestions.length);
   
-        function toggleTheme(isChecked) {
-          window.ThemeManager.toggleTheme({
-            isChecked: isChecked,
-            primaryToggleId: "theme-toggle",
-            managerToggleId: "theme-toggle-manager",
-            storageApi: storage,
-            storageKey: "quiz-theme",
+        function syncThemeControlsUI() {
+          const themeName = ThemeManager.getCurrentTheme();
+          THEME_CONTROL_IDS.forEach((controlId) => {
+            const control = document.getElementById(controlId);
+            if (control) {
+              control.value = themeName;
+            }
           });
+        }
+
+        function setTheme(themeName) {
+          ThemeManager.setTheme({
+            themeName,
+            controlIds: THEME_CONTROL_IDS,
+            storageApi: storage,
+            storageKey: THEME_KEY,
+          });
+          syncThemeControlsUI();
+        }
+
+        function syncManagerSettingsPanelState() {
+          const toggleButton = document.getElementById("manager-settings-toggle-btn");
+          const panel = document.getElementById("manager-settings-panel");
+          if (!toggleButton || !panel) {
+            return;
+          }
+
+          const isOpen = !panel.hidden;
+          toggleButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
+          toggleButton.classList.toggle("is-active", isOpen);
+          toggleButton.title = isOpen
+            ? "Yazi boyutu ayarlarini kapat"
+            : "Yazi boyutu ayarlarini ac";
+        }
+
+        function toggleManagerSettingsPanel(forceState = null) {
+          const panel = document.getElementById("manager-settings-panel");
+          if (!panel) {
+            return false;
+          }
+
+          const nextOpen =
+            typeof forceState === "boolean" ? forceState : panel.hidden;
+          panel.hidden = !nextOpen;
+          syncManagerSettingsPanelState();
+          return nextOpen;
         }
   
         function shuffleQuestions() {
@@ -1922,13 +1983,13 @@ export async function startApp() {
   
         function loadState(storageKeyPrefix = null) {
           try {
-            window.ThemeManager.initThemeFromStorage({
-              primaryToggleId: "theme-toggle",
-              managerToggleId: "theme-toggle-manager",
+            ThemeManager.initThemeFromStorage({
+              controlIds: THEME_CONTROL_IDS,
               storageApi: storage,
-              storageKey: "quiz-theme",
+              storageKey: THEME_KEY,
             });
-  
+            syncThemeControlsUI();
+
             const storedAnswerLock = storage.getItem(ANSWER_LOCK_KEY);
             if (storedAnswerLock === "0" || storedAnswerLock === "1") {
               answerLockEnabled = storedAnswerLock === "1";
@@ -1961,6 +2022,7 @@ export async function startApp() {
           syncAnswerLockToggleUI();
           syncAutoAdvanceToggleUI();
           syncTypographyControls();
+          syncManagerSettingsPanelState();
         }
   
         function populateTopicFilter() {
@@ -1975,7 +2037,282 @@ export async function startApp() {
             select.appendChild(option);
           });
         }
-  
+
+        function bindStaticEvents() {
+          THEME_CONTROL_IDS.forEach((controlId) => {
+            bindEvent(document.getElementById(controlId), "change", (event) => {
+              setTheme(event.currentTarget?.value || "light");
+            });
+          });
+
+          bindEvent(document.getElementById("auth-signin-btn"), "click", () => {
+            void signInAuth();
+          });
+          bindEvent(document.getElementById("auth-signup-btn"), "click", () => {
+            void signUpAuth();
+          });
+          bindEvent(document.getElementById("demo-auth-btn"), "click", () => {
+            continueAsDemoAuth();
+          });
+          bindEvent(document.getElementById("sync-retry-btn"), "click", () => {
+            void retryCloudSync();
+          });
+          bindEvent(document.getElementById("check-updates-btn"), "click", () => {
+            void checkDesktopUpdates();
+          });
+          bindEvent(document.getElementById("auth-logout-btn"), "click", () => {
+            void signOutAuth();
+          });
+          bindEvent(document.getElementById("sync-conflict-use-cloud-btn"), "click", () => {
+            void useCloudConflictResolution();
+          });
+          bindEvent(document.getElementById("sync-conflict-use-local-btn"), "click", () => {
+            void useLocalConflictResolution();
+          });
+
+          bindEvent(document.getElementById("delete-mode-btn"), "click", () => {
+            toggleDeleteMode();
+          });
+          bindEvent(document.getElementById("select-all-btn"), "click", () => {
+            selectAllSets();
+          });
+          bindEvent(document.getElementById("clear-selection-btn"), "click", () => {
+            clearSetSelection();
+          });
+          bindEvent(document.getElementById("remove-selected-btn"), "click", () => {
+            void removeSelectedSets();
+          });
+          bindEvent(document.getElementById("drive-upload-btn"), "click", () => {
+            void authGoogleDrive();
+          });
+          bindEvent(document.getElementById("import-set-btn"), "click", () => {
+            openSetImport();
+          });
+          bindEvent(document.getElementById("new-set-btn"), "click", () => {
+            openNewSetEditor();
+          });
+          bindEvent(document.getElementById("analytics-toggle-btn"), "click", () => {
+            toggleAnalyticsPanel();
+          });
+          bindEvent(document.getElementById("file-picker"), "change", (event) => {
+            void handleFileSelect(event);
+          });
+          bindEvent(document.getElementById("edit-btn"), "click", () => {
+            openSelectedSetEditor();
+          });
+          bindEvent(document.getElementById("start-btn"), "click", () => {
+            startStudy();
+          });
+          bindEvent(document.getElementById("analytics-close-btn"), "click", () => {
+            closeAnalyticsPanel();
+          });
+
+          bindEvent(document.getElementById("manager-settings-toggle-btn"), "click", () => {
+            toggleManagerSettingsPanel();
+          });
+          bindEvent(document.getElementById("question-font-size"), "change", (event) => {
+            setQuestionFontSize(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("option-font-size"), "change", (event) => {
+            setOptionFontSize(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("fullscreen-question-font-size"), "change", (event) => {
+            setFullscreenQuestionFontSize(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("fullscreen-option-font-size"), "change", (event) => {
+            setFullscreenOptionFontSize(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("reset-typography-btn"), "click", () => {
+            resetTypographyPreferences();
+          });
+          bindEvent(document.getElementById("answer-lock-toggle-manager"), "change", (event) => {
+            setAnswerLock(event.currentTarget?.checked);
+          });
+          bindEvent(document.getElementById("auto-advance-toggle-manager"), "change", (event) => {
+            setAutoAdvance(event.currentTarget?.checked);
+          });
+
+          const setList = document.getElementById("set-list");
+          bindEvent(setList, "click", (event) => {
+            const deleteButton = event.target.closest("[data-set-delete-id]");
+            if (deleteButton) {
+              event.preventDefault();
+              event.stopPropagation();
+              void deleteSet(deleteButton.dataset.setDeleteId);
+              return;
+            }
+
+            const checkbox = event.target.closest("[data-set-checkbox-id]");
+            if (checkbox) {
+              event.stopPropagation();
+              toggleSetCheck(checkbox.dataset.setCheckboxId);
+              return;
+            }
+
+            const toggleTarget = event.target.closest("[data-set-toggle-id]");
+            if (toggleTarget) {
+              toggleSetCheck(toggleTarget.dataset.setToggleId);
+            }
+          });
+          bindEvent(setList, "keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") {
+              return;
+            }
+
+            const toggleTarget = event.target.closest("[data-set-toggle-id]");
+            if (!toggleTarget) {
+              return;
+            }
+
+            event.preventDefault();
+            toggleSetCheck(toggleTarget.dataset.setToggleId);
+          });
+
+          bindEvent(document.getElementById("editor-back-btn"), "click", () => {
+            closeEditor();
+          });
+          bindEvent(document.getElementById("editor-export-source-btn"), "click", () => {
+            exportEditorSource();
+          });
+          bindEvent(document.getElementById("editor-json-btn"), "click", () => {
+            exportEditorJson();
+          });
+          bindEvent(document.getElementById("editor-save-btn"), "click", () => {
+            void saveEditor();
+          });
+          bindEvent(document.getElementById("editor-set-name"), "input", (event) => {
+            updateEditorSetName(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("editor-set-name"), "change", (event) => {
+            updateEditorSetName(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("editor-add-question-btn"), "click", () => {
+            addEditorQuestion();
+          });
+          bindEvent(document.getElementById("editor-move-question-up-btn"), "click", () => {
+            moveCurrentEditorQuestion(-1);
+          });
+          bindEvent(document.getElementById("editor-move-question-down-btn"), "click", () => {
+            moveCurrentEditorQuestion(1);
+          });
+          bindEvent(document.getElementById("editor-duplicate-question-btn"), "click", () => {
+            duplicateCurrentEditorQuestion();
+          });
+          bindEvent(document.getElementById("editor-remove-question-btn"), "click", () => {
+            removeCurrentEditorQuestion();
+          });
+          bindEvent(document.getElementById("editor-visual-tab-btn"), "click", () => {
+            showEditorVisual();
+          });
+          bindEvent(document.getElementById("editor-raw-tab-btn"), "click", () => {
+            showEditorRaw();
+          });
+          bindEvent(document.getElementById("editor-question-text"), "input", (event) => {
+            updateEditorQuestionText(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("editor-question-text"), "change", (event) => {
+            updateEditorQuestionText(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("editor-subject"), "input", (event) => {
+            updateEditorQuestionSubject(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("editor-subject"), "change", (event) => {
+            updateEditorQuestionSubject(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("editor-add-option-btn"), "click", () => {
+            addEditorOption();
+          });
+          bindEvent(document.getElementById("editor-correct"), "change", (event) => {
+            updateEditorCorrectIndex(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("editor-explanation"), "input", (event) => {
+            updateEditorQuestionExplanation(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("editor-explanation"), "change", (event) => {
+            updateEditorQuestionExplanation(event.currentTarget?.value);
+          });
+          bindEvent(document.getElementById("apply-editor-raw-btn"), "click", () => {
+            applyEditorRaw();
+          });
+          bindEvent(document.getElementById("undo-toast-btn"), "click", () => {
+            void undoLastRemoval();
+          });
+
+          bindEvent(document.getElementById("editor-question-list"), "click", (event) => {
+            const target = event.target.closest("[data-editor-question-index]");
+            if (!target) {
+              return;
+            }
+
+            selectEditorQuestion(Number(target.dataset.editorQuestionIndex));
+          });
+          bindEvent(document.getElementById("editor-validation-summary"), "click", (event) => {
+            const target = event.target.closest("[data-editor-jump-question-index]");
+            if (!target) {
+              return;
+            }
+
+            selectEditorQuestion(Number(target.dataset.editorJumpQuestionIndex));
+          });
+          bindEvent(document.getElementById("editor-options"), "change", (event) => {
+            const target = event.target.closest("[data-editor-option-index]");
+            if (!target) {
+              return;
+            }
+
+            updateEditorOption(Number(target.dataset.editorOptionIndex), target.value);
+          });
+          bindEvent(document.getElementById("editor-options"), "click", (event) => {
+            const target = event.target.closest("[data-editor-remove-option-index]");
+            if (!target) {
+              return;
+            }
+
+            removeEditorOption(Number(target.dataset.editorRemoveOptionIndex));
+          });
+
+          bindEvent(document.getElementById("topic-select"), "change", () => {
+            filterByTopic();
+          });
+          bindEvent(document.getElementById("jump-btn"), "click", () => {
+            jumpToQuestion();
+          });
+          bindEvent(document.getElementById("show-set-manager-btn"), "click", () => {
+            showSetManager();
+          });
+          bindEvent(document.getElementById("shuffle-btn"), "click", () => {
+            shuffleQuestions();
+          });
+          bindEvent(document.getElementById("retry-wrong-btn"), "click", () => {
+            retryWrongAnswers();
+          });
+          bindEvent(document.getElementById("export-printable-btn"), "click", () => {
+            exportPrintable();
+          });
+          bindEvent(document.getElementById("reset-quiz-btn"), "click", () => {
+            resetQuiz();
+          });
+          bindEvent(document.getElementById("prev-btn"), "click", () => {
+            previousQuestion();
+          });
+          bindEvent(document.getElementById("next-btn"), "click", () => {
+            nextQuestion();
+          });
+          bindEvent(document.getElementById("fullscreen-toggle-btn"), "click", (event) => {
+            event.stopPropagation();
+            toggleFullscreen();
+          });
+          bindEvent(document.getElementById("show-solution-btn"), "click", () => {
+            toggleSolution();
+          });
+          bindEvent(document.getElementById("fullscreen-prev-btn"), "click", () => {
+            previousQuestion();
+          });
+          bindEvent(document.getElementById("fullscreen-next-btn"), "click", () => {
+            nextQuestion();
+          });
+        }
+
         // -- BAŞLATMA MANTIĞI --
         document.addEventListener("keydown", function (e) {
           if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")
@@ -2024,6 +2361,9 @@ export async function startApp() {
   
         // İlk yüklendiğinde set listesini localStorage'dan getir
         async function initApp() {
+          ThemeManager.renderThemeOptions(THEME_CONTROL_IDS);
+          syncManagerSettingsPanelState();
+          bindStaticEvents();
           setManager.loadStoredSets("");
           loadState("");
           const fallbackWorkspace = captureWorkspaceSeed();
@@ -2047,69 +2387,8 @@ export async function startApp() {
           initGoogleDrive();
         }
   
-        Object.assign(window, {
-          toggleSetCheck,
-          deleteSet,
-          toggleDeleteMode,
-          selectAllSets,
-          clearSetSelection,
-          removeSelectedSets,
-          openNewSetEditor,
-          openSelectedSetEditor,
-          authGoogleDrive,
-          continueAsDemoAuth,
-          openSetImport,
-          handleFileSelect,
-          signInAuth,
-          signUpAuth,
-          signOutAuth,
-          useCloudConflictResolution,
-          useLocalConflictResolution,
-          startStudy,
-          toggleTheme,
-          setAnswerLock,
-          setAutoAdvance,
-          setQuestionFontSize,
-          setOptionFontSize,
-          setFullscreenQuestionFontSize,
-          setFullscreenOptionFontSize,
-          resetTypographyPreferences,
-          undoLastRemoval,
-          closeEditor,
-          saveEditor,
-          exportEditorJson,
-          exportEditorSource,
-          selectEditorQuestion,
-          showEditorVisual,
-          showEditorRaw,
-          updateEditorSetName,
-          updateEditorQuestionText,
-          updateEditorQuestionSubject,
-          updateEditorQuestionExplanation,
-          updateEditorCorrectIndex,
-          updateEditorOption,
-          addEditorQuestion,
-          duplicateCurrentEditorQuestion,
-          moveCurrentEditorQuestion,
-          removeCurrentEditorQuestion,
-          addEditorOption,
-          removeEditorOption,
-          applyEditorRaw,
-          filterByTopic,
-          jumpToQuestion,
-          showSetManager,
-          shuffleQuestions,
-          retryWrongAnswers,
-          exportPrintable,
-          resetQuiz,
-          toggleAnalyticsPanel,
-          closeAnalyticsPanel,
-          checkDesktopUpdates,
-          retryCloudSync,
-          previousQuestion,
-          nextQuestion,
-          toggleFullscreen,
-          toggleSolution,
+        window.AppSyncConflict = Object.freeze({
+          detectSyncConflict,
         });
   
         window.__MCQ_TEST_HOOKS__ = Object.freeze({
