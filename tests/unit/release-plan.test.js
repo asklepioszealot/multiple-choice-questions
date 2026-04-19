@@ -3,10 +3,29 @@ import { describe, expect, it } from "vitest";
 import {
   buildReleasePlan,
   detectUpdaterSigningPlan,
+  joinTargetPath,
   resolveMcqUpdaterKeyPath,
 } from "../../tools/release-plan.mjs";
 
 describe("release plan", () => {
+  it("keeps Windows separators when joining against Windows roots", () => {
+    expect(
+      joinTargetPath(
+        "D:\\Git Projelerim\\multiple-choices-test\\.worktrees\\mcq-foundation-convergence",
+        "release",
+        "artifacts",
+      ),
+    ).toBe(
+      "D:\\Git Projelerim\\multiple-choices-test\\.worktrees\\mcq-foundation-convergence\\release\\artifacts",
+    );
+  });
+
+  it("keeps POSIX separators when joining against POSIX roots", () => {
+    expect(joinTargetPath("/home/runner/work/mcq", "release", "artifacts")).toBe(
+      "/home/runner/work/mcq/release/artifacts",
+    );
+  });
+
   it("resolves the MCQ-specific local updater key path", () => {
     expect(resolveMcqUpdaterKeyPath("C:\\Users\\Ahmet")).toBe(
       "C:\\Users\\Ahmet\\.tauri\\multiple-choice-questions-updater.key",

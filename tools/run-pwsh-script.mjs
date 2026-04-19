@@ -2,6 +2,14 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+function looksLikeWindowsAbsolutePath(candidatePath) {
+  return (
+    typeof candidatePath === "string" &&
+    candidatePath.length > 0 &&
+    (/^[A-Za-z]:[\\/]/.test(candidatePath) || candidatePath.startsWith("\\\\"))
+  );
+}
+
 export function normalizeWindowsWorkingDirectory(inputPath) {
   if (typeof inputPath !== "string" || inputPath.length === 0) {
     return inputPath;
@@ -17,16 +25,42 @@ export function normalizeWindowsWorkingDirectory(inputPath) {
   return inputPath;
 }
 
-export function buildPwshInvocation({ cwd = process.cwd(), scriptPath, scriptArgs = [] } = {}) {
+export function resolvePowerShellScriptPath({
+  cwd = process.cwd(),
+  scriptPath,
+} = {}) {
   if (typeof scriptPath !== "string" || scriptPath.length === 0) {
     throw new Error("scriptPath is required");
   }
 
   const normalizedCwd = normalizeWindowsWorkingDirectory(cwd);
   const normalizedScriptPath = normalizeWindowsWorkingDirectory(scriptPath);
-  const absoluteScriptPath = path.isAbsolute(normalizedScriptPath)
-    ? normalizedScriptPath
-    : path.resolve(normalizedCwd, normalizedScriptPath);
+
+  if (looksLikeWindowsAbsolutePath(normalizedScriptPath)) {
+    return path.win32.normalize(normalizedScriptPath);
+  }
+
+  if (path.posix.isAbsolute(normalizedScriptPath)) {
+    return path.posix.normalize(normalizedScriptPath);
+  }
+
+  if (looksLikeWindowsAbsolutePath(normalizedCwd)) {
+    return path.win32.resolve(normalizedCwd, normalizedScriptPath);
+  }
+
+  return path.resolve(normalizedCwd, normalizedScriptPath);
+}
+
+export function buildPwshInvocation({ cwd = process.cwd(), scriptPath, scriptArgs = [] } = {}) {
+  if (typeof scriptPath !== "string" || scriptPath.length === 0) {
+    throw new Error("scriptPath is required");
+  }
+
+  const normalizedCwd = normalizeWindowsWorkingDirectory(cwd);
+  const absoluteScriptPath = resolvePowerShellScriptPath({
+    cwd: normalizedCwd,
+    scriptPath,
+  });
 
   return {
     command: "pwsh",

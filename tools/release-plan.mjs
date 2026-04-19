@@ -4,8 +4,21 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildReleaseArtifactNames } from "./release-artifact-names.mjs";
 
+export function usesWindowsPathSemantics(candidatePath) {
+  if (typeof candidatePath !== "string" || candidatePath.length === 0) {
+    return false;
+  }
+
+  return /^[A-Za-z]:[\\/]/.test(candidatePath) || candidatePath.startsWith("\\\\");
+}
+
+export function joinTargetPath(basePath, ...segments) {
+  const pathApi = usesWindowsPathSemantics(basePath) ? path.win32 : path.posix;
+  return pathApi.join(basePath, ...segments);
+}
+
 export function resolveMcqUpdaterKeyPath(homeDir = os.homedir()) {
-  return path.join(homeDir, ".tauri", "multiple-choice-questions-updater.key");
+  return joinTargetPath(homeDir, ".tauri", "multiple-choice-questions-updater.key");
 }
 
 export function detectUpdaterSigningPlan({
@@ -60,11 +73,11 @@ export function buildReleasePlan({
     version,
     commit,
   });
-  const releaseDir = path.join(repoRoot, "release", `${timestamp}_v${version}_${commit}`);
-  const portableTarget = path.join(releaseDir, artifactNames.portableName);
-  const setupTarget = path.join(releaseDir, artifactNames.setupName);
-  const latestPointerPath = path.join(repoRoot, "LATEST_RELEASE_POINTER.txt");
-  const openPortableInfoPath = path.join(releaseDir, "OPEN_THIS_PORTABLE.txt");
+  const releaseDir = joinTargetPath(repoRoot, "release", `${timestamp}_v${version}_${commit}`);
+  const portableTarget = joinTargetPath(releaseDir, artifactNames.portableName);
+  const setupTarget = joinTargetPath(releaseDir, artifactNames.setupName);
+  const latestPointerPath = joinTargetPath(repoRoot, "LATEST_RELEASE_POINTER.txt");
+  const openPortableInfoPath = joinTargetPath(releaseDir, "OPEN_THIS_PORTABLE.txt");
 
   return {
     artifactNames,
