@@ -1,390 +1,32 @@
-import { escapeMarkup } from "../../shared/utils.js";
+import {
+  addDraftOption,
+  addDraftQuestion,
+  createEditorDraft,
+  createEmptyQuestion,
+  createNewEditorDraft,
+  duplicateDraftQuestion,
+  moveDraftQuestion,
+  removeDraftOption,
+  removeDraftQuestion,
+  resolveEditorCodecHelpers,
+  toSafeArray,
+  updateDraftOptionValue,
+  updateDraftQuestionField,
+} from "./editor-state.js";
+import {
+  bindRawEditorAutoResize,
+  renderOptions,
+  renderQuestionList,
+  renderValidationSummary,
+  syncRawEditorHeight,
+} from "./editor-render.js";
+import {
+  createDownload,
+  parseRawEditorDraft,
+  serializeEditorDraft,
+} from "./editor-save.js";
 
 const globalScope = typeof window !== "undefined" ? window : globalThis;
-
-function toSafeArray(value) {
-    return Array.isArray(value) ? value : [];
-  }
-
-  function fallbackHtmlToEditableText(value) {
-    return String(value ?? "")
-      .replace(
-        /<strong\s+class=['"]highlight-critical['"]>(.*?)<\/strong>/gi,
-        "==$1==",
-      )
-      .replace(
-        /<span\s+class=['"]highlight-important['"]>\s*⚠️(.*?)<\/span>/gi,
-        "> ⚠️$1",
-      )
-      .replace(/<strong>(.*?)<\/strong>/gi, "**$1**")
-      .replace(/<em>(.*?)<\/em>/gi, "*$1*")
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<[^>]+>/g, "")
-      .trim();
-  }
-
-  function fallbackFormatEditableText(value) {
-    return String(value ?? "")
-      .trim()
-      .split("\n")
-      .filter((line, index, lines) => line.trim() || index < lines.length - 1)
-      .join("<br>");
-  }
-
-  function fallbackSerializeJson(record) {
-    return JSON.stringify(
-      {
-        setName: record.setName,
-        questions: record.questions,
-      },
-      null,
-      2,
-    );
-  }
-
-  function fallbackBuildSetRecord(record, options = {}) {
-    const previousRecord =
-      options.previousRecord && typeof options.previousRecord === "object"
-        ? options.previousRecord
-        : {};
-    const sourceFormat =
-      typeof record?.sourceFormat === "string" && record.sourceFormat.trim()
-        ? record.sourceFormat.trim()
-        : typeof previousRecord.sourceFormat === "string" &&
-            previousRecord.sourceFormat.trim()
-          ? previousRecord.sourceFormat.trim()
-          : "json";
-    const fileName =
-      typeof record?.fileName === "string" && record.fileName.trim()
-        ? record.fileName.trim()
-        : typeof previousRecord.fileName === "string" && previousRecord.fileName.trim()
-          ? previousRecord.fileName.trim()
-          : `set.${sourceFormat === "markdown" ? "md" : "json"}`;
-
-    const builtRecord = {
-      ...previousRecord,
-      ...record,
-      fileName,
-      sourceFormat,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return {
-      ...builtRecord,
-      rawSource:
-        sourceFormat === "markdown"
-          ? String(builtRecord.rawSource || "").trim()
-          : fallbackSerializeJson(builtRecord),
-    };
-  }
-
-  function fallbackParseSetText(rawText, fileName, existingRecord, sourceFormatOverride) {
-    const sourceFormat =
-      sourceFormatOverride === "markdown" ||
-      /\.(md|txt)$/i.test(String(fileName || existingRecord?.fileName || ""))
-        ? "markdown"
-        : "json";
-
-    if (sourceFormat === "markdown") {
-      throw new Error("Markdown codec is not available.");
-    }
-
-    const parsed = JSON.parse(String(rawText || ""));
-    return fallbackBuildSetRecord(
-      {
-        ...existingRecord,
-        ...parsed,
-        fileName: fileName || existingRecord?.fileName || "set.json",
-        sourceFormat,
-        rawSource: String(rawText || ""),
-      },
-      { previousRecord: existingRecord },
-    );
-  }
-
-  function resolveCodecHelpers(overrides = {}) {
-    const codec = overrides.codec || globalScope.AppSetCodec || {};
-
-    return {
-      buildSetRecord:
-        typeof overrides.buildSetRecord === "function"
-          ? overrides.buildSetRecord
-          : typeof codec.buildSetRecord === "function"
-            ? codec.buildSetRecord
-            : fallbackBuildSetRecord,
-      formatEditableText:
-        typeof overrides.formatEditableText === "function"
-          ? overrides.formatEditableText
-          : typeof codec.formatEditableText === "function"
-            ? codec.formatEditableText
-            : fallbackFormatEditableText,
-      htmlToEditableText:
-        typeof overrides.htmlToEditableText === "function"
-          ? overrides.htmlToEditableText
-          : typeof codec.htmlToEditableText === "function"
-            ? codec.htmlToEditableText
-            : fallbackHtmlToEditableText,
-      parseSetText:
-        typeof overrides.parseSetText === "function"
-          ? overrides.parseSetText
-          : typeof codec.parseSetText === "function"
-            ? codec.parseSetText
-            : fallbackParseSetText,
-      serializeSetRecord:
-        typeof overrides.serializeSetRecord === "function"
-          ? overrides.serializeSetRecord
-          : typeof codec.serializeSetRecord === "function"
-            ? codec.serializeSetRecord
-            : function fallbackSerializeSetRecord(record, sourceFormatOverride = null) {
-                const sourceFormat =
-                  sourceFormatOverride ||
-                  (record?.sourceFormat === "markdown" ? "markdown" : "json");
-                return sourceFormat === "markdown"
-                  ? String(record?.rawSource || "")
-                  : fallbackSerializeJson(record || {});
-              },
-    };
-  }
-
-  function normalizeEditableQuestion(question, helpers) {
-    const normalized = question && typeof question === "object" ? question : {};
-    const options = toSafeArray(normalized.options).map((option) =>
-      helpers.htmlToEditableText(option),
-    );
-    while (options.length < 2) {
-      options.push("");
-    }
-
-    const correctIndex = Number.isInteger(normalized.correct) ? normalized.correct : 0;
-
-    return {
-      id:
-        typeof normalized.id === "string" || typeof normalized.id === "number"
-          ? normalized.id
-          : null,
-      q: helpers.htmlToEditableText(normalized.q),
-      options,
-      correct:
-        correctIndex >= 0 && correctIndex < options.length ? correctIndex : 0,
-      explanation: helpers.htmlToEditableText(normalized.explanation),
-      subject:
-        typeof normalized.subject === "string" && normalized.subject.trim()
-          ? normalized.subject.trim()
-          : "Genel",
-    };
-  }
-
-  function createEmptyQuestion() {
-    return {
-      id: null,
-      q: "",
-      options: ["", ""],
-      correct: 0,
-      explanation: "",
-      subject: "Genel",
-    };
-  }
-
-  function createEditorDraft(record = {}, helpers = {}) {
-    const codec = resolveCodecHelpers(helpers);
-    const questions = toSafeArray(record.questions).map((question) =>
-      normalizeEditableQuestion(question, codec),
-    );
-    const sourceFormat =
-      typeof record.sourceFormat === "string" && record.sourceFormat.trim()
-        ? record.sourceFormat.trim()
-        : "json";
-    const fileName = Object.prototype.hasOwnProperty.call(record, "fileName")
-      ? typeof record.fileName === "string"
-        ? record.fileName.trim()
-        : ""
-      : typeof record.fileName === "string" && record.fileName.trim()
-        ? record.fileName.trim()
-        : `set.${sourceFormat === "markdown" ? "md" : "json"}`;
-
-    return {
-      meta: {
-        id: typeof record.id === "string" ? record.id : "",
-        slug: typeof record.slug === "string" ? record.slug : "",
-        setName: typeof record.setName === "string" ? record.setName : "",
-        fileName,
-        sourceFormat,
-        sourcePath:
-          typeof record.sourcePath === "string" ? record.sourcePath : "",
-        rawSource:
-          typeof record.rawSource === "string" && record.rawSource.trim()
-            ? record.rawSource
-            : codec.serializeSetRecord(
-                {
-                  ...record,
-                  fileName,
-                  sourceFormat,
-                  questions: toSafeArray(record.questions),
-                },
-                sourceFormat,
-              ),
-      },
-      questions,
-      activeQuestionIndex: questions.length > 0 ? 0 : -1,
-      mode: "visual",
-    };
-  }
-
-  function createNewEditorDraft(options = {}, helpers = {}) {
-    const sourceFormat = options?.sourceFormat === "json" ? "json" : "markdown";
-    return createEditorDraft(
-      {
-        fileName: "",
-        questions: [createEmptyQuestion()],
-        rawSource: "",
-        setName: "",
-        sourceFormat,
-        sourcePath: "",
-      },
-      helpers,
-    );
-  }
-
-  function updateDraftQuestionField(draft, questionIndex, field, value) {
-    const nextDraft = {
-      ...draft,
-      questions: draft.questions.map((question, index) => {
-        if (index !== questionIndex) {
-          return question;
-        }
-
-        const nextQuestion = {
-          ...question,
-          [field]:
-            field === "correct"
-              ? Number.isInteger(Number(value))
-                ? Number(value)
-                : 0
-              : String(value ?? ""),
-        };
-
-        const options = toSafeArray(nextQuestion.options);
-        return {
-          ...nextQuestion,
-          correct:
-            nextQuestion.correct >= 0 && nextQuestion.correct < options.length
-              ? nextQuestion.correct
-              : 0,
-        };
-      }),
-    };
-
-    return nextDraft;
-  }
-
-  function addDraftQuestion(draft) {
-    const nextQuestions = [...draft.questions, createEmptyQuestion()];
-    return {
-      ...draft,
-      questions: nextQuestions,
-      activeQuestionIndex: nextQuestions.length - 1,
-    };
-  }
-
-  function duplicateDraftQuestion(draft, questionIndex) {
-    const sourceQuestion = toSafeArray(draft?.questions)[questionIndex];
-    if (!sourceQuestion) {
-      return draft;
-    }
-
-    const duplicatedQuestion = {
-      ...sourceQuestion,
-      id: null,
-      options: toSafeArray(sourceQuestion.options).map((option) => String(option ?? "")),
-    };
-    const nextQuestions = [...draft.questions];
-    nextQuestions.splice(questionIndex + 1, 0, duplicatedQuestion);
-
-    return {
-      ...draft,
-      questions: nextQuestions,
-      activeQuestionIndex: questionIndex + 1,
-    };
-  }
-
-  function moveDraftQuestion(draft, questionIndex, direction) {
-    const questions = toSafeArray(draft?.questions);
-    const targetIndex = questionIndex + Number(direction || 0);
-    if (
-      !questions[questionIndex] ||
-      !Number.isInteger(targetIndex) ||
-      targetIndex < 0 ||
-      targetIndex >= questions.length
-    ) {
-      return draft;
-    }
-
-    const nextQuestions = [...questions];
-    const [movedQuestion] = nextQuestions.splice(questionIndex, 1);
-    nextQuestions.splice(targetIndex, 0, movedQuestion);
-
-    return {
-      ...draft,
-      questions: nextQuestions,
-      activeQuestionIndex: targetIndex,
-    };
-  }
-
-  function buildRecordFromDraft(draft, baseRecord = {}, helpers = {}) {
-    const codec = resolveCodecHelpers(helpers);
-    const draftQuestions = toSafeArray(draft.questions).filter(
-      (question) =>
-        String(question?.q || "").trim() ||
-        toSafeArray(question?.options).some((option) => String(option || "").trim()),
-    );
-
-    return codec.buildSetRecord(
-      {
-        ...baseRecord,
-        id: draft.meta.id || baseRecord.id || "",
-        slug: draft.meta.slug || baseRecord.slug || "",
-        setName: draft.meta.setName || baseRecord.setName || "",
-        fileName:
-          typeof draft?.meta?.fileName === "string"
-            ? draft.meta.fileName
-            : typeof baseRecord?.fileName === "string"
-              ? baseRecord.fileName
-              : "",
-        sourceFormat:
-          draft.meta.sourceFormat || baseRecord.sourceFormat || "json",
-        questions: draftQuestions.map((question) => ({
-          id: question.id,
-          q: codec.formatEditableText(question.q),
-          options: toSafeArray(question.options).map((option) =>
-            codec.formatEditableText(option),
-          ),
-          correct: Number.isInteger(question.correct) ? question.correct : 0,
-          explanation: codec.formatEditableText(question.explanation),
-          subject:
-            typeof question.subject === "string" && question.subject.trim()
-              ? question.subject.trim()
-              : "Genel",
-        })),
-      },
-      { previousRecord: baseRecord },
-    );
-  }
-
-  function parseRawEditorDraft(rawText, baseRecord = {}, helpers = {}) {
-    const codec = resolveCodecHelpers(helpers);
-    const parsedRecord = codec.parseSetText(
-      rawText,
-      baseRecord.fileName,
-      baseRecord,
-      baseRecord.sourceFormat,
-    );
-
-    return createEditorDraft(parsedRecord, codec);
-  }
-
-  function serializeEditorDraft(draft, baseRecord = {}, helpers = {}) {
-    return buildRecordFromDraft(draft, baseRecord, helpers);
-  }
 
   function getEditorValidationIssues(draft) {
     const issues = [];
@@ -468,81 +110,6 @@ function toSafeArray(value) {
     }
 
     return "";
-  }
-
-  function addDraftOption(draft, questionIndex) {
-    return {
-      ...draft,
-      questions: draft.questions.map((question, index) =>
-        index === questionIndex
-          ? {
-              ...question,
-              options: [...question.options, ""],
-            }
-          : question,
-      ),
-    };
-  }
-
-  function removeDraftOption(draft, questionIndex, optionIndex) {
-    return {
-      ...draft,
-      questions: draft.questions.map((question, index) => {
-        if (index !== questionIndex) {
-          return question;
-        }
-
-        const nextOptions = question.options.filter(
-          (_, currentIndex) => currentIndex !== optionIndex,
-        );
-        return {
-          ...question,
-          options: nextOptions.length >= 2 ? nextOptions : ["", ""],
-          correct: question.correct >= nextOptions.length ? 0 : question.correct,
-        };
-      }),
-    };
-  }
-
-  function updateDraftOptionValue(draft, questionIndex, optionIndex, value) {
-    return {
-      ...draft,
-      questions: draft.questions.map((question, index) => {
-        if (index !== questionIndex) {
-          return question;
-        }
-
-        return {
-          ...question,
-          options: question.options.map((option, currentIndex) =>
-            currentIndex === optionIndex ? String(value ?? "") : option,
-          ),
-        };
-      }),
-    };
-  }
-
-  function removeDraftQuestion(draft, questionIndex) {
-    const nextQuestions = draft.questions.filter((_, index) => index !== questionIndex);
-    return {
-      ...draft,
-      questions: nextQuestions,
-      activeQuestionIndex:
-        nextQuestions.length === 0
-          ? -1
-          : Math.min(draft.activeQuestionIndex, nextQuestions.length - 1),
-    };
-  }
-
-  function createDownload(documentRef, payload, fileName, mimeType) {
-    const blob = new Blob([payload], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const anchor = documentRef.createElement("a");
-    anchor.href = url;
-    anchor.download = fileName;
-    anchor.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    return payload;
   }
 
   function buildMediaTokenTemplate(kind = "image") {
@@ -676,7 +243,7 @@ function toSafeArray(value) {
     writeSourceFile,
     confirmRef = globalScope.confirm?.bind(globalScope),
   } = {}) {
-    const codecHelpers = resolveCodecHelpers({
+    const codecHelpers = resolveEditorCodecHelpers({
       buildSetRecord,
       formatEditableText,
       htmlToEditableText,
@@ -765,126 +332,6 @@ function toSafeArray(value) {
 
       statusEl.textContent = statusMessage;
       statusEl.className = tone ? `auth-status ${tone}` : "auth-status";
-    }
-
-    function renderQuestionList(validationIssues = []) {
-      const listEl = documentRef?.getElementById("editor-question-list");
-      if (!listEl || !draft) {
-        return;
-      }
-
-      const issueIndexes = new Set(
-        validationIssues
-          .map((issue) => issue?.questionIndex)
-          .filter((questionIndex) => Number.isInteger(questionIndex) && questionIndex >= 0),
-      );
-
-      listEl.innerHTML = draft.questions
-        .map((question, index) => {
-          const activeClass =
-            index === draft.activeQuestionIndex
-              ? " editor-question-item active"
-              : " editor-question-item";
-          const label = question.q.trim() || `Soru ${index + 1}`;
-          const issueMarker = issueIndexes.has(index) ? " ! " : "";
-          return `<button class="${activeClass.trim()}" type="button" data-editor-question-index="${index}">${escapeMarkup(issueMarker + label)}</button>`;
-        })
-        .join("");
-    }
-
-    function renderValidationSummary(validationIssues = []) {
-      const summaryEl = documentRef?.getElementById("editor-validation-summary");
-      if (!summaryEl) {
-        return;
-      }
-
-      if (!draft) {
-        summaryEl.textContent = "";
-        summaryEl.className = "auth-status";
-        return;
-      }
-
-      if (validationIssues.length === 0) {
-        summaryEl.textContent = "Kaydetmeye hazir.";
-        summaryEl.className = "auth-status success editor-validation-summary";
-        return;
-      }
-
-      summaryEl.className = "auth-status error editor-validation-summary";
-      summaryEl.innerHTML = [
-        `<strong>${validationIssues.length} sorun cozulmeli.</strong>`,
-        '<ul class="editor-validation-list">',
-        ...validationIssues.map((issue) => {
-          const jumpTarget =
-            Number.isInteger(issue.questionIndex) && issue.questionIndex >= 0
-              ? `<button class="btn btn-small btn-secondary" type="button" data-editor-jump-question-index="${issue.questionIndex}">Soru ${issue.questionIndex + 1}</button>`
-              : '<span class="auth-meta">Genel</span>';
-          return `<li class="editor-validation-item">${jumpTarget}<span>${escapeMarkup(issue.message)}</span></li>`;
-        }),
-        "</ul>",
-      ].join("");
-    }
-
-    function renderOptions(question) {
-      const optionsEl = documentRef?.getElementById("editor-options");
-      const correctSelect = documentRef?.getElementById("editor-correct");
-      if (!optionsEl || !correctSelect) {
-        return;
-      }
-
-      const currentQuestion = question || createEmptyQuestion();
-      optionsEl.innerHTML = currentQuestion.options
-        .map(
-          (option, index) => `
-            <div class="editor-option-row">
-              <input
-                class="auth-input"
-                value="${escapeMarkup(option)}"
-                data-editor-option-index="${index}"
-              />
-              <button class="btn btn-small btn-secondary" data-editor-remove-option-index="${index}" type="button">Sil</button>
-            </div>
-          `,
-        )
-        .join("");
-
-      correctSelect.innerHTML = currentQuestion.options
-        .map(
-          (_, index) =>
-            `<option value="${index}" ${index === currentQuestion.correct ? "selected" : ""}>${String.fromCharCode(65 + index)}</option>`,
-        )
-        .join("");
-    }
-
-    function syncRawEditorHeight(rawInputEl) {
-      if (!rawInputEl) {
-        return;
-      }
-
-      rawInputEl.style.height = "auto";
-      const computedStyle =
-        typeof globalScope.getComputedStyle === "function"
-          ? globalScope.getComputedStyle(rawInputEl)
-          : null;
-      const borderTopWidth = Number.parseFloat(
-        computedStyle?.borderTopWidth || "0",
-      );
-      const borderBottomWidth = Number.parseFloat(
-        computedStyle?.borderBottomWidth || "0",
-      );
-      rawInputEl.style.height = `${
-        rawInputEl.scrollHeight + borderTopWidth + borderBottomWidth
-      }px`;
-    }
-
-    function bindRawEditorAutoResize(rawInputEl) {
-      if (!rawInputEl) {
-        return;
-      }
-
-      rawInputEl.oninput = () => {
-        syncRawEditorHeight(rawInputEl);
-      };
     }
 
     function render() {
@@ -1045,9 +492,20 @@ function toSafeArray(value) {
         dirtyPill.textContent = `Durum: ${isDirty() ? "Kaydedilmedi" : "Kaydedildi"}`;
       }
 
-      renderQuestionList(validationIssues);
-      renderOptions(currentQuestion);
-      renderValidationSummary(validationIssues);
+      renderQuestionList({
+        documentRef,
+        draft,
+        validationIssues,
+      });
+      renderOptions({
+        documentRef,
+        question: currentQuestion,
+      });
+      renderValidationSummary({
+        documentRef,
+        draft,
+        validationIssues,
+      });
       setStatus(statusMessage, statusTone);
     }
 
