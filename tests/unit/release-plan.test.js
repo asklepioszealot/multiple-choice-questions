@@ -1,4 +1,3 @@
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildReleasePlan,
@@ -89,7 +88,7 @@ describe("release plan", () => {
       "D:\\Git Projelerim\\multiple-choices-test\\.worktrees\\mcq-foundation-convergence\\LATEST_RELEASE_POINTER.txt",
     );
     expect(releasePlan.openPortableInfoPath).toBe(
-      path.join(releasePlan.releaseDir, "OPEN_THIS_PORTABLE.txt"),
+      joinTargetPath(releasePlan.releaseDir, "OPEN_THIS_PORTABLE.txt"),
     );
     expect(releasePlan.pointerEntries).toEqual([
       `latest_release_dir=${releasePlan.releaseDir}`,
