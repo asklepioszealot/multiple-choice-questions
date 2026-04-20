@@ -58,6 +58,55 @@ describe("set-codec", () => {
     expect(reparsed.questions[0].explanation).toContain("highlight-critical");
   });
 
+  it("roundtrips safe image and audio tokens through markdown source", () => {
+    const source = [
+      "# Noroloji",
+      "",
+      "Soru 1: Bu yapı nedir? ![Beyin sapi](data:image/png;base64,QUJD)",
+      "Konu: Beyin",
+      "A) Omurilik",
+      "B) Beyin sapi",
+      "Doğru Cevap: B",
+      "Açıklama: ![audio: Ses kaydi](data:audio/mpeg;base64,SUQz)",
+    ].join("\n");
+
+    const parsed = parseSetText(source, "media.md");
+    const serialized = serializeSetRecord(parsed, "markdown");
+
+    expect(parsed.questions[0].q).toContain("<img");
+    expect(parsed.questions[0].q).toContain("data:image/png;base64,QUJD");
+    expect(parsed.questions[0].explanation).toContain("<audio");
+    expect(parsed.questions[0].explanation).toContain("data:audio/mpeg;base64,SUQz");
+    expect(serialized).toContain("![Beyin sapi](data:image/png;base64,QUJD)");
+    expect(serialized).toContain("![audio: Ses kaydi](data:audio/mpeg;base64,SUQz)");
+  });
+
+  it("drops unsafe media tokens from markdown parse and export surfaces", () => {
+    const source = [
+      "# Guvensiz Medya",
+      "",
+      "Soru 1: Bu token korunmamalı ![XSS](javascript:alert('x'))",
+      "Konu: Guvenlik",
+      "A) A",
+      "B) B",
+      "Doğru Cevap: A",
+      "Açıklama: ![audio: Kotu](file:///tmp/evil.mp3)",
+    ].join("\n");
+
+    const parsed = parseSetText(source, "unsafe.md");
+    const markdownExport = serializeSetRecord(parsed, "markdown");
+    const jsonExport = serializeSetRecord(parsed, "json");
+
+    expect(parsed.questions[0].q).not.toContain("<img");
+    expect(parsed.questions[0].q).not.toContain("javascript:");
+    expect(parsed.questions[0].explanation).not.toContain("<audio");
+    expect(parsed.questions[0].explanation).not.toContain("file:///");
+    expect(markdownExport).not.toContain("javascript:");
+    expect(markdownExport).not.toContain("file:///");
+    expect(jsonExport).not.toContain("javascript:");
+    expect(jsonExport).not.toContain("file:///");
+  });
+
   it("builds source-aware records and keeps question ids on save", () => {
     const previousRecord = {
       id: "demo",

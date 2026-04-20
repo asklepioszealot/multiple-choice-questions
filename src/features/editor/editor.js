@@ -545,6 +545,125 @@ function toSafeArray(value) {
     return payload;
   }
 
+  function buildMediaTokenTemplate(kind = "image") {
+    if (kind === "audio") {
+      const token = "![audio: Ses kaydi](https://example.com/ses.mp3)";
+      const urlStart = token.indexOf("https://");
+      return {
+        token,
+        selectionEnd: token.length - 1,
+        selectionStart: urlStart,
+      };
+    }
+
+    const token = "![Gorsel aciklamasi](https://example.com/gorsel.png)";
+    const urlStart = token.indexOf("https://");
+    return {
+      token,
+      selectionEnd: token.length - 1,
+      selectionStart: urlStart,
+    };
+  }
+
+  function buildFormattingTokenTemplate(action = "bold", selectedText = "") {
+    const normalizedSelection = String(selectedText || "").trim();
+
+    if (action === "critical") {
+      const innerText = normalizedSelection || "kritik bilgi";
+      const token = `==${innerText}==`;
+      return {
+        token,
+        selectionEnd: token.length - 2,
+        selectionStart: 2,
+      };
+    }
+
+    if (action === "warning") {
+      const innerText = normalizedSelection || "Dikkat notu";
+      const token = `> ⚠️ ${innerText}`;
+      return {
+        token,
+        selectionEnd: token.length,
+        selectionStart: 5,
+      };
+    }
+
+    const innerText = normalizedSelection || "kalin metin";
+    const token = `**${innerText}**`;
+    return {
+      token,
+      selectionEnd: token.length - 2,
+      selectionStart: 2,
+    };
+  }
+
+  function normalizeSelectionRange(textValue, selectionStart, selectionEnd) {
+    const textLength = String(textValue || "").length;
+    const safeStart = Number.isInteger(selectionStart)
+      ? Math.max(0, Math.min(selectionStart, textLength))
+      : textLength;
+    const safeEnd = Number.isInteger(selectionEnd)
+      ? Math.max(safeStart, Math.min(selectionEnd, textLength))
+      : safeStart;
+
+    return {
+      end: safeEnd,
+      start: safeStart,
+    };
+  }
+
+  function insertTextAtSelection(textValue, replacement, options = {}) {
+    const currentText = String(textValue || "");
+    const { start, end } = normalizeSelectionRange(
+      currentText,
+      options.selectionStart,
+      options.selectionEnd,
+    );
+    const prefix = start > 0 && /\S/.test(currentText[start - 1] || "") ? " " : "";
+    const suffix = end < currentText.length && /\S/.test(currentText[end] || "") ? " " : "";
+    const insertedText = `${prefix}${String(replacement || "")}${suffix}`;
+    const nextValue = `${currentText.slice(0, start)}${insertedText}${currentText.slice(end)}`;
+    const selectionOffsetStart = Number.isFinite(options.selectionOffsetStart)
+      ? options.selectionOffsetStart
+      : insertedText.length;
+    const selectionOffsetEnd = Number.isFinite(options.selectionOffsetEnd)
+      ? options.selectionOffsetEnd
+      : selectionOffsetStart;
+    const baseSelectionStart = start + prefix.length;
+
+    return {
+      selectionEnd: baseSelectionStart + selectionOffsetEnd,
+      selectionStart: baseSelectionStart + selectionOffsetStart,
+      value: nextValue,
+    };
+  }
+
+  function insertMediaTokenAtSelection(textValue, kind = "image", options = {}) {
+    const template = buildMediaTokenTemplate(kind);
+    return insertTextAtSelection(textValue, template.token, {
+      ...options,
+      selectionOffsetEnd: template.selectionEnd,
+      selectionOffsetStart: template.selectionStart,
+    });
+  }
+
+  function insertFormattingTokenAtSelection(textValue, action = "bold", options = {}) {
+    const currentText = String(textValue || "");
+    const { start, end } = normalizeSelectionRange(
+      currentText,
+      options.selectionStart,
+      options.selectionEnd,
+    );
+    const selectedText = currentText.slice(start, end);
+    const template = buildFormattingTokenTemplate(action, selectedText);
+
+    return insertTextAtSelection(currentText, template.token, {
+      ...options,
+      selectionOffsetEnd: template.selectionEnd,
+      selectionOffsetStart: template.selectionStart,
+    });
+  }
+
   function createEditorFeature({
     buildSetRecord,
     documentRef = globalScope.document,
@@ -793,6 +912,36 @@ function toSafeArray(value) {
       const moveQuestionDownBtn = documentRef?.getElementById(
         "editor-move-question-down-btn",
       );
+      const questionImageTokenBtn = documentRef?.getElementById(
+        "editor-question-image-token-btn",
+      );
+      const questionAudioTokenBtn = documentRef?.getElementById(
+        "editor-question-audio-token-btn",
+      );
+      const questionBoldTokenBtn = documentRef?.getElementById(
+        "editor-question-bold-token-btn",
+      );
+      const questionCriticalTokenBtn = documentRef?.getElementById(
+        "editor-question-critical-token-btn",
+      );
+      const questionWarningTokenBtn = documentRef?.getElementById(
+        "editor-question-warning-token-btn",
+      );
+      const explanationImageTokenBtn = documentRef?.getElementById(
+        "editor-explanation-image-token-btn",
+      );
+      const explanationAudioTokenBtn = documentRef?.getElementById(
+        "editor-explanation-audio-token-btn",
+      );
+      const explanationBoldTokenBtn = documentRef?.getElementById(
+        "editor-explanation-bold-token-btn",
+      );
+      const explanationCriticalTokenBtn = documentRef?.getElementById(
+        "editor-explanation-critical-token-btn",
+      );
+      const explanationWarningTokenBtn = documentRef?.getElementById(
+        "editor-explanation-warning-token-btn",
+      );
       const saveBtn = documentRef?.getElementById("editor-save-btn");
       const dirtyPill = documentRef?.getElementById("editor-dirty-pill");
 
@@ -858,6 +1007,36 @@ function toSafeArray(value) {
         moveQuestionDownBtn.disabled =
           draft.activeQuestionIndex < 0 ||
           draft.activeQuestionIndex >= draft.questions.length - 1;
+      }
+      if (questionImageTokenBtn) {
+        questionImageTokenBtn.disabled = draft.activeQuestionIndex < 0;
+      }
+      if (questionAudioTokenBtn) {
+        questionAudioTokenBtn.disabled = draft.activeQuestionIndex < 0;
+      }
+      if (questionBoldTokenBtn) {
+        questionBoldTokenBtn.disabled = draft.activeQuestionIndex < 0;
+      }
+      if (questionCriticalTokenBtn) {
+        questionCriticalTokenBtn.disabled = draft.activeQuestionIndex < 0;
+      }
+      if (questionWarningTokenBtn) {
+        questionWarningTokenBtn.disabled = draft.activeQuestionIndex < 0;
+      }
+      if (explanationImageTokenBtn) {
+        explanationImageTokenBtn.disabled = draft.activeQuestionIndex < 0;
+      }
+      if (explanationAudioTokenBtn) {
+        explanationAudioTokenBtn.disabled = draft.activeQuestionIndex < 0;
+      }
+      if (explanationBoldTokenBtn) {
+        explanationBoldTokenBtn.disabled = draft.activeQuestionIndex < 0;
+      }
+      if (explanationCriticalTokenBtn) {
+        explanationCriticalTokenBtn.disabled = draft.activeQuestionIndex < 0;
+      }
+      if (explanationWarningTokenBtn) {
+        explanationWarningTokenBtn.disabled = draft.activeQuestionIndex < 0;
       }
       if (saveBtn) {
         saveBtn.disabled = validationIssues.length > 0;
@@ -981,6 +1160,88 @@ function toSafeArray(value) {
         value,
       );
       render();
+    }
+
+    function insertMediaToken(field, kind = "image") {
+      if (!draft || draft.activeQuestionIndex < 0) {
+        return "";
+      }
+
+      const targetField = field === "explanation" ? "explanation" : "q";
+      const textareaId =
+        targetField === "explanation" ? "editor-explanation" : "editor-question-text";
+      const textareaEl = documentRef?.getElementById(textareaId);
+      const currentQuestion = getCurrentQuestion() || createEmptyQuestion();
+      const currentValue =
+        targetField === "explanation"
+          ? String(currentQuestion.explanation || "")
+          : String(currentQuestion.q || "");
+      const insertion = insertMediaTokenAtSelection(
+        textareaEl?.value ?? currentValue,
+        kind,
+        {
+          selectionEnd: textareaEl?.selectionEnd,
+          selectionStart: textareaEl?.selectionStart,
+        },
+      );
+
+      updateCurrentQuestionField(targetField, insertion.value);
+
+      const nextTextareaEl = documentRef?.getElementById(textareaId);
+      if (
+        nextTextareaEl &&
+        typeof nextTextareaEl.focus === "function" &&
+        typeof nextTextareaEl.setSelectionRange === "function"
+      ) {
+        nextTextareaEl.focus();
+        nextTextareaEl.setSelectionRange(
+          insertion.selectionStart,
+          insertion.selectionEnd,
+        );
+      }
+
+      return insertion.value;
+    }
+
+    function insertFormattingToken(field, action = "bold") {
+      if (!draft || draft.activeQuestionIndex < 0) {
+        return "";
+      }
+
+      const targetField = field === "explanation" ? "explanation" : "q";
+      const textareaId =
+        targetField === "explanation" ? "editor-explanation" : "editor-question-text";
+      const textareaEl = documentRef?.getElementById(textareaId);
+      const currentQuestion = getCurrentQuestion() || createEmptyQuestion();
+      const currentValue =
+        targetField === "explanation"
+          ? String(currentQuestion.explanation || "")
+          : String(currentQuestion.q || "");
+      const insertion = insertFormattingTokenAtSelection(
+        textareaEl?.value ?? currentValue,
+        action,
+        {
+          selectionEnd: textareaEl?.selectionEnd,
+          selectionStart: textareaEl?.selectionStart,
+        },
+      );
+
+      updateCurrentQuestionField(targetField, insertion.value);
+
+      const nextTextareaEl = documentRef?.getElementById(textareaId);
+      if (
+        nextTextareaEl &&
+        typeof nextTextareaEl.focus === "function" &&
+        typeof nextTextareaEl.setSelectionRange === "function"
+      ) {
+        nextTextareaEl.focus();
+        nextTextareaEl.setSelectionRange(
+          insertion.selectionStart,
+          insertion.selectionEnd,
+        );
+      }
+
+      return insertion.value;
     }
 
     function addQuestion() {
@@ -1151,6 +1412,8 @@ function toSafeArray(value) {
         return draft;
       },
       getValidationIssues,
+      insertFormattingToken,
+      insertMediaToken,
       isDirty,
       moveQuestion,
       openEditor,

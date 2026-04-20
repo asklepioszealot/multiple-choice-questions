@@ -33,8 +33,18 @@ describe("editor helpers", () => {
       <div id="editor-status"></div>
       <div id="editor-validation-summary"></div>
       <input id="editor-set-name" />
+      <button id="editor-question-bold-token-btn" type="button"></button>
+      <button id="editor-question-critical-token-btn" type="button"></button>
+      <button id="editor-question-warning-token-btn" type="button"></button>
+      <button id="editor-question-image-token-btn" type="button"></button>
+      <button id="editor-question-audio-token-btn" type="button"></button>
       <textarea id="editor-question-text"></textarea>
       <input id="editor-subject" />
+      <button id="editor-explanation-bold-token-btn" type="button"></button>
+      <button id="editor-explanation-critical-token-btn" type="button"></button>
+      <button id="editor-explanation-warning-token-btn" type="button"></button>
+      <button id="editor-explanation-image-token-btn" type="button"></button>
+      <button id="editor-explanation-audio-token-btn" type="button"></button>
       <textarea id="editor-explanation"></textarea>
       <textarea id="editor-raw-input"></textarea>
       <div id="editor-visual-panel"></div>
@@ -81,6 +91,170 @@ describe("editor helpers", () => {
     expect(draft.questions).toHaveLength(1);
     expect(draft.activeQuestionIndex).toBe(0);
     expect(draft.questions[0].explanation).toBe("**Aciklama**");
+  });
+
+  it("preserves safe image and audio markup through the visual editor roundtrip", () => {
+    const draft = createEditorDraft({
+      id: "media-demo",
+      setName: "Media Demo",
+      fileName: "media-demo.json",
+      sourceFormat: "json",
+      questions: [
+        {
+          q: '<p>Bu yapi nedir? <img src="data:image/png;base64,QUJD" alt="Beyin sapi" /></p>',
+          options: ["Omurilik", "Beyin sapi"],
+          correct: 1,
+          explanation:
+            '<audio controls src="data:audio/mpeg;base64,SUQz"></audio><p>Dogru cevap budur.</p>',
+          subject: "Noroloji",
+        },
+      ],
+    }, codecHelpers);
+
+    expect(draft.questions[0].q).toContain("![Beyin sapi](data:image/png;base64,QUJD)");
+    expect(draft.questions[0].explanation).toContain(
+      "![audio: Ses kaydi](data:audio/mpeg;base64,SUQz)",
+    );
+
+    const savedRecord = serializeEditorDraft(draft, {
+      id: "media-demo",
+      fileName: "media-demo.json",
+      sourceFormat: "json",
+    }, codecHelpers);
+
+    expect(savedRecord.questions[0].q).toContain("<img");
+    expect(savedRecord.questions[0].q).toContain("data:image/png;base64,QUJD");
+    expect(savedRecord.questions[0].explanation).toContain("<audio");
+    expect(savedRecord.questions[0].explanation).toContain("data:audio/mpeg;base64,SUQz");
+  });
+
+  it("exports safe media to json and markdown while dropping unsafe tokens", () => {
+    mountEditorDom();
+
+    const createObjectUrl = vi.fn(() => "blob:editor-export");
+    const revokeObjectUrl = vi.fn();
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+    const previousCreateObjectUrl = URL.createObjectURL;
+    const previousRevokeObjectUrl = URL.revokeObjectURL;
+    URL.createObjectURL = createObjectUrl;
+    URL.revokeObjectURL = revokeObjectUrl;
+
+    try {
+      const feature = createEditorFeature({
+        ...codecHelpers,
+        documentRef: document,
+      });
+
+      feature.openNewDraft({
+        sourceFormat: "markdown",
+      });
+      feature.updateMetaField("setName", "Media Export");
+      feature.updateCurrentQuestionField(
+        "q",
+        "Guvenli gorsel ![Beyin sapi](data:image/png;base64,QUJD) guvensiz gorsel ![XSS](javascript:alert('x'))",
+      );
+      feature.updateCurrentOption(0, "A");
+      feature.updateCurrentOption(1, "B");
+      feature.updateCurrentQuestionField(
+        "explanation",
+        "Guvenli ses ![audio: Ses kaydi](data:audio/mpeg;base64,SUQz) guvensiz ses ![audio: Kotu](file:///tmp/evil.mp3)",
+      );
+
+      const jsonPayload = feature.exportJson();
+      const markdownPayload = feature.exportSource();
+
+      expect(jsonPayload).toContain("<img");
+      expect(jsonPayload).toContain("data:image/png;base64,QUJD");
+      expect(jsonPayload).toContain("<audio");
+      expect(jsonPayload).toContain("data:audio/mpeg;base64,SUQz");
+      expect(jsonPayload).not.toContain("javascript:");
+      expect(jsonPayload).not.toContain("file:///");
+
+      expect(markdownPayload).toContain("![Beyin sapi](data:image/png;base64,QUJD)");
+      expect(markdownPayload).toContain("![audio: Ses kaydi](data:audio/mpeg;base64,SUQz)");
+      expect(markdownPayload).not.toContain("javascript:");
+      expect(markdownPayload).not.toContain("file:///");
+
+      expect(createObjectUrl).toHaveBeenCalledTimes(2);
+      expect(anchorClick).toHaveBeenCalledTimes(2);
+    } finally {
+      anchorClick.mockRestore();
+      URL.createObjectURL = previousCreateObjectUrl;
+      URL.revokeObjectURL = previousRevokeObjectUrl;
+    }
+  });
+
+  it("inserts lightweight media tokens into question and explanation fields", () => {
+    mountEditorDom();
+
+    const feature = createEditorFeature({
+      ...codecHelpers,
+      documentRef: document,
+    });
+
+    feature.openNewDraft({
+      sourceFormat: "markdown",
+    });
+
+    const questionInput = document.getElementById("editor-question-text");
+    const explanationInput = document.getElementById("editor-explanation");
+    questionInput.value = "Bu yapi nedir?";
+    questionInput.setSelectionRange(questionInput.value.length, questionInput.value.length);
+
+    const nextQuestionValue = feature.insertMediaToken("question", "image");
+    expect(nextQuestionValue).toContain("![Gorsel aciklamasi](https://example.com/gorsel.png)");
+    expect(feature.getDraft().questions[0].q).toContain(
+      "![Gorsel aciklamasi](https://example.com/gorsel.png)",
+    );
+    expect(document.getElementById("editor-question-text").value).toContain(
+      "![Gorsel aciklamasi](https://example.com/gorsel.png)",
+    );
+
+    explanationInput.value = "Aciklama";
+    explanationInput.setSelectionRange(explanationInput.value.length, explanationInput.value.length);
+
+    const nextExplanationValue = feature.insertMediaToken("explanation", "audio");
+    expect(nextExplanationValue).toContain("![audio: Ses kaydi](https://example.com/ses.mp3)");
+    expect(feature.getDraft().questions[0].explanation).toContain(
+      "![audio: Ses kaydi](https://example.com/ses.mp3)",
+    );
+    expect(document.getElementById("editor-explanation").value).toContain(
+      "![audio: Ses kaydi](https://example.com/ses.mp3)",
+    );
+  });
+
+  it("inserts lightweight formatting tokens into question and explanation fields", () => {
+    mountEditorDom();
+
+    const feature = createEditorFeature({
+      ...codecHelpers,
+      documentRef: document,
+    });
+
+    feature.openNewDraft({
+      sourceFormat: "markdown",
+    });
+
+    const questionInput = document.getElementById("editor-question-text");
+    const explanationInput = document.getElementById("editor-explanation");
+
+    questionInput.value = "Kalin soru";
+    questionInput.setSelectionRange(0, 5);
+
+    const nextQuestionValue = feature.insertFormattingToken("question", "bold");
+    expect(nextQuestionValue).toContain("**Kalin** soru");
+    expect(feature.getDraft().questions[0].q).toContain("**Kalin** soru");
+    expect(document.getElementById("editor-question-text").value).toContain("**Kalin** soru");
+
+    explanationInput.value = "Aciklama";
+    explanationInput.setSelectionRange(explanationInput.value.length, explanationInput.value.length);
+
+    const nextExplanationValue = feature.insertFormattingToken("explanation", "warning");
+    expect(nextExplanationValue).toContain("> ⚠️ Dikkat notu");
+    expect(feature.getDraft().questions[0].explanation).toContain("> ⚠️ Dikkat notu");
+    expect(document.getElementById("editor-explanation").value).toContain("> ⚠️ Dikkat notu");
   });
 
   it("updates question fields immutably and serializes back to a source-aware set record", () => {

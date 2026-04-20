@@ -1189,6 +1189,25 @@
         font-size: 14px;
         font-weight: 600;
       }
+      .editor-field-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+      }
+      .editor-field-head label {
+        margin-bottom: 0;
+      }
+      .editor-field-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .editor-field-actions .btn {
+        padding: 8px 10px;
+      }
       .editor-textarea,
       .editor-input,
       .editor-select {
@@ -1899,7 +1918,46 @@
             <div id="editor-visual-panel">
               <div class="editor-form-grid">
                 <div class="editor-field">
-                  <label for="editor-question-text">Soru metni</label>
+                  <div class="editor-field-head">
+                    <label for="editor-question-text">Soru metni</label>
+                    <div class="editor-field-actions" aria-label="Soru bicim ve medya yardimcilari">
+                      <button
+                        class="btn btn-secondary btn-small"
+                        id="editor-question-bold-token-btn"
+                        type="button"
+                      >
+                        Kalin
+                      </button>
+                      <button
+                        class="btn btn-secondary btn-small"
+                        id="editor-question-critical-token-btn"
+                        type="button"
+                      >
+                        Kritik
+                      </button>
+                      <button
+                        class="btn btn-secondary btn-small"
+                        id="editor-question-warning-token-btn"
+                        type="button"
+                      >
+                        Uyari
+                      </button>
+                      <button
+                        class="btn btn-secondary btn-small"
+                        id="editor-question-image-token-btn"
+                        type="button"
+                      >
+                        + Gorsel tokeni
+                      </button>
+                      <button
+                        class="btn btn-secondary btn-small"
+                        id="editor-question-audio-token-btn"
+                        type="button"
+                      >
+                        + Ses tokeni
+                      </button>
+                    </div>
+                  </div>
                   <textarea
                     id="editor-question-text"
                     class="editor-textarea"
@@ -1919,7 +1977,46 @@
                   <select id="editor-correct" class="editor-select"></select>
                 </div>
                 <div class="editor-field">
-                  <label for="editor-explanation">Aciklama</label>
+                  <div class="editor-field-head">
+                    <label for="editor-explanation">Aciklama</label>
+                    <div class="editor-field-actions" aria-label="Aciklama bicim ve medya yardimcilari">
+                      <button
+                        class="btn btn-secondary btn-small"
+                        id="editor-explanation-bold-token-btn"
+                        type="button"
+                      >
+                        Kalin
+                      </button>
+                      <button
+                        class="btn btn-secondary btn-small"
+                        id="editor-explanation-critical-token-btn"
+                        type="button"
+                      >
+                        Kritik
+                      </button>
+                      <button
+                        class="btn btn-secondary btn-small"
+                        id="editor-explanation-warning-token-btn"
+                        type="button"
+                      >
+                        Uyari
+                      </button>
+                      <button
+                        class="btn btn-secondary btn-small"
+                        id="editor-explanation-image-token-btn"
+                        type="button"
+                      >
+                        + Gorsel tokeni
+                      </button>
+                      <button
+                        class="btn btn-secondary btn-small"
+                        id="editor-explanation-audio-token-btn"
+                        type="button"
+                      >
+                        + Ses tokeni
+                      </button>
+                    </div>
+                  </div>
                   <textarea id="editor-explanation" class="editor-textarea"></textarea>
                 </div>
               </div>

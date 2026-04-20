@@ -1,5 +1,10 @@
 // src/core/set-codec.js
 
+import { sanitizeMediaSource } from "./security.js";
+
+const EDITABLE_MEDIA_PATTERN = /!\[([^\]]*)\]\(([^)]+)\)/g;
+const AUDIO_MEDIA_LABEL_PATTERN = /^(audio|ses)\s*:\s*/i;
+
 function toSafeArray(value) {
     return Array.isArray(value) ? value : [];
   }
@@ -14,6 +19,128 @@ function toSafeArray(value) {
       .replace(/&#39;/gi, "'");
   }
 
+  function escapeHtmlAttribute(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function normalizeEditableMediaLabel(value, fallback = "") {
+    return decodeHtmlEntities(value)
+      .replace(/\s+/g, " ")
+      .trim() || fallback;
+  }
+
+  function buildEditableImageToken(source, label = "") {
+    const safeSource = sanitizeMediaSource(source, "image");
+    if (!safeSource) {
+      return "";
+    }
+
+    const nextLabel = normalizeEditableMediaLabel(label, "Gorsel");
+    return `![${nextLabel}](${safeSource})`;
+  }
+
+  function buildEditableAudioToken(source, label = "") {
+    const safeSource = sanitizeMediaSource(source, "audio");
+    if (!safeSource) {
+      return "";
+    }
+
+    const nextLabel = normalizeEditableMediaLabel(label, "Ses kaydi");
+    return `![audio: ${nextLabel}](${safeSource})`;
+  }
+
+  function renderEditableMediaToken(rawAltText, rawSource) {
+    const normalizedAltText = normalizeEditableMediaLabel(rawAltText);
+    const normalizedSource = decodeHtmlEntities(rawSource).trim();
+    const isAudio = AUDIO_MEDIA_LABEL_PATTERN.test(normalizedAltText);
+    const mediaLabel = normalizedAltText.replace(AUDIO_MEDIA_LABEL_PATTERN, "").trim();
+
+    if (isAudio) {
+      const safeSource = sanitizeMediaSource(normalizedSource, "audio");
+      if (!safeSource) {
+        return "";
+      }
+
+      const ariaLabel = normalizeEditableMediaLabel(mediaLabel, "Ses kaydi");
+      return `<audio controls preload="metadata" src="${escapeHtmlAttribute(safeSource)}" aria-label="${escapeHtmlAttribute(ariaLabel)}"></audio>`;
+    }
+
+    const safeSource = sanitizeMediaSource(normalizedSource, "image");
+    if (!safeSource) {
+      return "";
+    }
+
+    const altLabel = normalizeEditableMediaLabel(normalizedAltText);
+    return `<img src="${escapeHtmlAttribute(safeSource)}" alt="${escapeHtmlAttribute(altLabel)}" loading="lazy" />`;
+  }
+
+  function readAudioElementSource(audioElement) {
+    if (!audioElement) {
+      return "";
+    }
+
+    const directSource = audioElement.getAttribute("src");
+    if (directSource) {
+      return directSource;
+    }
+
+    const nestedSource = audioElement.querySelector("source");
+    return nestedSource?.getAttribute("src") || "";
+  }
+
+  function replaceHtmlMediaWithEditableTokens(html) {
+    const rawHtml = String(html ?? "");
+    if (!rawHtml.trim() || typeof DOMParser !== "function") {
+      return rawHtml;
+    }
+
+    try {
+      const parser = new DOMParser();
+      const documentNode = parser.parseFromString(`<div>${rawHtml}</div>`, "text/html");
+      const root = documentNode.body.firstElementChild;
+      if (!root) {
+        return rawHtml;
+      }
+
+      root.querySelectorAll("figure").forEach((figure) => {
+        const image = figure.querySelector("img");
+        if (!image) {
+          return;
+        }
+
+        const figureToken = buildEditableImageToken(
+          image.getAttribute("src"),
+          image.getAttribute("alt") || figure.querySelector("figcaption")?.textContent || "",
+        );
+        figure.replaceWith(documentNode.createTextNode(figureToken));
+      });
+
+      root.querySelectorAll("img").forEach((image) => {
+        const imageToken = buildEditableImageToken(
+          image.getAttribute("src"),
+          image.getAttribute("alt") || image.getAttribute("title") || "",
+        );
+        image.replaceWith(documentNode.createTextNode(imageToken));
+      });
+
+      root.querySelectorAll("audio").forEach((audio) => {
+        const audioToken = buildEditableAudioToken(
+          readAudioElementSource(audio),
+          audio.getAttribute("aria-label") || audio.getAttribute("title") || "",
+        );
+        audio.replaceWith(documentNode.createTextNode(audioToken));
+      });
+
+      return root.innerHTML;
+    } catch {
+      return rawHtml;
+    }
+  }
+
   function normalizeEditableText(value) {
     return String(value ?? "")
       .replace(/\r/g, "")
@@ -23,11 +150,32 @@ function toSafeArray(value) {
   }
 
   function processFormatting(text) {
-    return String(text ?? "")
+    const mediaTokens = [];
+    let rendered = String(text ?? "").replace(
+      EDITABLE_MEDIA_PATTERN,
+      (_, rawAltText, rawSource) => {
+        const mediaToken = renderEditableMediaToken(rawAltText, rawSource);
+        if (!mediaToken) {
+          return "";
+        }
+
+        const placeholder = `__MEDIA_TOKEN_${mediaTokens.length}__`;
+        mediaTokens.push(mediaToken);
+        return placeholder;
+      },
+    );
+
+    rendered = rendered
       .replace(/==([^=]+)==/g, '<strong class="highlight-critical">$1</strong>')
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
       .replace(/\*([^*]+)\*/g, "<em>$1</em>")
       .replace(/^(?:> )?⚠️(.*)$/gm, '<span class="highlight-important">⚠️$1</span>');
+
+    mediaTokens.forEach((mediaToken, index) => {
+      rendered = rendered.replace(`__MEDIA_TOKEN_${index}__`, mediaToken);
+    });
+
+    return rendered;
   }
 
   function formatEditableText(value) {
@@ -43,8 +191,9 @@ function toSafeArray(value) {
   }
 
   function htmlToEditableText(value) {
+    const mediaAwareValue = replaceHtmlMediaWithEditableTokens(value);
     return decodeHtmlEntities(
-      String(value ?? "")
+      String(mediaAwareValue ?? "")
         .replace(
           /<strong\s+class=['"]highlight-critical['"]>(.*?)<\/strong>/gi,
           "==$1==",

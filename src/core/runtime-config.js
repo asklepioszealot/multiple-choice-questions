@@ -1,13 +1,12 @@
 // src/core/runtime-config.js
 const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-const rawAppConfig =
-  (typeof __APP_CONFIG__ !== "undefined" &&
-    __APP_CONFIG__ &&
-    typeof __APP_CONFIG__ === "object" &&
-    __APP_CONFIG__) ||
-  globalScope.APP_CONFIG ||
-  {};
+const buildTimeAppConfig =
+  typeof __APP_CONFIG__ !== "undefined" &&
+  __APP_CONFIG__ &&
+  typeof __APP_CONFIG__ === "object"
+    ? __APP_CONFIG__
+    : {};
 
 const DEFAULT_CONFIG = Object.freeze({
   supabaseUrl: "",
@@ -20,9 +19,22 @@ const DEFAULT_CONFIG = Object.freeze({
 });
 
 export function getRuntimeConfig() {
+  const runtimeOverride =
+    globalScope.APP_CONFIG && typeof globalScope.APP_CONFIG === "object"
+      ? globalScope.APP_CONFIG
+      : {};
+  return resolveRuntimeConfig(buildTimeAppConfig, runtimeOverride);
+}
+
+export function resolveRuntimeConfig(buildTimeConfig = {}, runtimeOverride = {}) {
+  const safeBuildTimeConfig =
+    buildTimeConfig && typeof buildTimeConfig === "object" ? buildTimeConfig : {};
+  const safeRuntimeOverride =
+    runtimeOverride && typeof runtimeOverride === "object" ? runtimeOverride : {};
   const config = {
     ...DEFAULT_CONFIG,
-    ...rawAppConfig,
+    ...safeBuildTimeConfig,
+    ...safeRuntimeOverride,
   };
 
   return Object.freeze({
@@ -60,6 +72,7 @@ export const AppRuntimeConfig = Object.freeze({
   hasDriveConfig,
   hasSupabaseConfig,
   isDesktopRuntime,
+  resolveRuntimeConfig,
 });
 
 globalScope.AppRuntimeConfig = AppRuntimeConfig;

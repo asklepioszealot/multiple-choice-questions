@@ -311,6 +311,74 @@ test.describe("MCQ smoke", () => {
     await expect(solutionAudio).toHaveAttribute("src", /data:audio\/mpeg;base64,/);
   });
 
+  test("editor preserves imported apkg media after save roundtrip", async ({ page }) => {
+    const fixture = await createApkgUpload({
+      fileName: "media-editor-roundtrip.apkg",
+      notes: [
+        {
+          id: 22,
+          deckId: 1001,
+          fields: [
+            '<p>Bu yapı nedir?<img src="brain.png" alt="Beyin sapi" /></p>',
+            "Omurilik",
+            "Beyin sapi",
+            "B",
+            '[sound:stem.mp3]<p>Dogru cevap budur.</p>',
+          ],
+          tags: "noroloji",
+        },
+      ],
+      mediaManifest: {
+        "0": "brain.png",
+        "1": "stem.mp3",
+      },
+      mediaEntries: {
+        0: Uint8Array.from([137, 80, 78, 71]),
+        1: Uint8Array.from([73, 68, 51]),
+      },
+    });
+
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.setInputFiles("#file-picker", fixture);
+    await expect(
+      page.locator("#set-list .set-name", { hasText: "media-editor-roundtrip" }),
+    ).toBeVisible();
+
+    await page.click("#edit-btn");
+    await expect(page.locator("#editor-screen")).toBeVisible();
+    await expect(page.locator("#editor-question-text")).toHaveValue(
+      /!\[Beyin sapi\]\(data:image\/png;base64,/,
+    );
+    await expect(page.locator("#editor-explanation")).toHaveValue(
+      /!\[audio: .+\]\(data:audio\/mpeg;base64,/,
+    );
+
+    await page.fill("#editor-set-name", "media-editor-roundtrip-edited");
+    await page.click("#editor-save-btn");
+
+    await expect(page.locator("#set-manager")).toBeVisible();
+    await expect(
+      page.locator("#set-list .set-name", { hasText: "media-editor-roundtrip-edited" }),
+    ).toBeVisible();
+
+    await page.click("#start-btn");
+    await expect(page.locator("#question-text img")).toBeVisible();
+    await expect(page.locator("#question-text img")).toHaveAttribute(
+      "src",
+      /data:image\/png;base64,/,
+    );
+
+    await page.click("#show-solution-btn");
+    await expect(page.locator("#solution audio")).toBeVisible();
+    await expect(page.locator("#solution audio")).toHaveAttribute(
+      "src",
+      /data:audio\/mpeg;base64,/,
+    );
+  });
+
   test("editor updates a selected set and returns to manager", async ({ page }) => {
     const fixturePath = path.resolve(
       process.cwd(),
@@ -393,6 +461,99 @@ test.describe("MCQ smoke", () => {
 
     await page.click("#start-btn");
     await expect(page.locator("#question-text")).toContainText("Yeni markdown soru?");
+  });
+
+  test("editor media token buttons insert lightweight image and audio snippets", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.click("#new-set-btn");
+    await expect(page.locator("#editor-screen")).toBeVisible();
+
+    await page.fill("#editor-set-name", "Token Yardimi");
+    await page.fill("#editor-question-text", "Bu yapi nedir?");
+    await page.locator("#editor-question-text").press("End");
+    await page.click("#editor-question-image-token-btn");
+    await expect(page.locator("#editor-question-text")).toHaveValue(
+      /!\[Gorsel aciklamasi\]\(https:\/\/example\.com\/gorsel\.png\)/,
+    );
+
+    await page.fill("#editor-explanation", "Aciklama");
+    await page.locator("#editor-explanation").press("End");
+    await page.click("#editor-explanation-audio-token-btn");
+    await expect(page.locator("#editor-explanation")).toHaveValue(
+      /!\[audio: Ses kaydi\]\(https:\/\/example\.com\/ses\.mp3\)/,
+    );
+
+    await page.evaluate(() => {
+      const updateOption = (index, value) => {
+        const input = document.querySelector(`[data-editor-option-index="${index}"]`);
+        if (!input) {
+          throw new Error(`Option input ${index} not found`);
+        }
+        input.value = value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      };
+
+      updateOption(0, "Birinci");
+      updateOption(1, "Ikinci");
+    });
+    await page.locator("#editor-correct").selectOption("0");
+    await page.click("#editor-raw-tab-btn");
+    await expect(page.locator("#editor-raw-input")).toHaveValue(
+      /!\[Gorsel aciklamasi\]\(https:\/\/example\.com\/gorsel\.png\)/,
+    );
+    await expect(page.locator("#editor-raw-input")).toHaveValue(
+      /!\[audio: Ses kaydi\]\(https:\/\/example\.com\/ses\.mp3\)/,
+    );
+  });
+
+  test("editor formatting token buttons insert lightweight markdown helpers", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.click("#new-set-btn");
+    await expect(page.locator("#editor-screen")).toBeVisible();
+
+    await page.fill("#editor-set-name", "Formatting Yardimi");
+    await page.fill("#editor-question-text", "Kalin soru");
+    await page.locator("#editor-question-text").evaluate((element) => {
+      element.focus();
+      element.setSelectionRange(0, 5);
+    });
+    await page.click("#editor-question-bold-token-btn");
+    await expect(page.locator("#editor-question-text")).toHaveValue(/\*\*Kalin\*\* soru/);
+
+    await page.fill("#editor-explanation", "Aciklama");
+    await page.locator("#editor-explanation").press("End");
+    await page.click("#editor-explanation-warning-token-btn");
+    await expect(page.locator("#editor-explanation")).toHaveValue(/> ⚠️ Dikkat notu/);
+
+    await page.evaluate(() => {
+      const updateOption = (index, value) => {
+        const input = document.querySelector(`[data-editor-option-index="${index}"]`);
+        if (!input) {
+          throw new Error(`Option input ${index} not found`);
+        }
+        input.value = value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      };
+
+      updateOption(0, "Birinci");
+      updateOption(1, "Ikinci");
+    });
+    await page.locator("#editor-correct").selectOption("0");
+    await page.click("#editor-raw-tab-btn");
+    await expect(page.locator("#editor-raw-input")).toHaveValue(/\*\*Kalin\*\* soru/);
+    await expect(page.locator("#editor-raw-input")).toHaveValue(/> ⚠️ Dikkat notu/);
   });
 
   test("editor protects unsaved changes and can duplicate the active question", async ({
