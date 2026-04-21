@@ -9,10 +9,18 @@ import {
   removeDraftOption,
   removeDraftQuestion,
   resolveEditorCodecHelpers,
+  setDraftQuestionListExpanded,
+  setDraftQuestionListScrollTop,
   toSafeArray,
+  updateDraftFieldHistory,
   updateDraftOptionValue,
   updateDraftQuestionField,
 } from "./editor-state.js";
+import {
+  applyEditorHistoryAction,
+  createEditorFieldHistoryState,
+  recordEditorFieldHistory,
+} from "./editor-history.js";
 import {
   bindRawEditorAutoResize,
   renderOptions,
@@ -205,6 +213,39 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       return getEditorValidationIssues(draft);
     }
 
+    function resolveDraftFieldName(field) {
+      if (field === "correct") {
+        return "correct";
+      }
+      if (field === "subject") {
+        return "subject";
+      }
+      return field === "explanation" ? "explanation" : "q";
+    }
+
+    function resolveFieldTextareaId(field) {
+      return field === "explanation" ? "editor-explanation" : "editor-question-text";
+    }
+
+    function getCurrentFieldValue(field) {
+      const currentQuestion = getCurrentQuestion() || createEmptyQuestion();
+      const fieldName = resolveDraftFieldName(field);
+      return String(currentQuestion?.[fieldName] || "");
+    }
+
+    function getCurrentFieldHistory(field) {
+      if (!draft || draft.activeQuestionIndex < 0) {
+        return createEditorFieldHistoryState("");
+      }
+
+      const fieldName = resolveDraftFieldName(field);
+      const questionHistory = toSafeArray(draft?.ui?.fieldHistory)[draft.activeQuestionIndex];
+      return (
+        questionHistory?.[fieldName] ||
+        createEditorFieldHistoryState(getCurrentFieldValue(field))
+      );
+    }
+
     function canSave() {
       return getValidationIssues().length === 0;
     }
@@ -219,6 +260,102 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
 
       statusEl.textContent = statusMessage;
       statusEl.className = tone ? `auth-status ${tone}` : "auth-status";
+    }
+
+    function syncFieldSelection(field, selectionStart, selectionEnd) {
+      const nextTextareaEl = documentRef?.getElementById(resolveFieldTextareaId(field));
+      if (
+        !nextTextareaEl ||
+        typeof nextTextareaEl.focus !== "function" ||
+        typeof nextTextareaEl.setSelectionRange !== "function"
+      ) {
+        return;
+      }
+
+      nextTextareaEl.focus();
+      nextTextareaEl.setSelectionRange(selectionStart, selectionEnd);
+    }
+
+    function applyFieldValue(field, value, options = {}) {
+      if (!draft || draft.activeQuestionIndex < 0) {
+        return "";
+      }
+
+      const fieldName = resolveDraftFieldName(field);
+      const shouldRecordHistory =
+        options.recordHistory !== false &&
+        (fieldName === "q" || fieldName === "explanation");
+      draft = updateDraftQuestionField(
+        draft,
+        draft.activeQuestionIndex,
+        fieldName,
+        value,
+      );
+      if (shouldRecordHistory) {
+        const nextHistory = recordEditorFieldHistory(
+          getCurrentFieldHistory(field),
+          value,
+        );
+        draft = updateDraftFieldHistory(
+          draft,
+          draft.activeQuestionIndex,
+          fieldName,
+          nextHistory,
+        );
+      }
+      render();
+
+      if (
+        Number.isInteger(options.selectionStart) &&
+        Number.isInteger(options.selectionEnd)
+      ) {
+        syncFieldSelection(field, options.selectionStart, options.selectionEnd);
+      }
+
+      return String(value ?? "");
+    }
+
+    function applyHistoryAction(field, action) {
+      if (!draft || draft.activeQuestionIndex < 0) {
+        return "";
+      }
+
+      const fieldName = resolveDraftFieldName(field);
+      if (fieldName !== "q" && fieldName !== "explanation") {
+        return getCurrentFieldValue(field);
+      }
+      const historyResult = applyEditorHistoryAction(
+        getCurrentFieldHistory(field),
+        action,
+      );
+
+      draft = updateDraftQuestionField(
+        draft,
+        draft.activeQuestionIndex,
+        fieldName,
+        historyResult.value,
+      );
+      draft = updateDraftFieldHistory(
+        draft,
+        draft.activeQuestionIndex,
+        fieldName,
+        historyResult.history,
+      );
+      render();
+      syncFieldSelection(field, historyResult.value.length, historyResult.value.length);
+      return historyResult.value;
+    }
+
+    function buildToolbarDisabledActionIds(field) {
+      const disabledActionIds = [];
+      const historyState = getCurrentFieldHistory(field);
+      if (historyState.index <= 0) {
+        disabledActionIds.push("undo");
+      }
+      if (historyState.index >= historyState.entries.length - 1) {
+        disabledActionIds.push("redo");
+      }
+      return disabledActionIds;
     }
 
     function bindToolbarButtons(toolbarEl, field) {
@@ -236,6 +373,11 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
               return;
             }
 
+            if (action === "undo" || action === "redo") {
+              applyHistoryAction(field, action);
+              return;
+            }
+
             applyToolbarAction(field, action);
           };
           buttonEl.onclick = (event) => {
@@ -249,6 +391,10 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       const setNameEl = documentRef?.getElementById("editor-set-name");
       const questionTextEl = documentRef?.getElementById("editor-question-text");
       const questionToolbarEl = documentRef?.getElementById("editor-question-toolbar");
+      const questionListEl = documentRef?.getElementById("editor-question-list");
+      const questionListToggleBtn = documentRef?.getElementById(
+        "editor-question-list-toggle-btn",
+      );
       const subjectEl = documentRef?.getElementById("editor-subject");
       const explanationEl = documentRef?.getElementById("editor-explanation");
       const explanationToolbarEl = documentRef?.getElementById("editor-explanation-toolbar");
@@ -293,6 +439,7 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
         questionToolbarEl.innerHTML = renderEditorToolbarMarkup({
           actions: toolbarActions,
           disabled: draft.activeQuestionIndex < 0,
+          disabledActionIds: buildToolbarDisabledActionIds("question"),
           field: "question",
         });
         bindToolbarButtons(questionToolbarEl, "question");
@@ -307,6 +454,7 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
         explanationToolbarEl.innerHTML = renderEditorToolbarMarkup({
           actions: toolbarActions,
           disabled: draft.activeQuestionIndex < 0,
+          disabledActionIds: buildToolbarDisabledActionIds("explanation"),
           field: "explanation",
         });
         bindToolbarButtons(explanationToolbarEl, "explanation");
@@ -342,6 +490,17 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       if (sourceExportBtn) {
         sourceExportBtn.textContent = `${formatLabel} disa aktar`;
       }
+      if (questionListToggleBtn) {
+        const isExpanded = draft?.ui?.isQuestionListExpanded !== false;
+        questionListToggleBtn.textContent = isExpanded
+          ? "Listeyi daralt"
+          : "Listeyi ac";
+        questionListToggleBtn.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+        questionListToggleBtn.onclick = () => {
+          draft = setDraftQuestionListExpanded(draft, !isExpanded);
+          render();
+        };
+      }
       if (duplicateQuestionBtn) {
         duplicateQuestionBtn.disabled = draft.activeQuestionIndex < 0;
       }
@@ -365,6 +524,16 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
         draft,
         validationIssues,
       });
+      if (questionListEl) {
+        questionListEl.style.display =
+          draft?.ui?.isQuestionListExpanded === false ? "none" : "";
+        questionListEl.scrollTop = Number.isFinite(draft?.ui?.questionListScrollTop)
+          ? Math.max(0, Number(draft.ui.questionListScrollTop))
+          : 0;
+        questionListEl.onscroll = () => {
+          draft = setDraftQuestionListScrollTop(draft, questionListEl.scrollTop);
+        };
+      }
       renderOptions({
         documentRef,
         question: currentQuestion,
@@ -465,13 +634,7 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
         return;
       }
 
-      draft = updateDraftQuestionField(
-        draft,
-        draft.activeQuestionIndex,
-        field,
-        value,
-      );
-      render();
+      applyFieldValue(field, value);
     }
 
     function updateCurrentOption(optionIndex, value) {
@@ -494,14 +657,9 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       }
 
       const targetField = field === "explanation" ? "explanation" : "q";
-      const textareaId =
-        targetField === "explanation" ? "editor-explanation" : "editor-question-text";
+      const textareaId = resolveFieldTextareaId(targetField);
       const textareaEl = documentRef?.getElementById(textareaId);
-      const currentQuestion = getCurrentQuestion() || createEmptyQuestion();
-      const currentValue =
-        targetField === "explanation"
-          ? String(currentQuestion.explanation || "")
-          : String(currentQuestion.q || "");
+      const currentValue = getCurrentFieldValue(targetField);
       const insertion = applyEditorToolbarAction(
         textareaEl?.value ?? currentValue,
         action,
@@ -511,22 +669,10 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
         },
       );
 
-      updateCurrentQuestionField(targetField, insertion.value);
-
-      const nextTextareaEl = documentRef?.getElementById(textareaId);
-      if (
-        nextTextareaEl &&
-        typeof nextTextareaEl.focus === "function" &&
-        typeof nextTextareaEl.setSelectionRange === "function"
-      ) {
-        nextTextareaEl.focus();
-        nextTextareaEl.setSelectionRange(
-          insertion.selectionStart,
-          insertion.selectionEnd,
-        );
-      }
-
-      return insertion.value;
+      return applyFieldValue(targetField, insertion.value, {
+        selectionEnd: insertion.selectionEnd,
+        selectionStart: insertion.selectionStart,
+      });
     }
 
     function insertMediaToken(field, kind = "image") {
@@ -709,6 +855,7 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       },
       getValidationIssues,
       applyToolbarAction,
+      applyHistoryAction,
       insertFormattingToken,
       insertMediaToken,
       isDirty,

@@ -1,3 +1,8 @@
+import {
+  createEditorDraftUiState,
+  createEditorQuestionHistoryState,
+} from "./editor-history.js";
+
 const globalScope = typeof window !== "undefined" ? window : globalThis;
 
 function fallbackHtmlToEditableText(value) {
@@ -223,6 +228,7 @@ export function createEditorDraft(record = {}, helpers = {}) {
             ),
     },
     questions,
+    ui: createEditorDraftUiState(questions),
     activeQuestionIndex: questions.length > 0 ? 0 : -1,
     mode: "visual",
   };
@@ -277,9 +283,21 @@ export function updateDraftQuestionField(draft, questionIndex, field, value) {
 
 export function addDraftQuestion(draft) {
   const nextQuestions = [...draft.questions, createEmptyQuestion()];
+  const nextUi = {
+    ...(draft?.ui || {}),
+    fieldHistory: [
+      ...toSafeArray(draft?.ui?.fieldHistory),
+      createEditorQuestionHistoryState(createEmptyQuestion()),
+    ],
+    isQuestionListExpanded: draft?.ui?.isQuestionListExpanded !== false,
+    questionListScrollTop: Number.isFinite(draft?.ui?.questionListScrollTop)
+      ? Math.max(0, Number(draft.ui.questionListScrollTop))
+      : 0,
+  };
   return {
     ...draft,
     questions: nextQuestions,
+    ui: nextUi,
     activeQuestionIndex: nextQuestions.length - 1,
   };
 }
@@ -296,11 +314,25 @@ export function duplicateDraftQuestion(draft, questionIndex) {
     options: toSafeArray(sourceQuestion.options).map((option) => String(option ?? "")),
   };
   const nextQuestions = [...draft.questions];
+  const nextFieldHistory = [...toSafeArray(draft?.ui?.fieldHistory)];
   nextQuestions.splice(questionIndex + 1, 0, duplicatedQuestion);
+  nextFieldHistory.splice(
+    questionIndex + 1,
+    0,
+    createEditorQuestionHistoryState(duplicatedQuestion),
+  );
 
   return {
     ...draft,
     questions: nextQuestions,
+    ui: {
+      ...(draft?.ui || {}),
+      fieldHistory: nextFieldHistory,
+      isQuestionListExpanded: draft?.ui?.isQuestionListExpanded !== false,
+      questionListScrollTop: Number.isFinite(draft?.ui?.questionListScrollTop)
+        ? Math.max(0, Number(draft.ui.questionListScrollTop))
+        : 0,
+    },
     activeQuestionIndex: questionIndex + 1,
   };
 }
@@ -318,12 +350,27 @@ export function moveDraftQuestion(draft, questionIndex, direction) {
   }
 
   const nextQuestions = [...questions];
+  const nextFieldHistory = [...toSafeArray(draft?.ui?.fieldHistory)];
   const [movedQuestion] = nextQuestions.splice(questionIndex, 1);
+  const [movedHistory] = nextFieldHistory.splice(questionIndex, 1);
   nextQuestions.splice(targetIndex, 0, movedQuestion);
+  nextFieldHistory.splice(
+    targetIndex,
+    0,
+    movedHistory || createEditorQuestionHistoryState(movedQuestion),
+  );
 
   return {
     ...draft,
     questions: nextQuestions,
+    ui: {
+      ...(draft?.ui || {}),
+      fieldHistory: nextFieldHistory,
+      isQuestionListExpanded: draft?.ui?.isQuestionListExpanded !== false,
+      questionListScrollTop: Number.isFinite(draft?.ui?.questionListScrollTop)
+        ? Math.max(0, Number(draft.ui.questionListScrollTop))
+        : 0,
+    },
     activeQuestionIndex: targetIndex,
   };
 }
@@ -382,12 +429,77 @@ export function updateDraftOptionValue(draft, questionIndex, optionIndex, value)
 
 export function removeDraftQuestion(draft, questionIndex) {
   const nextQuestions = draft.questions.filter((_, index) => index !== questionIndex);
+  const nextFieldHistory = toSafeArray(draft?.ui?.fieldHistory).filter(
+    (_, index) => index !== questionIndex,
+  );
   return {
     ...draft,
     questions: nextQuestions,
+    ui: {
+      ...(draft?.ui || {}),
+      fieldHistory: nextFieldHistory,
+      isQuestionListExpanded: draft?.ui?.isQuestionListExpanded !== false,
+      questionListScrollTop: Number.isFinite(draft?.ui?.questionListScrollTop)
+        ? Math.max(0, Number(draft.ui.questionListScrollTop))
+        : 0,
+    },
     activeQuestionIndex:
       nextQuestions.length === 0
         ? -1
         : Math.min(draft.activeQuestionIndex, nextQuestions.length - 1),
+  };
+}
+
+export function updateDraftFieldHistory(draft, questionIndex, field, historyState) {
+  const fieldKey = field === "explanation" ? "explanation" : "q";
+  const nextFieldHistory = toSafeArray(draft?.ui?.fieldHistory).map((entry, index) => {
+    if (index !== questionIndex) {
+      return entry;
+    }
+
+    return {
+      ...(entry || createEditorQuestionHistoryState(draft?.questions?.[index])),
+      [fieldKey]: historyState,
+    };
+  });
+
+  return {
+    ...draft,
+    ui: {
+      ...(draft?.ui || {}),
+      fieldHistory: nextFieldHistory,
+      isQuestionListExpanded: draft?.ui?.isQuestionListExpanded !== false,
+      questionListScrollTop: Number.isFinite(draft?.ui?.questionListScrollTop)
+        ? Math.max(0, Number(draft.ui.questionListScrollTop))
+        : 0,
+    },
+  };
+}
+
+export function setDraftQuestionListExpanded(draft, isExpanded) {
+  return {
+    ...draft,
+    ui: {
+      ...(draft?.ui || {}),
+      fieldHistory: toSafeArray(draft?.ui?.fieldHistory),
+      isQuestionListExpanded: isExpanded !== false,
+      questionListScrollTop: Number.isFinite(draft?.ui?.questionListScrollTop)
+        ? Math.max(0, Number(draft.ui.questionListScrollTop))
+        : 0,
+    },
+  };
+}
+
+export function setDraftQuestionListScrollTop(draft, scrollTop) {
+  return {
+    ...draft,
+    ui: {
+      ...(draft?.ui || {}),
+      fieldHistory: toSafeArray(draft?.ui?.fieldHistory),
+      isQuestionListExpanded: draft?.ui?.isQuestionListExpanded !== false,
+      questionListScrollTop: Number.isFinite(scrollTop)
+        ? Math.max(0, Number(scrollTop))
+        : 0,
+    },
   };
 }

@@ -560,6 +560,55 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#editor-raw-input")).toHaveValue(/> ⚠️ Dikkat notu/);
   });
 
+  test("editor undo redo and question list state stay stable during authoring", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.click("#new-set-btn");
+    await expect(page.locator("#editor-screen")).toBeVisible();
+
+    await page.fill("#editor-set-name", "History Yardimi");
+    await page.fill("#editor-question-text", "Kalin soru");
+    await page.locator("#editor-question-text").evaluate((element) => {
+      element.focus();
+      element.setSelectionRange(0, 5);
+    });
+    await page.click('#editor-question-toolbar [data-editor-toolbar-action="bold"]');
+    await expect(page.locator("#editor-question-text")).toHaveValue(/\*\*Kalin\*\* soru/);
+
+    await page.click('#editor-question-toolbar [data-editor-toolbar-action="undo"]');
+    await expect(page.locator("#editor-question-text")).toHaveValue("Kalin soru");
+    await page.click('#editor-question-toolbar [data-editor-toolbar-action="redo"]');
+    await expect(page.locator("#editor-question-text")).toHaveValue(/\*\*Kalin\*\* soru/);
+
+    for (let index = 0; index < 6; index += 1) {
+      await page.click("#editor-duplicate-question-btn");
+    }
+
+    await page.evaluate(() => {
+      const listEl = document.getElementById("editor-question-list");
+      listEl.style.maxHeight = "80px";
+      listEl.style.overflowY = "auto";
+      listEl.scrollTop = 120;
+      listEl.dispatchEvent(new Event("scroll"));
+    });
+    await page.click('#editor-question-list [data-editor-question-index="6"]');
+    await expect(page.locator("#editor-question-text")).toHaveValue(/\*\*Kalin\*\* soru/);
+    await expect(page.locator("#editor-question-list")).toHaveJSProperty("scrollTop", 120);
+
+    await page.click("#editor-question-list-toggle-btn");
+    await expect(page.locator("#editor-question-list")).toBeHidden();
+    await page.click("#editor-question-list-toggle-btn");
+    await expect(page.locator("#editor-question-list")).toBeVisible();
+    await expect(
+      page.locator('#editor-question-list [data-editor-question-index="6"]'),
+    ).toHaveClass(/active/);
+    await expect(page.locator("#editor-question-list")).toHaveJSProperty("scrollTop", 120);
+  });
+
   test("editor protects unsaved changes and can duplicate the active question", async ({
     page,
   }) => {

@@ -211,6 +211,7 @@ export function buildEditorToolbarActions() {
 export function renderEditorToolbarMarkup({
   actions = buildEditorToolbarActions(),
   disabled = false,
+  disabledActionIds = [],
   field = "question",
 } = {}) {
   const fieldName = field === "explanation" ? "explanation" : "question";
@@ -218,13 +219,15 @@ export function renderEditorToolbarMarkup({
     fieldName === "explanation"
       ? "Aciklama bicimlendirme araclari"
       : "Soru bicimlendirme araclari";
+  const disabledIds = new Set(
+    Array.isArray(disabledActionIds) ? disabledActionIds : [],
+  );
 
   return `
     <div class="editor-toolbar" role="toolbar" aria-label="${escapeMarkup(ariaLabel)}">
       ${actions
         .map((action) => {
-          const isHistoryAction = action.id === "undo" || action.id === "redo";
-          const buttonDisabled = disabled || isHistoryAction;
+          const buttonDisabled = disabled || disabledIds.has(action.id);
           return `
             <button
               class="btn btn-secondary btn-small"

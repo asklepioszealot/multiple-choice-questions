@@ -33,6 +33,7 @@ describe("editor helpers", () => {
       <div id="editor-status"></div>
       <div id="editor-validation-summary"></div>
       <input id="editor-set-name" />
+      <button id="editor-question-list-toggle-btn" type="button"></button>
       <div id="editor-question-toolbar"></div>
       <textarea id="editor-question-text"></textarea>
       <input id="editor-subject" />
@@ -293,6 +294,83 @@ describe("editor helpers", () => {
     expect(document.getElementById("editor-explanation").value).toContain(
       "![audio: Ses kaydi](https://example.com/ses.mp3)",
     );
+  });
+
+  it("supports undo redo history and preserves question list UI state", () => {
+    mountEditorDom();
+
+    const feature = createEditorFeature({
+      ...codecHelpers,
+      documentRef: document,
+    });
+
+    feature.openEditor({
+      id: "demo",
+      setName: "Demo Set",
+      fileName: "demo.md",
+      sourceFormat: "markdown",
+      questions: [
+        {
+          id: "q-1",
+          q: "Ilk soru?",
+          options: ["A", "B"],
+          correct: 0,
+          explanation: "",
+          subject: "Genel",
+        },
+        {
+          id: "q-2",
+          q: "Ikinci soru?",
+          options: ["C", "D"],
+          correct: 1,
+          explanation: "Eski aciklama",
+          subject: "Genel",
+        },
+      ],
+    });
+
+    feature.selectQuestion(1);
+    feature.updateCurrentQuestionField("q", "Ikinci soru guncel?");
+    feature.applyHistoryAction("question", "undo");
+    expect(document.getElementById("editor-question-text").value).toBe("Ikinci soru?");
+    feature.applyHistoryAction("question", "redo");
+    expect(document.getElementById("editor-question-text").value).toBe(
+      "Ikinci soru guncel?",
+    );
+
+    const listEl = document.getElementById("editor-question-list");
+    listEl.scrollTop = 48;
+    listEl.dispatchEvent(new Event("scroll"));
+
+    document.getElementById("editor-question-list-toggle-btn").click();
+    expect(document.getElementById("editor-question-list").style.display).toBe("none");
+
+    document.getElementById("editor-question-list-toggle-btn").click();
+    expect(document.getElementById("editor-question-list").style.display).toBe("");
+    expect(document.querySelectorAll("#editor-question-list .active")).toHaveLength(1);
+    expect(document.querySelector("#editor-question-list .active").textContent).toContain(
+      "Ikinci soru guncel?",
+    );
+    expect(document.getElementById("editor-question-list").scrollTop).toBe(48);
+  });
+
+  it("updates non-text editor fields without overwriting question text", () => {
+    const feature = createEditorFeature({
+      ...codecHelpers,
+    });
+
+    feature.openNewDraft({
+      sourceFormat: "markdown",
+    });
+    feature.updateCurrentQuestionField("q", "Soru?");
+    feature.updateCurrentOption(0, "A");
+    feature.updateCurrentOption(1, "B");
+    feature.updateCurrentQuestionField("correct", "1");
+    feature.updateCurrentQuestionField("subject", "Noroloji");
+
+    expect(feature.getDraft().questions[0].q).toBe("Soru?");
+    expect(feature.getDraft().questions[0].correct).toBe(1);
+    expect(feature.getDraft().questions[0].subject).toBe("Noroloji");
   });
 
   it("updates question fields immutably and serializes back to a source-aware set record", () => {
