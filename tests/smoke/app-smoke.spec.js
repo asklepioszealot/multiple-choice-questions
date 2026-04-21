@@ -476,14 +476,18 @@ test.describe("MCQ smoke", () => {
     await page.fill("#editor-set-name", "Token Yardimi");
     await page.fill("#editor-question-text", "Bu yapi nedir?");
     await page.locator("#editor-question-text").press("End");
-    await page.click("#editor-question-image-token-btn");
+    await page.click(
+      '#editor-question-toolbar [data-editor-toolbar-action="attachment-image"]',
+    );
     await expect(page.locator("#editor-question-text")).toHaveValue(
       /!\[Gorsel aciklamasi\]\(https:\/\/example\.com\/gorsel\.png\)/,
     );
 
     await page.fill("#editor-explanation", "Aciklama");
     await page.locator("#editor-explanation").press("End");
-    await page.click("#editor-explanation-audio-token-btn");
+    await page.click(
+      '#editor-explanation-toolbar [data-editor-toolbar-action="attachment-audio"]',
+    );
     await expect(page.locator("#editor-explanation")).toHaveValue(
       /!\[audio: Ses kaydi\]\(https:\/\/example\.com\/ses\.mp3\)/,
     );
@@ -528,12 +532,12 @@ test.describe("MCQ smoke", () => {
       element.focus();
       element.setSelectionRange(0, 5);
     });
-    await page.click("#editor-question-bold-token-btn");
+    await page.click('#editor-question-toolbar [data-editor-toolbar-action="bold"]');
     await expect(page.locator("#editor-question-text")).toHaveValue(/\*\*Kalin\*\* soru/);
 
     await page.fill("#editor-explanation", "Aciklama");
     await page.locator("#editor-explanation").press("End");
-    await page.click("#editor-explanation-warning-token-btn");
+    await page.click('#editor-explanation-toolbar [data-editor-toolbar-action="warning"]');
     await expect(page.locator("#editor-explanation")).toHaveValue(/> ⚠️ Dikkat notu/);
 
     await page.evaluate(() => {

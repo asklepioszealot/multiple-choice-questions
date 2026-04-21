@@ -33,18 +33,10 @@ describe("editor helpers", () => {
       <div id="editor-status"></div>
       <div id="editor-validation-summary"></div>
       <input id="editor-set-name" />
-      <button id="editor-question-bold-token-btn" type="button"></button>
-      <button id="editor-question-critical-token-btn" type="button"></button>
-      <button id="editor-question-warning-token-btn" type="button"></button>
-      <button id="editor-question-image-token-btn" type="button"></button>
-      <button id="editor-question-audio-token-btn" type="button"></button>
+      <div id="editor-question-toolbar"></div>
       <textarea id="editor-question-text"></textarea>
       <input id="editor-subject" />
-      <button id="editor-explanation-bold-token-btn" type="button"></button>
-      <button id="editor-explanation-critical-token-btn" type="button"></button>
-      <button id="editor-explanation-warning-token-btn" type="button"></button>
-      <button id="editor-explanation-image-token-btn" type="button"></button>
-      <button id="editor-explanation-audio-token-btn" type="button"></button>
+      <div id="editor-explanation-toolbar"></div>
       <textarea id="editor-explanation"></textarea>
       <textarea id="editor-raw-input"></textarea>
       <div id="editor-visual-panel"></div>
@@ -255,6 +247,52 @@ describe("editor helpers", () => {
     expect(nextExplanationValue).toContain("> ⚠️ Dikkat notu");
     expect(feature.getDraft().questions[0].explanation).toContain("> ⚠️ Dikkat notu");
     expect(document.getElementById("editor-explanation").value).toContain("> ⚠️ Dikkat notu");
+    expect(document.getElementById("editor-question-toolbar").innerHTML).toContain(
+      'data-editor-toolbar-action="table"',
+    );
+    expect(document.getElementById("editor-explanation-toolbar").innerHTML).toContain(
+      'data-editor-toolbar-action="attachment-audio"',
+    );
+  });
+
+  it("applies rendered toolbar button clicks to the active editor fields", () => {
+    mountEditorDom();
+
+    const feature = createEditorFeature({
+      ...codecHelpers,
+      documentRef: document,
+    });
+
+    feature.openNewDraft({
+      sourceFormat: "markdown",
+    });
+
+    const questionInput = document.getElementById("editor-question-text");
+    questionInput.value = "Kalin soru";
+    questionInput.setSelectionRange(0, 5);
+    document
+      .querySelector('#editor-question-toolbar [data-editor-toolbar-action="bold"]')
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+
+    expect(document.getElementById("editor-question-text").value).toContain(
+      "**Kalin** soru",
+    );
+
+    const explanationInput = document.getElementById("editor-explanation");
+    explanationInput.value = "Aciklama";
+    explanationInput.setSelectionRange(
+      explanationInput.value.length,
+      explanationInput.value.length,
+    );
+    document
+      .querySelector(
+        '#editor-explanation-toolbar [data-editor-toolbar-action="attachment-audio"]',
+      )
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+
+    expect(document.getElementById("editor-explanation").value).toContain(
+      "![audio: Ses kaydi](https://example.com/ses.mp3)",
+    );
   });
 
   it("updates question fields immutably and serializes back to a source-aware set record", () => {

@@ -1262,7 +1262,7 @@ export async function startApp() {
         function insertEditorFormattingToken(field, action) {
           return editorFeature.insertFormattingToken(field, action);
         }
-  
+
         function continueAsDemoAuth() {
           lastSyncRetryAction = null;
           clearSyncConflictState();
@@ -2221,41 +2221,6 @@ export async function startApp() {
           bindEvent(document.getElementById("editor-question-text"), "change", (event) => {
             updateEditorQuestionText(event.currentTarget?.value);
           });
-          bindEvent(
-            document.getElementById("editor-question-bold-token-btn"),
-            "click",
-            () => {
-              insertEditorFormattingToken("question", "bold");
-            },
-          );
-          bindEvent(
-            document.getElementById("editor-question-critical-token-btn"),
-            "click",
-            () => {
-              insertEditorFormattingToken("question", "critical");
-            },
-          );
-          bindEvent(
-            document.getElementById("editor-question-warning-token-btn"),
-            "click",
-            () => {
-              insertEditorFormattingToken("question", "warning");
-            },
-          );
-          bindEvent(
-            document.getElementById("editor-question-image-token-btn"),
-            "click",
-            () => {
-              insertEditorMediaToken("question", "image");
-            },
-          );
-          bindEvent(
-            document.getElementById("editor-question-audio-token-btn"),
-            "click",
-            () => {
-              insertEditorMediaToken("question", "audio");
-            },
-          );
           bindEvent(document.getElementById("editor-subject"), "input", (event) => {
             updateEditorQuestionSubject(event.currentTarget?.value);
           });
@@ -2274,41 +2239,6 @@ export async function startApp() {
           bindEvent(document.getElementById("editor-explanation"), "change", (event) => {
             updateEditorQuestionExplanation(event.currentTarget?.value);
           });
-          bindEvent(
-            document.getElementById("editor-explanation-bold-token-btn"),
-            "click",
-            () => {
-              insertEditorFormattingToken("explanation", "bold");
-            },
-          );
-          bindEvent(
-            document.getElementById("editor-explanation-critical-token-btn"),
-            "click",
-            () => {
-              insertEditorFormattingToken("explanation", "critical");
-            },
-          );
-          bindEvent(
-            document.getElementById("editor-explanation-warning-token-btn"),
-            "click",
-            () => {
-              insertEditorFormattingToken("explanation", "warning");
-            },
-          );
-          bindEvent(
-            document.getElementById("editor-explanation-image-token-btn"),
-            "click",
-            () => {
-              insertEditorMediaToken("explanation", "image");
-            },
-          );
-          bindEvent(
-            document.getElementById("editor-explanation-audio-token-btn"),
-            "click",
-            () => {
-              insertEditorMediaToken("explanation", "audio");
-            },
-          );
           bindEvent(document.getElementById("apply-editor-raw-btn"), "click", () => {
             applyEditorRaw();
           });
