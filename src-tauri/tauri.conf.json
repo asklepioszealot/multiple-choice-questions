@@ -37,7 +37,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJGQzVBODFGOUVEOTE0REUKUldUZUZObWVINmpGTC95ZTFoVksvcytjcGVSTkJ6NUtUdUFHK05LdTN0MEZ6YTc5bU8xaCtzRjUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgxRUVBMDRGRkQ4NjNFNTYKUldSV1BvYjlUNkR1Z2RpeURqSHFjY1IwY214WVdnUXIyb0FyUFJTR2wrSEZYdlZleEdqRlEzUEsK",
       "endpoints": [
         "https://github.com/asklepioszealot/multiple-choice-questions/releases/latest/download/latest.json"
       ],

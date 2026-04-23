@@ -134,6 +134,9 @@ try {
 
   if ($updaterKeySource -eq "local-default" -and -not $DryRun) {
     $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content -Raw $defaultUpdaterKeyPath)
+    if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) {
+      $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
+    }
     Write-Host "[2/6] Using local updater key: $defaultUpdaterKeyPath"
   }
 

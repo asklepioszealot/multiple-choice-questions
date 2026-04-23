@@ -55,6 +55,9 @@ function main() {
   try {
     if (plan.shouldLoadDefaultKey) {
       env.TAURI_SIGNING_PRIVATE_KEY = fs.readFileSync(plan.defaultKeyPath, "utf8");
+      if (!("TAURI_SIGNING_PRIVATE_KEY_PASSWORD" in env)) {
+        env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD = "";
+      }
       console.log(`[build:desktop] Using local updater key: ${plan.defaultKeyPath}`);
     }
 

@@ -10,7 +10,7 @@
     "web": "npm run dev",
     "serve:dist": "npm run preview -- --host 127.0.0.1 --port 4173 --strictPort",
     "tauri": "node ./node_modules/@tauri-apps/cli/tauri.js",
-    "build:desktop": "node ./node_modules/@tauri-apps/cli/tauri.js build --bundles nsis",
+    "build:desktop": "node ./tools/build-desktop.mjs",
     "release": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy",
     "release:no-legacy": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy",
     "release:dry-run": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy -DryRun",
