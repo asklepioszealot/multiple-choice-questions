@@ -26,9 +26,10 @@ Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzer
 4. **Editor ve Analytics Yuzeyi**:
    - `editor-screen` ile tek secili seti gorsel form veya raw kaynak gorunumu uzerinden duzenleyebilirsiniz.
    - Yeni set olusturma akisi varsayilan olarak `Markdown/TXT` kaynak formatiyla baslar; kaydedince normal set listesine ve sync hattina baglanir.
-   - Editor artik toplu validation ozeti, sorunlu soruya atlama, save gating, soru kopyalama/tasima ve daha genis dirty-state korumalari ile authoring kapanisina hazirdir.
+   - Editor artik capability bazli parcali yapi, zengin toolbar aksiyonlari, question/explanation undo-redo history, soru listesi durumunu koruma, sorunlu soruya atlama, save gating, soru kopyalama/tasima ve daha genis dirty-state korumalari ile authoring kapanisina hazirdir.
    - Markdown/JSON kaynaklar roundtrip-safe codec uzerinden korunur; kaynak formatta disa aktar desteklenir.
-   - Manager ustunde yuklu/secili set, soru havuzu, dogru/yanlis, tamamlanma ve son oturum ozeti gorulur.
+   - Manager ustundeki analytics paneli artik yalnizca ozet sayaç gostermekle kalmaz; sonuc dagilimi, 7 gunluk aktivite trendi, konu bazli performans, panel gorunurluk persistence'i ve secili havuz icin deterministic odak onerisi sunar.
+   - Analytics odak aksiyonu, onerilen konuyu tek tikla study ekraninda filtreleyip ilgili soruya gecisi hizlandirir.
 5. **Kapsamlı Konu Filtresi & Karıştırma**:
    - Yüklediğiniz setlerdeki sorular "Konu" başlıklarına göre otomatik olarak filtre seçeneklerine dahil olur.
    - İstediğiniz an soruları karıştırarak (`Karıştır` butonu) ezberi kırabilirsiniz.
