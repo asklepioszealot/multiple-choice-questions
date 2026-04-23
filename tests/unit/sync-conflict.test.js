@@ -426,16 +426,33 @@ describe("sync conflict resolution", () => {
         selectedSetIds: ["local"],
         selectedAnswers: {},
         solutionVisible: {},
-        session: null,
+        activityByDay: {
+          "2026-04-04": { correct: 1, wrong: 0, cleared: 0 },
+        },
+        session: {
+          currentQuestionIndex: 0,
+          currentQuestionKey: "",
+          selectedTopic: "Noroloji",
+        },
         autoAdvanceEnabled: false,
+        isAnalyticsVisible: false,
         updatedAt: "2026-04-04T10:10:00.000Z",
       },
       remoteSnapshot: {
         selectedSetIds: ["remote"],
         selectedAnswers: {},
         solutionVisible: {},
-        session: null,
+        activityByDay: {
+          "2026-04-04": { correct: 0, wrong: 2, cleared: 1 },
+          "2026-04-05": { correct: 1, wrong: 0, cleared: 0 },
+        },
+        session: {
+          currentQuestionIndex: 0,
+          currentQuestionKey: "",
+          selectedTopic: "Genel",
+        },
         autoAdvanceEnabled: false,
+        isAnalyticsVisible: true,
         updatedAt: "2026-04-04T11:10:00.000Z",
       },
     });
@@ -446,6 +463,28 @@ describe("sync conflict resolution", () => {
       "remote",
     ]);
     expect(conflict.mergedSnapshot?.selectedSetIds).toEqual(["local", "remote"]);
+    expect(conflict.mergedSnapshot).toMatchObject({
+      activityByDay: {
+        "2026-04-04": { correct: 1, wrong: 2, cleared: 1 },
+        "2026-04-05": { correct: 1, wrong: 0, cleared: 0 },
+      },
+      isAnalyticsVisible: true,
+    });
+    expect(conflict.localSummary).toMatchObject({
+      activityCount: 1,
+      analyticsVisible: false,
+      selectedTopic: "Noroloji",
+    });
+    expect(conflict.remoteSummary).toMatchObject({
+      activityCount: 4,
+      analyticsVisible: true,
+      selectedTopic: "Genel",
+    });
+    expect(conflict.studyDiff).toMatchObject({
+      activityChanged: true,
+      analyticsVisibilityChanged: true,
+      topicChanged: true,
+    });
     expect(conflict.recordsToUpload).toEqual([
       expect.objectContaining({
         id: "local",

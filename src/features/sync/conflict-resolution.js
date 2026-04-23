@@ -21,12 +21,17 @@ function toSafeArray(value) {
       toSafeArray(snapshot.selectedSetIds).length > 0 ||
         Object.keys(toSafeObject(snapshot.selectedAnswers)).length > 0 ||
         Object.keys(toSafeObject(snapshot.solutionVisible)).length > 0 ||
+        Object.keys(toSafeObject(snapshot.activityByDay)).length > 0 ||
+        snapshot.isAnalyticsVisible === true ||
         (snapshot.session &&
           typeof snapshot.session === "object" &&
           ((typeof snapshot.session.currentQuestionKey === "string" &&
             snapshot.session.currentQuestionKey.trim()) ||
             (Number.isInteger(snapshot.session.currentQuestionIndex) &&
-              snapshot.session.currentQuestionIndex > 0))),
+              snapshot.session.currentQuestionIndex > 0) ||
+            (typeof snapshot.session.selectedTopic === "string" &&
+              snapshot.session.selectedTopic.trim() &&
+              snapshot.session.selectedTopic !== "hepsi"))),
     );
   }
 
@@ -128,6 +133,34 @@ function toSafeArray(value) {
       return null;
     }
 
+    function normalizeActivityCount(value) {
+      const numericValue = Number(value);
+      if (!Number.isFinite(numericValue) || numericValue <= 0) {
+        return 0;
+      }
+
+      return Math.round(numericValue);
+    }
+
+    function normalizeActivityByDay(value) {
+      const source = toSafeObject(value);
+      const activityByDay = {};
+
+      Object.entries(source).forEach(([dayKey, entry]) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) {
+          return;
+        }
+
+        activityByDay[dayKey] = {
+          correct: normalizeActivityCount(entry?.correct),
+          wrong: normalizeActivityCount(entry?.wrong),
+          cleared: normalizeActivityCount(entry?.cleared),
+        };
+      });
+
+      return activityByDay;
+    }
+
     return {
       selectedSetIds: toSafeArray(snapshot.selectedSetIds)
         .map((setId) => String(setId || "").trim())
@@ -135,6 +168,7 @@ function toSafeArray(value) {
         .sort(),
       selectedAnswers: toSafeObject(snapshot.selectedAnswers),
       solutionVisible: toSafeObject(snapshot.solutionVisible),
+      activityByDay: normalizeActivityByDay(snapshot.activityByDay),
       session:
         snapshot.session && typeof snapshot.session === "object"
           ? {
@@ -152,6 +186,7 @@ function toSafeArray(value) {
             }
           : null,
       autoAdvanceEnabled: snapshot.autoAdvanceEnabled !== false,
+      isAnalyticsVisible: snapshot.isAnalyticsVisible === true,
       updatedAt:
         typeof snapshot.updatedAt === "string" && snapshot.updatedAt.trim()
           ? snapshot.updatedAt.trim()
@@ -177,12 +212,58 @@ function toSafeArray(value) {
     if (!normalized) {
       return {
         answeredCount: 0,
+        analyticsVisible: false,
+        activityCount: 0,
+        selectedTopic: "hepsi",
       };
     }
 
+    const activityCount = Object.values(normalized.activityByDay).reduce(
+      (total, entry) =>
+        total +
+        Number(entry?.correct || 0) +
+        Number(entry?.wrong || 0) +
+        Number(entry?.cleared || 0),
+      0,
+    );
+
     return {
       answeredCount: Object.keys(normalized.selectedAnswers).length,
+      analyticsVisible: normalized.isAnalyticsVisible === true,
+      activityCount,
+      selectedTopic: normalized.session?.selectedTopic || "hepsi",
     };
+  }
+
+  function mergeActivityByDayMaps(localMap, remoteMap) {
+    const localActivity = toSafeObject(localMap);
+    const remoteActivity = toSafeObject(remoteMap);
+    const allDayKeys = new Set([
+      ...Object.keys(localActivity),
+      ...Object.keys(remoteActivity),
+    ]);
+    const mergedActivity = {};
+
+    [...allDayKeys].sort().forEach((dayKey) => {
+      const localEntry = toSafeObject(localActivity[dayKey]);
+      const remoteEntry = toSafeObject(remoteActivity[dayKey]);
+      mergedActivity[dayKey] = {
+        correct: Math.max(
+          Number(localEntry.correct) || 0,
+          Number(remoteEntry.correct) || 0,
+        ),
+        wrong: Math.max(
+          Number(localEntry.wrong) || 0,
+          Number(remoteEntry.wrong) || 0,
+        ),
+        cleared: Math.max(
+          Number(localEntry.cleared) || 0,
+          Number(remoteEntry.cleared) || 0,
+        ),
+      };
+    });
+
+    return mergedActivity;
   }
 
   function recordSignature(record) {
@@ -794,6 +875,10 @@ function toSafeArray(value) {
         remappedRemote.solutionVisible,
         newerSide,
       ),
+      activityByDay: mergeActivityByDayMaps(
+        remappedLocal.activityByDay,
+        remappedRemote.activityByDay,
+      ),
       session:
         newerSide === "remote"
           ? remappedRemote.session || remappedLocal.session
@@ -802,6 +887,12 @@ function toSafeArray(value) {
         newerSide === "remote"
           ? remappedRemote.autoAdvanceEnabled
           : remappedLocal.autoAdvanceEnabled,
+      isAnalyticsVisible:
+        newerSide === "remote"
+          ? remappedRemote.isAnalyticsVisible
+          : newerSide === "local"
+            ? remappedLocal.isAnalyticsVisible
+            : remappedLocal.isAnalyticsVisible || remappedRemote.isAnalyticsVisible,
       updatedAt:
         newerSide === "remote"
           ? remappedRemote.updatedAt || remappedLocal.updatedAt
@@ -906,13 +997,50 @@ function toSafeArray(value) {
     if (!local || !remote) {
       return {
         activeQuestionChanged: false,
+        activityChanged: false,
+        analyticsVisibilityChanged: false,
+        localActivityCount: Object.values(toSafeObject(local?.activityByDay)).reduce(
+          (total, entry) =>
+            total +
+            Number(entry?.correct || 0) +
+            Number(entry?.wrong || 0) +
+            Number(entry?.cleared || 0),
+          0,
+        ),
+        localAnalyticsVisible: local?.isAnalyticsVisible === true,
         localAnsweredCount: local ? Object.keys(local.selectedAnswers).length : 0,
         localTopic: local?.session?.selectedTopic || "hepsi",
+        remoteActivityCount: Object.values(toSafeObject(remote?.activityByDay)).reduce(
+          (total, entry) =>
+            total +
+            Number(entry?.correct || 0) +
+            Number(entry?.wrong || 0) +
+            Number(entry?.cleared || 0),
+          0,
+        ),
+        remoteAnalyticsVisible: remote?.isAnalyticsVisible === true,
         remoteAnsweredCount: remote ? Object.keys(remote.selectedAnswers).length : 0,
         remoteTopic: remote?.session?.selectedTopic || "hepsi",
         topicChanged: false,
       };
     }
+
+    const localActivityCount = Object.values(local.activityByDay).reduce(
+      (total, entry) =>
+        total +
+        Number(entry?.correct || 0) +
+        Number(entry?.wrong || 0) +
+        Number(entry?.cleared || 0),
+      0,
+    );
+    const remoteActivityCount = Object.values(remote.activityByDay).reduce(
+      (total, entry) =>
+        total +
+        Number(entry?.correct || 0) +
+        Number(entry?.wrong || 0) +
+        Number(entry?.cleared || 0),
+      0,
+    );
 
     return {
       activeQuestionChanged:
@@ -920,9 +1048,16 @@ function toSafeArray(value) {
           (remote.session?.currentQuestionKey || "") ||
         (local.session?.currentQuestionIndex || 0) !==
           (remote.session?.currentQuestionIndex || 0),
+      activityChanged: localActivityCount !== remoteActivityCount,
+      analyticsVisibilityChanged:
+        local.isAnalyticsVisible !== remote.isAnalyticsVisible,
+      localActivityCount,
+      localAnalyticsVisible: local.isAnalyticsVisible === true,
       localAnsweredCount: Object.keys(local.selectedAnswers).length,
       localTopic: local.session?.selectedTopic || "hepsi",
       newerSide: compareTimestamps(local.updatedAt, remote.updatedAt),
+      remoteActivityCount,
+      remoteAnalyticsVisible: remote.isAnalyticsVisible === true,
       remoteAnsweredCount: Object.keys(remote.selectedAnswers).length,
       remoteTopic: remote.session?.selectedTopic || "hepsi",
       topicChanged:
@@ -1010,16 +1145,53 @@ function toSafeArray(value) {
       studyStateSummary: {
         autoCarriedAnswerCount: studyMerge.autoCarriedAnswerCount,
         blockingAnswerCount: studyMerge.blockingAnswerCount,
+        localActivityCount: Object.values(
+          toSafeObject(remappedLocalSnapshot?.activityByDay),
+        ).reduce(
+          (total, entry) =>
+            total +
+            Number(entry?.correct || 0) +
+            Number(entry?.wrong || 0) +
+            Number(entry?.cleared || 0),
+          0,
+        ),
+        localAnalyticsVisible: remappedLocalSnapshot?.isAnalyticsVisible === true,
         localAnsweredCount: Object.keys(
           toSafeObject(remappedLocalSnapshot?.selectedAnswers),
         ).length,
+        localTopic: remappedLocalSnapshot?.session?.selectedTopic || "hepsi",
+        mergedActivityCount: Object.values(
+          toSafeObject(studyMerge.mergedSnapshot?.activityByDay),
+        ).reduce(
+          (total, entry) =>
+            total +
+            Number(entry?.correct || 0) +
+            Number(entry?.wrong || 0) +
+            Number(entry?.cleared || 0),
+          0,
+        ),
+        mergedAnalyticsVisible:
+          studyMerge.mergedSnapshot?.isAnalyticsVisible === true,
         mergedAnsweredCount: Object.keys(
           toSafeObject(studyMerge.mergedSnapshot?.selectedAnswers),
         ).length,
+        mergedTopic: studyMerge.mergedSnapshot?.session?.selectedTopic || "hepsi",
         newerSide: studyMerge.newerSide,
+        remoteActivityCount: Object.values(
+          toSafeObject(remappedRemoteSnapshot?.activityByDay),
+        ).reduce(
+          (total, entry) =>
+            total +
+            Number(entry?.correct || 0) +
+            Number(entry?.wrong || 0) +
+            Number(entry?.cleared || 0),
+          0,
+        ),
+        remoteAnalyticsVisible: remappedRemoteSnapshot?.isAnalyticsVisible === true,
         remoteAnsweredCount: Object.keys(
           toSafeObject(remappedRemoteSnapshot?.selectedAnswers),
         ).length,
+        remoteTopic: remappedRemoteSnapshot?.session?.selectedTopic || "hepsi",
       },
     };
 

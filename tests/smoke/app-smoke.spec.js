@@ -889,6 +889,9 @@ test.describe("MCQ smoke", () => {
         selectedAnswers: {
           "set:cloud::id:q-1": 1,
         },
+        activityByDay: {
+          "2026-04-20": { correct: 0, wrong: 2, cleared: 1 },
+        },
         solutionVisible: {},
         session: {
           currentQuestionIndex: 0,
@@ -896,6 +899,7 @@ test.describe("MCQ smoke", () => {
           selectedTopic: "Genel",
         },
         autoAdvanceEnabled: false,
+        isAnalyticsVisible: true,
       };
       const conflict = window.AppSyncConflict.detectSyncConflict({
         localWorkspace,
@@ -905,13 +909,17 @@ test.describe("MCQ smoke", () => {
           selectedAnswers: {
             "set:local::id:q-1": 0,
           },
+          activityByDay: {
+            "2026-04-20": { correct: 1, wrong: 0, cleared: 0 },
+          },
           solutionVisible: {},
           session: {
             currentQuestionIndex: 0,
             currentQuestionKey: "set:local::id:q-1",
-            selectedTopic: "Genel",
+            selectedTopic: "Noroloji",
           },
           autoAdvanceEnabled: false,
+          isAnalyticsVisible: false,
         },
         remoteSnapshot,
       });
@@ -932,8 +940,17 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#sync-conflict-local-details")).toContainText(
       "Kardiyoloji: Iki taraf da degismis",
     );
+    await expect(page.locator("#sync-conflict-local-details")).toContainText(
+      "Konu filtresi: Noroloji",
+    );
+    await expect(page.locator("#sync-conflict-local-details")).toContainText(
+      "Aktivite: 1 hareket",
+    );
     await expect(page.locator("#sync-conflict-remote-details")).toContainText(
       "Soru farki: 1",
+    );
+    await expect(page.locator("#sync-conflict-remote-details")).toContainText(
+      "Analytics paneli: Acik",
     );
 
     await page.click('button:has-text("Bulutu kullan")');

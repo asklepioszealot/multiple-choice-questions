@@ -329,10 +329,30 @@ export async function startApp() {
           if (newerSide === "remote") {
             return "Bulut daha yeni";
           }
-  
+
           return "Iki taraf da degismis";
         }
-  
+
+        function hasRenderableStudyDiff(conflict, studySummary) {
+          const studyDiff = conflict?.studyDiff || {};
+
+          return Boolean(
+            conflict?.studyConflict ||
+              studyDiff.activeQuestionChanged ||
+              studyDiff.activityChanged ||
+              studyDiff.analyticsVisibilityChanged ||
+              studyDiff.topicChanged ||
+              (studySummary.localAnsweredCount || 0) > 0 ||
+              (studySummary.remoteAnsweredCount || 0) > 0 ||
+              (studySummary.localActivityCount || 0) > 0 ||
+              (studySummary.remoteActivityCount || 0) > 0 ||
+              studySummary.localAnalyticsVisible === true ||
+              studySummary.remoteAnalyticsVisible === true ||
+              (studySummary.localTopic || "hepsi") !== "hepsi" ||
+              (studySummary.remoteTopic || "hepsi") !== "hepsi"
+          );
+        }
+
         function buildSyncConflictDetailLines(conflict, side) {
           const lines = [];
           const decisionEnvelope = conflict?.decisionEnvelope || {};
@@ -348,12 +368,29 @@ export async function startApp() {
             );
           });
   
-          if (conflict?.studyConflict) {
+          if (hasRenderableStudyDiff(conflict, studySummary)) {
             const answeredCount =
               side === "local"
                 ? studySummary.localAnsweredCount
                 : studySummary.remoteAnsweredCount;
+            const topic =
+              side === "local"
+                ? studySummary.localTopic
+                : studySummary.remoteTopic;
+            const activityCount =
+              side === "local"
+                ? studySummary.localActivityCount
+                : studySummary.remoteActivityCount;
+            const analyticsVisible =
+              side === "local"
+                ? studySummary.localAnalyticsVisible
+                : studySummary.remoteAnalyticsVisible;
             lines.push(`İlerleme: ${answeredCount || 0} cevap`);
+            lines.push(`Konu filtresi: ${topic || "hepsi"}`);
+            lines.push(`Aktivite: ${activityCount || 0} hareket`);
+            lines.push(
+              `Analytics paneli: ${analyticsVisible ? "Acik" : "Kapali"}`,
+            );
             if ((studySummary.blockingAnswerCount || 0) > 0) {
               lines.push(
                 `Cakisan cevap sayisi: ${studySummary.blockingAnswerCount || 0}`,
