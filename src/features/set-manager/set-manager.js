@@ -56,6 +56,7 @@ function toSafeArray(value) {
     onRender,
     onSetsRemoved,
     onSelectionChanged,
+    getTopicSourceVisible,
     documentRef = globalScope.document,
     setTimeoutRef = globalScope.setTimeout?.bind(globalScope),
     clearTimeoutRef = globalScope.clearTimeout?.bind(globalScope),
@@ -370,6 +371,12 @@ function toSafeArray(value) {
         const progress = buildSetProgress(setId, setObj);
         const escapedSetId = escapeMarkup(setId);
         const escapedSetName = escapeMarkup(setObj.setName);
+        const showTopicSource = typeof getTopicSourceVisible === "function"
+          ? getTopicSourceVisible()
+          : false;
+        const fileNameHtml = showTopicSource && setObj.fileName && setObj.fileName !== setObj.setName
+          ? ` <span class="set-source-name" aria-hidden="true" style="font-size:11px;opacity:0.55;font-weight:400;">(${escapeMarkup(setObj.fileName)})</span>`
+          : "";
         const escapedStats = escapeMarkup(
           `📚 ${progress.totalQuestions} Soru | 📊 İlerleme: ${progress.solvedCount}/${progress.totalQuestions} (%${progress.progressPercent}) | ✅ ${progress.correctCount} ❌ ${progress.wrongCount}`,
         );
@@ -379,7 +386,7 @@ function toSafeArray(value) {
             <div class="set-item-left" data-set-toggle-id="${escapedSetId}" role="button" tabindex="0">
               <input type="checkbox" ${isSelected ? "checked" : ""} data-set-checkbox-id="${escapedSetId}">
               <div class="set-info">
-                <div class="set-name">${escapedSetName}</div>
+                <div class="set-name">${escapedSetName}${fileNameHtml}</div>
                 <div class="set-stats">${escapedStats}</div>
               </div>
             </div>

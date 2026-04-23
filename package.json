@@ -2,19 +2,22 @@
   "name": "multiple-choice-questions",
   "version": "1.0.0",
   "description": "Doktorlar ve tıp öğrencileri için lokal çalışan, JSON tabanlı çoktan seçmeli test uygulaması.",
-  "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "build:dist": "npm run build",
     "preview": "vite preview",
-    "serve:dist": "npm run preview -- --host 127.0.0.1 --port 4174 --strictPort",
+    "web": "npm run dev",
+    "serve:dist": "npm run preview -- --host 127.0.0.1 --port 4173 --strictPort",
     "tauri": "node ./node_modules/@tauri-apps/cli/tauri.js",
-    "build:desktop": "node ./tools/build-desktop.mjs",
+    "build:desktop": "node ./node_modules/@tauri-apps/cli/tauri.js build --bundles nsis",
     "release": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy",
     "release:no-legacy": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy",
     "release:dry-run": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy -DryRun",
     "release:with-legacy": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1",
+    "backup:cloud-user": "node ./tools/backup-cloud-user.mjs",
+    "backup:supabase": "node ./tools/run-pwsh-script.mjs ./tools/backup-supabase.ps1",
+    "backup:supabase:dry": "node ./tools/run-pwsh-script.mjs ./tools/backup-supabase.ps1 -DryRun",
     "validate:set": "node ./tools/validate-set.js",
     "validate:set:strict": "node ./tools/validate-set.js --require-files",
     "md2json": "node ./tools/md2json.js",
@@ -29,8 +32,13 @@
     "type": "git",
     "url": "git+https://github.com/asklepioszealot/multiple-choice-questions.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "multiple-choice",
+    "quiz",
+    "study",
+    "medical"
+  ],
+  "author": "AsklepiosZealot",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
@@ -45,10 +53,10 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.101.1",
+    "@supabase/supabase-js": "^2.101.0",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.0",
-    "dompurify": "^3.4.0",
+    "dompurify": "^3.3.3",
     "fflate": "^0.8.2",
     "sql.js": "^1.14.1"
   }

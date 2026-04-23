@@ -28,6 +28,7 @@ AUTO_ADVANCE_KEY,
 DEFAULT_STUDY_TYPOGRAPHY,
 THEME_CONTROL_IDS,
 THEME_KEY,
+TOPIC_SOURCE_KEY,
 } from "../shared/constants.js";
 import * as state from './state.js';
 
@@ -63,6 +64,7 @@ export async function startApp() {
         let isFullscreen = false;
         let answerLockEnabled = false;
         let autoAdvanceEnabled = false;
+        let topicSourceVisible = false;
         let autoAdvanceTimeoutId = null;
         let remoteStudyStateSyncTimeoutId = null;
         let pendingRemoteStudyStateSnapshot = null;
@@ -89,6 +91,9 @@ export async function startApp() {
           onRender: renderAnalyticsSummary,
           onSetsRemoved: deleteRemoteSetRecords,
           onSelectionChanged: handleSelectionChanged,
+          getTopicSourceVisible() {
+            return topicSourceVisible;
+          },
           documentRef: document,
           setTimeoutRef: window.setTimeout.bind(window),
           clearTimeoutRef: window.clearTimeout.bind(window),
@@ -1640,6 +1645,20 @@ export async function startApp() {
           }
         }
   
+        function syncTopicSourceToggleUI() {
+          const toggle = document.getElementById("topic-source-visibility-toggle");
+          if (toggle) {
+            toggle.checked = topicSourceVisible;
+          }
+        }
+
+        function setTopicSourceVisibility(isVisible) {
+          topicSourceVisible = Boolean(isVisible);
+          storage.setItem(TOPIC_SOURCE_KEY, topicSourceVisible ? "1" : "0");
+          syncTopicSourceToggleUI();
+          renderSetList();
+        }
+
         function getStudyTypographyState() {
           return {
             questionFontSize,
@@ -2282,6 +2301,10 @@ export async function startApp() {
             if (storedAnswerLock === "0" || storedAnswerLock === "1") {
               answerLockEnabled = storedAnswerLock === "1";
             }
+            const storedTopicSource = storage.getItem(TOPIC_SOURCE_KEY);
+            if (storedTopicSource === "0" || storedTopicSource === "1") {
+              topicSourceVisible = storedTopicSource === "1";
+            }
             const storedAutoAdvance = getScopedStorageItem(
               AUTO_ADVANCE_KEY,
               storageKeyPrefix,
@@ -2312,6 +2335,7 @@ export async function startApp() {
           }
           syncAnswerLockToggleUI();
           syncAutoAdvanceToggleUI();
+          syncTopicSourceToggleUI();
           syncTypographyControls();
           syncManagerSettingsPanelState();
         }
@@ -2421,6 +2445,9 @@ export async function startApp() {
           });
           bindEvent(document.getElementById("auto-advance-toggle-manager"), "change", (event) => {
             setAutoAdvance(event.currentTarget?.checked);
+          });
+          bindEvent(document.getElementById("topic-source-visibility-toggle"), "change", (event) => {
+            setTopicSourceVisibility(event.currentTarget?.checked);
           });
 
           const setList = document.getElementById("set-list");

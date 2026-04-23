@@ -40,7 +40,8 @@
         --mcq-font-option-fullscreen: 15px;
       }
 
-      [data-theme="dark"] {
+      [data-color-scheme="dark"] {
+        color-scheme: dark;
         --color-bg-primary: #0f172a; /* Slate 900 */
         --color-bg-secondary: #1e293b; /* Slate 800 */
         --color-header-bg: rgba(30, 41, 59, 0.85);
@@ -59,10 +60,6 @@
         --color-wrong: #f87171;
         --color-wrong-hover: #ef4444;
         --color-focus-ring: rgba(52, 211, 153, 0.38);
-      }
-
-      [data-color-scheme="dark"] {
-        color-scheme: dark;
       }
 
       * {
@@ -614,7 +611,7 @@
         font-weight: 700;
       }
 
-      [data-theme="dark"] .solution-content strong {
+      [data-color-scheme="dark"] .solution-content strong {
         color: var(--color-emphasis-strong);
         font-weight: 700;
       }
@@ -624,7 +621,7 @@
         font-weight: 700;
       }
 
-      [data-theme="dark"] .highlight-critical {
+      [data-color-scheme="dark"] .highlight-critical {
         color: var(--color-emphasis-strong);
         font-weight: 700;
       }
@@ -634,7 +631,7 @@
         font-weight: 400;
       }
 
-      [data-theme="dark"] .highlight-important {
+      [data-color-scheme="dark"] .highlight-important {
         color: var(--color-emphasis);
         font-weight: 400;
       }
@@ -1994,6 +1991,18 @@
               <button class="btn btn-secondary btn-small" id="reset-typography-btn" type="button">
                 Varsayılana dön
               </button>
+            </div>
+          </div>
+          <div class="manager-typography-panel" style="margin-top: 12px;">
+            <div class="manager-typography-panel-header">
+              <div class="manager-typography-panel-title">Görünüm tercihleri</div>
+            </div>
+            <div class="toggle-container manager-toggle-row">
+              <label for="topic-source-visibility-toggle">Set listesinde dosya adını göster</label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="topic-source-visibility-toggle" name="topic-source-visibility-toggle" />
+                <span class="toggle-slider"></span>
+              </label>
             </div>
           </div>
         </section>

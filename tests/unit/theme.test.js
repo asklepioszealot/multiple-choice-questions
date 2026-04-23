@@ -8,6 +8,7 @@ import {
 describe("theme manager", () => {
   afterEach(() => {
     document.documentElement.removeAttribute("data-theme");
+    document.documentElement.removeAttribute("data-color-scheme");
     document.body.innerHTML = "";
   });
 

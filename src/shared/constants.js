@@ -10,6 +10,7 @@ export const THEME_CONTROL_IDS = [
 
 export const ANSWER_LOCK_KEY = "mc_answer_lock";
 export const AUTO_ADVANCE_KEY = "mc_auto_advance";
+export const TOPIC_SOURCE_KEY = "mc_topic_source_visible";
 
 export const DEFAULT_STUDY_TYPOGRAPHY = Object.freeze({
   questionFontSize: 25,
