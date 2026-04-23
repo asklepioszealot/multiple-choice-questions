@@ -17,6 +17,7 @@
     "release:with-legacy": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1",
     "validate:set": "node ./tools/validate-set.js",
     "validate:set:strict": "node ./tools/validate-set.js --require-files",
+    "md2json": "node ./tools/md2json.js",
     "test:smoke": "node ./tools/run-smoke.js",
     "test:smoke:headed": "node ./tools/run-smoke.js --headed",
     "test:smoke:install": "npx playwright install chromium",
