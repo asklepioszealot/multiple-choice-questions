@@ -140,6 +140,33 @@ async function seedLocalSets(
   await page.reload();
 }
 
+async function openSeededEditor(page, setOverrides = {}) {
+  await seedLocalSets(page, {
+    sets: {
+      demo: {
+        setName: "Editor Seed",
+        fileName: "editor-seed.md",
+        sourceFormat: "markdown",
+        questions: [
+          {
+            q: "",
+            options: ["", ""],
+            correct: 0,
+            subject: "Genel",
+            explanation: "",
+          },
+        ],
+        ...setOverrides,
+      },
+    },
+    selectedSetIds: ["demo"],
+  });
+
+  await expect(page.locator("#edit-btn")).toBeEnabled();
+  await page.locator("#edit-btn").click();
+  await expect(page.locator("#editor-screen")).toBeVisible();
+}
+
 async function jumpToQuestion(page, questionNumber) {
   await page.fill("#jump-input", String(questionNumber));
   await page.press("#jump-input", "Enter");
@@ -413,70 +440,34 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#question-text")).toContainText("Duzenlenmis soru?");
   });
 
-  test("manager can create a brand new markdown-first set from scratch", async ({ page }) => {
+  test("manager hides new-set authoring and opens the editor only for loaded sets", async ({ page }) => {
     await page.addInitScript(() => localStorage.clear());
     await page.goto(appUrl());
     await continueAsDemo(page);
 
-    await expect(page.locator("#set-list .set-empty")).toBeVisible();
-    await page.click("#new-set-btn");
-    await expect(page.locator("#editor-screen")).toBeVisible();
-    await expect(page.locator("#editor-source-format-label")).toContainText("Markdown/TXT");
-    await expect(page.locator("#editor-question-list .editor-question-item")).toHaveCount(1);
-    await expect(page.locator("#editor-save-btn")).toBeDisabled();
-    await expect(page.locator("#editor-validation-summary")).toContainText(
-      "Set adi bos olamaz.",
+    await expect(page.locator("#new-set-btn")).toHaveCount(0);
+    await expect(page.locator("#edit-btn")).toBeDisabled();
+
+    const fixturePath = path.resolve(
+      process.cwd(),
+      "tests",
+      "fixtures",
+      "smoke-set.md",
     );
 
-    await page.fill("#editor-set-name", "Sifirdan Set");
-    await page.fill("#editor-question-text", "Yeni markdown soru?");
-    await expect(page.locator("#editor-save-btn")).toBeDisabled();
-    await expect(page.locator("#editor-validation-summary")).toContainText(
-      "En az iki dolu secenek gerekli.",
-    );
-    await page.evaluate(() => {
-      const updateOption = (index, value) => {
-        const input = document.querySelector(`[data-editor-option-index="${index}"]`);
-        if (!input) {
-          throw new Error(`Option input ${index} not found`);
-        }
-        input.value = value;
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-        input.dispatchEvent(new Event("change", { bubbles: true }));
-      };
-
-      updateOption(0, "Birinci");
-      updateOption(1, "Ikinci");
-    });
-    await page.locator("#editor-correct").selectOption("1");
-    await page.fill("#editor-explanation", "Yeni aciklama");
-    await expect(page.locator("#editor-save-btn")).toBeEnabled();
-    await page.click("#editor-save-btn");
-
-    await expect(page.locator("#set-manager")).toBeVisible();
-    await expect(page.locator("#set-list .set-name", { hasText: "Sifirdan Set" })).toBeVisible();
+    await page.setInputFiles("#file-picker", fixturePath);
     await expect(page.locator("#edit-btn")).toBeEnabled();
-    await expect(page.locator("#start-btn")).toBeEnabled();
     await page.click("#edit-btn");
     await expect(page.locator("#editor-screen")).toBeVisible();
-    await expect(page.locator("#editor-set-name")).toHaveValue("Sifirdan Set");
-    await expect(page.locator("#editor-question-text")).toHaveValue("Yeni markdown soru?");
     await expect(page.locator("#editor-source-format-label")).toContainText("Markdown/TXT");
-    await page.click('button:has-text("Yoneticiye don")');
-
-    await page.click("#start-btn");
-    await expect(page.locator("#question-text")).toContainText("Yeni markdown soru?");
   });
 
   test("editor media token buttons insert lightweight image and audio snippets", async ({
     page,
   }) => {
-    await page.addInitScript(() => localStorage.clear());
-    await page.goto(appUrl());
-    await continueAsDemo(page);
-
-    await page.click("#new-set-btn");
-    await expect(page.locator("#editor-screen")).toBeVisible();
+    await openSeededEditor(page, {
+      setName: "Token Yardimi",
+    });
 
     await page.fill("#editor-set-name", "Token Yardimi");
     await page.fill("#editor-question-text", "Bu yapi nedir?");
@@ -524,12 +515,9 @@ test.describe("MCQ smoke", () => {
   test("editor formatting token buttons insert lightweight markdown helpers", async ({
     page,
   }) => {
-    await page.addInitScript(() => localStorage.clear());
-    await page.goto(appUrl());
-    await continueAsDemo(page);
-
-    await page.click("#new-set-btn");
-    await expect(page.locator("#editor-screen")).toBeVisible();
+    await openSeededEditor(page, {
+      setName: "Formatting Yardimi",
+    });
 
     await page.fill("#editor-set-name", "Formatting Yardimi");
     await page.fill("#editor-question-text", "Kalin soru");
@@ -568,12 +556,9 @@ test.describe("MCQ smoke", () => {
   test("editor undo redo and question list state stay stable during authoring", async ({
     page,
   }) => {
-    await page.addInitScript(() => localStorage.clear());
-    await page.goto(appUrl());
-    await continueAsDemo(page);
-
-    await page.click("#new-set-btn");
-    await expect(page.locator("#editor-screen")).toBeVisible();
+    await openSeededEditor(page, {
+      setName: "History Yardimi",
+    });
 
     await page.fill("#editor-set-name", "History Yardimi");
     await page.fill("#editor-question-text", "Kalin soru");

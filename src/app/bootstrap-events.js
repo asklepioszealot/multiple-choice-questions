@@ -59,9 +59,6 @@ export function bindStaticEvents({
   bindEvent(documentRef.getElementById("import-set-btn"), "click", () => {
     void handlers.openSetImport();
   });
-  bindEvent(documentRef.getElementById("new-set-btn"), "click", () => {
-    handlers.openNewSetEditor();
-  });
   bindEvent(documentRef.getElementById("analytics-toggle-btn"), "click", () => {
     handlers.toggleAnalyticsPanel();
   });

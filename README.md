@@ -6,7 +6,6 @@ Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzer
 
 1. **Dinamik Soru Seti Yukleme (`Set Yonetimi`)**:
    - Dışarıdan indirdiğiniz veya kendiniz hazırladığınız `.json`, `.md`, `.txt` ve desteklenen `.apkg` uzantılı soru setlerini tek tıkla uygulamaya yükleyebilirsiniz.
-   - Manager ekranindan `Yeni set` ile sifirdan, markdown-first bir taslak acip yeni bir soru seti de olusturabilirsiniz.
    - Web sürümünde Google Drive Picker ile Drive'dan doğrudan soru dosyası seçebilirsiniz; desteklenen `.apkg` dosyalari da binary yolundan ice alinir. Tauri/masaüstü sürümünde ise bu sınır net bir uyarıyla belirtilir.
    - Birden fazla seti aynı anda seçip harmanlayarak veya ayrı ayrı filtreleyerek çözme imkanı sağlar.
 2. **Auth, Senkronizasyon ve Catismayi Guvenli Cozme**:
@@ -25,7 +24,6 @@ Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzer
    - "Yanlışları Çöz" butonuyla sadece hata yaptığınız soruları ayıklayıp tekrar çözebilirsiniz.
 4. **Editor ve Analytics Yuzeyi**:
    - `editor-screen` ile tek secili seti gorsel form veya raw kaynak gorunumu uzerinden duzenleyebilirsiniz.
-   - Yeni set olusturma akisi varsayilan olarak `Markdown/TXT` kaynak formatiyla baslar; kaydedince normal set listesine ve sync hattina baglanir.
    - Editor artik capability bazli parcali yapi, zengin toolbar aksiyonlari, question/explanation undo-redo history, soru listesi durumunu koruma, sorunlu soruya atlama, save gating, soru kopyalama/tasima ve daha genis dirty-state korumalari ile authoring kapanisina hazirdir.
    - APKG'den gelen guvenli image/audio medya, study ve gorsel editor save/export roundtrip'lerinde korunur; duz metne dusmez.
    - Soru ve aciklama alanlari hafif image/audio token dugmeleri ile `Kalin`, `Kritik` ve `Uyari` yardimcilari sunar.

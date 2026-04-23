@@ -10,7 +10,6 @@ import {
   addDraftQuestion,
   createEditorDraft,
   createEditorFeature,
-  createNewEditorDraft,
   getEditorValidationIssues,
   parseRawEditorDraft,
   serializeEditorDraft,
@@ -56,6 +55,25 @@ describe("editor helpers", () => {
       <select id="editor-correct"></select>
       <button id="editor-save-btn" type="button"></button>
     `;
+  }
+
+  function openExistingMarkdownEditor(feature, record = {}) {
+    feature.openEditor({
+      id: "demo",
+      setName: "Demo Set",
+      fileName: "demo.md",
+      sourceFormat: "markdown",
+      questions: [
+        {
+          q: "",
+          options: ["", ""],
+          correct: 0,
+          explanation: "",
+          subject: "Genel",
+        },
+      ],
+      ...record,
+    });
   }
 
   it("creates a draft from a loaded set record", () => {
@@ -140,9 +158,7 @@ describe("editor helpers", () => {
         documentRef: document,
       });
 
-      feature.openNewDraft({
-        sourceFormat: "markdown",
-      });
+      openExistingMarkdownEditor(feature);
       feature.updateMetaField("setName", "Media Export");
       feature.updateCurrentQuestionField(
         "q",
@@ -187,9 +203,7 @@ describe("editor helpers", () => {
       documentRef: document,
     });
 
-    feature.openNewDraft({
-      sourceFormat: "markdown",
-    });
+    openExistingMarkdownEditor(feature);
 
     const questionInput = document.getElementById("editor-question-text");
     const explanationInput = document.getElementById("editor-explanation");
@@ -226,9 +240,7 @@ describe("editor helpers", () => {
       documentRef: document,
     });
 
-    feature.openNewDraft({
-      sourceFormat: "markdown",
-    });
+    openExistingMarkdownEditor(feature);
 
     const questionInput = document.getElementById("editor-question-text");
     const explanationInput = document.getElementById("editor-explanation");
@@ -264,9 +276,7 @@ describe("editor helpers", () => {
       documentRef: document,
     });
 
-    feature.openNewDraft({
-      sourceFormat: "markdown",
-    });
+    openExistingMarkdownEditor(feature);
 
     const questionInput = document.getElementById("editor-question-text");
     questionInput.value = "Kalin soru";
@@ -359,9 +369,7 @@ describe("editor helpers", () => {
       ...codecHelpers,
     });
 
-    feature.openNewDraft({
-      sourceFormat: "markdown",
-    });
+    openExistingMarkdownEditor(feature);
     feature.updateCurrentQuestionField("q", "Soru?");
     feature.updateCurrentOption(0, "A");
     feature.updateCurrentOption(1, "B");
@@ -438,25 +446,26 @@ describe("editor helpers", () => {
     });
   });
 
-  it("creates a markdown-first draft for a brand new set", () => {
-    const draft = createNewEditorDraft();
+  it("opens an existing markdown set in visual edit mode", () => {
+    const feature = createEditorFeature({
+      ...codecHelpers,
+    });
 
+    openExistingMarkdownEditor(feature, {
+      id: "existing",
+      setName: "Var olan set",
+    });
+
+    const draft = feature.getDraft();
     expect(draft.meta).toMatchObject({
-      setName: "",
-      fileName: "",
+      id: "existing",
+      setName: "Var olan set",
+      fileName: "demo.md",
       sourceFormat: "markdown",
-      sourcePath: "",
     });
     expect(draft.mode).toBe("visual");
     expect(draft.activeQuestionIndex).toBe(0);
     expect(draft.questions).toHaveLength(1);
-    expect(draft.questions[0]).toMatchObject({
-      q: "",
-      options: ["", ""],
-      correct: 0,
-      explanation: "",
-      subject: "Genel",
-    });
   });
 
   it("validates missing set name and underfilled options", () => {
@@ -526,8 +535,8 @@ describe("editor helpers", () => {
       documentRef: document,
     });
 
-    feature.openNewDraft({
-      sourceFormat: "markdown",
+    openExistingMarkdownEditor(feature, {
+      setName: "",
     });
 
     expect(document.getElementById("editor-save-btn").disabled).toBe(true);

@@ -234,21 +234,6 @@ export function createEditorDraft(record = {}, helpers = {}) {
   };
 }
 
-export function createNewEditorDraft(options = {}, helpers = {}) {
-  const sourceFormat = options?.sourceFormat === "json" ? "json" : "markdown";
-  return createEditorDraft(
-    {
-      fileName: "",
-      questions: [createEmptyQuestion()],
-      rawSource: "",
-      setName: "",
-      sourceFormat,
-      sourcePath: "",
-    },
-    helpers,
-  );
-}
-
 export function updateDraftQuestionField(draft, questionIndex, field, value) {
   const nextDraft = {
     ...draft,

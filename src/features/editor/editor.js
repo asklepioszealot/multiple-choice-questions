@@ -3,7 +3,6 @@ import {
   addDraftQuestion,
   createEditorDraft,
   createEmptyQuestion,
-  createNewEditorDraft,
   duplicateDraftQuestion,
   moveDraftQuestion,
   removeDraftOption,
@@ -555,15 +554,6 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       render();
     }
 
-    function openNewDraft(options = {}) {
-      draft = createNewEditorDraft(options, codecHelpers);
-      baselineSignature = buildDraftSignature(draft);
-      statusMessage = "";
-      statusTone = "";
-      showScreenRef("editor");
-      render();
-    }
-
     function confirmNavigateAway(
       message = "Kaydedilmemis degisiklikler var. Editorden cikmak istedigine emin misin?",
       blockedMessage = "Kaydedilmemis degisiklikler korunuyor.",
@@ -861,7 +851,6 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       isDirty,
       moveQuestion,
       openEditor,
-      openNewDraft,
       removeOption,
       removeQuestion,
       render,
@@ -879,7 +868,6 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
   addDraftQuestion,
   createEditorDraft,
   createEditorFeature,
-  createNewEditorDraft,
   duplicateDraftQuestion,
   getEditorValidationIssues,
   moveDraftQuestion,
@@ -893,7 +881,6 @@ export {
   addDraftQuestion,
   createEditorDraft,
   createEditorFeature,
-  createNewEditorDraft,
   duplicateDraftQuestion,
   getEditorValidationIssues,
   moveDraftQuestion,

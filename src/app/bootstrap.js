@@ -465,26 +465,6 @@ export async function startApp() {
     return true;
   }
 
-  function openNewSetEditor() {
-    if (hasPendingSyncConflict()) {
-      return;
-    }
-
-    if (
-      !confirmEditorNavigation(
-        "Kaydedilmemis degisiklikler var. Yeni taslak acarsan editor kapanacak. Devam etmek istiyor musun?",
-        "Kaydedilmemis degisiklikler korunuyor.",
-      )
-    ) {
-      return false;
-    }
-
-    editorFeature.openNewDraft({
-      sourceFormat: "markdown",
-    });
-    return true;
-  }
-
   async function openSetImport() {
     if (hasPendingSyncConflict()) {
       return null;
@@ -585,7 +565,6 @@ export async function startApp() {
         moveCurrentEditorQuestion: (direction) =>
           editorFeature.moveQuestion(direction),
         nextQuestion: () => studyRunner.nextQuestion(),
-        openNewSetEditor,
         openSelectedSetEditor,
         openSetImport,
         previousQuestion: () => studyRunner.previousQuestion(),
