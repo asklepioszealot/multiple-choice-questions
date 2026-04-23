@@ -125,7 +125,7 @@ export async function startApp() {
           clearTimeoutRef: window.clearTimeout.bind(window),
         });
         const syncStatus = createSyncStatusController({
-          onChange: renderSyncStatus,
+          onChange: (snapshot) => renderSyncStatus(snapshot),
         });
         const analyticsPanel = createAnalyticsPanelController({
           documentRef: document,
