@@ -687,6 +687,317 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
     });
   }
 
+  function decodeBase64ToArrayBuffer(value) {
+    const encoded = String(value || "").trim();
+    if (!encoded) {
+      return null;
+    }
+
+    if (typeof globalScope.Buffer?.from === "function") {
+      const bytes = globalScope.Buffer.from(encoded, "base64");
+      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    }
+
+    if (typeof globalScope.atob === "function") {
+      const binary = globalScope.atob(encoded);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+      return bytes.buffer;
+    }
+
+    return null;
+  }
+
+  function normalizeNativePickedFiles(files) {
+    return Array.isArray(files)
+      ? files.map((file) => {
+          const binaryContents = decodeBase64ToArrayBuffer(file?.binaryBase64);
+          if (!binaryContents) {
+            return file;
+          }
+
+          return {
+            ...file,
+            contents: binaryContents,
+          };
+        })
+      : [];
+  }
+
+  function createTauriBridge() {
+    const invoke = globalScope.__TAURI__?.core?.invoke;
+    if (typeof invoke !== "function") {
+      return null;
+    }
+
+    return Object.freeze({
+      async listLocalSets(userId) {
+        return invoke("list_local_sets", {
+          userId,
+        });
+      },
+      async upsertLocalSet(userId, record) {
+        return invoke("upsert_local_set", {
+          userId,
+          record,
+        });
+      },
+      async deleteLocalSets(userId, setIds) {
+        return invoke("delete_local_sets", {
+          userId,
+          setIds,
+        });
+      },
+      async queueSync(userId, operation) {
+        return invoke("queue_sync", {
+          userId,
+          operation,
+        });
+      },
+      async flushSync(userId) {
+        const result = await invoke("flush_sync", {
+          userId,
+        });
+        if (Array.isArray(result)) {
+          return result;
+        }
+        return Array.isArray(result?.operations) ? result.operations : [];
+      },
+      async pickNativeSetFiles() {
+        const files = await invoke("pick_native_set_files", {});
+        return normalizeNativePickedFiles(files);
+      },
+      async writeSetSourceFile(sourcePath, rawSource) {
+        return invoke("write_set_source_file", {
+          sourcePath,
+          rawSource,
+        });
+      },
+    });
+  }
+
+  function pickNewerRecord(leftRecord, rightRecord) {
+    if (!leftRecord) return rightRecord || null;
+    if (!rightRecord) return leftRecord || null;
+
+    const leftTime = Date.parse(leftRecord.updatedAt || "");
+    const rightTime = Date.parse(rightRecord.updatedAt || "");
+    let nextRecord = null;
+
+    if (Number.isFinite(leftTime) && Number.isFinite(rightTime)) {
+      nextRecord = leftTime >= rightTime ? leftRecord : rightRecord;
+    } else if (Number.isFinite(leftTime)) {
+      nextRecord = leftRecord;
+    } else if (Number.isFinite(rightTime)) {
+      nextRecord = rightRecord;
+    } else {
+      nextRecord = leftRecord;
+    }
+
+    if (!nextRecord?.sourcePath) {
+      const preservedSourcePath = String(
+        leftRecord.sourcePath || rightRecord.sourcePath || "",
+      ).trim();
+      if (preservedSourcePath) {
+        return {
+          ...nextRecord,
+          sourcePath: preservedSourcePath,
+        };
+      }
+    }
+
+    return nextRecord;
+  }
+
+  function mergeDesktopSets(localSets, remoteSets, pendingSetIds) {
+    const result = new Map();
+    const localMap = new Map(
+      (Array.isArray(localSets) ? localSets : []).map((record) => [
+        record.id,
+        normalizeSetRecord(record),
+      ]),
+    );
+    const remoteMap = new Map(
+      (Array.isArray(remoteSets) ? remoteSets : []).map((record) => [
+        record.id,
+        normalizeSetRecord(record),
+      ]),
+    );
+
+    remoteMap.forEach((remoteRecord, setId) => {
+      const localRecord = localMap.get(setId);
+      result.set(setId, pickNewerRecord(localRecord, remoteRecord));
+    });
+
+    localMap.forEach((localRecord, setId) => {
+      if (result.has(setId)) {
+        return;
+      }
+      if (pendingSetIds.has(setId)) {
+        result.set(setId, localRecord);
+      }
+    });
+
+    return [...result.values()].map((record) => normalizeSetRecord(record));
+  }
+
+  function createDesktopAdapter(remoteAdapter) {
+    const bridge = createTauriBridge();
+    if (!bridge || remoteAdapter?.supportsRemoteSync !== true) {
+      return remoteAdapter;
+    }
+
+    async function getUserOrThrow() {
+      const user = await remoteAdapter.getCurrentUser();
+      if (!user) {
+        throw new Error("Masaustu senkronizasyonu icin giris gerekli.");
+      }
+      return user;
+    }
+
+    async function readLocalSets(userId) {
+      const records = await bridge.listLocalSets(userId);
+      return Array.isArray(records)
+        ? records.map((record) => normalizeSetRecord(record))
+        : [];
+    }
+
+    async function persistLocalMirror(userId, nextRecords) {
+      const existing = await readLocalSets(userId);
+      const nextMap = new Map(
+        (Array.isArray(nextRecords) ? nextRecords : []).map((record) => [
+          record.id,
+          normalizeSetRecord(record),
+        ]),
+      );
+      const existingIds = new Set(existing.map((record) => record.id));
+
+      for (const record of nextMap.values()) {
+        await bridge.upsertLocalSet(userId, record);
+      }
+
+      const idsToDelete = [...existingIds].filter((setId) => !nextMap.has(setId));
+      if (idsToDelete.length > 0) {
+        await bridge.deleteLocalSets(userId, idsToDelete);
+      }
+    }
+
+    async function applyQueuedOperations(userId, operations) {
+      const failedOperations = [];
+
+      for (const operation of Array.isArray(operations) ? operations : []) {
+        try {
+          if (operation?.type === "upsert" && operation.record) {
+            await remoteAdapter.saveSet(operation.record);
+          } else if (
+            operation?.type === "delete" &&
+            Array.isArray(operation.setIds)
+          ) {
+            await remoteAdapter.deleteSets(operation.setIds);
+          }
+        } catch (error) {
+          failedOperations.push(operation);
+        }
+      }
+
+      for (const operation of failedOperations) {
+        await bridge.queueSync(userId, operation);
+      }
+
+      return failedOperations;
+    }
+
+    return Object.freeze({
+      ...remoteAdapter,
+      type: "desktop-sync",
+      async loadSets() {
+        const user = await getUserOrThrow();
+        const localSets = await readLocalSets(user.id);
+
+        try {
+          const queuedOperations = await bridge.flushSync(user.id);
+          const failedOperations = await applyQueuedOperations(
+            user.id,
+            queuedOperations,
+          );
+          const pendingSetIds = new Set();
+
+          failedOperations.forEach((operation) => {
+            if (operation?.type === "upsert" && operation.record?.id) {
+              pendingSetIds.add(operation.record.id);
+            }
+            if (operation?.type === "delete" && Array.isArray(operation.setIds)) {
+              operation.setIds.forEach((setId) => pendingSetIds.add(setId));
+            }
+          });
+
+          const remoteSets = await remoteAdapter.loadSets();
+          const mergedSets = mergeDesktopSets(localSets, remoteSets, pendingSetIds);
+          await persistLocalMirror(user.id, mergedSets);
+          return mergedSets;
+        } catch {
+          return localSets;
+        }
+      },
+      async saveSet(record) {
+        const user = await getUserOrThrow();
+        const normalizedRecord = normalizeSetRecord({
+          ...record,
+          updatedAt: new Date().toISOString(),
+        });
+
+        await bridge.upsertLocalSet(user.id, normalizedRecord);
+
+        try {
+          const remoteRecord = await remoteAdapter.saveSet({
+            ...normalizedRecord,
+            forceOverwrite: record?.forceOverwrite === true,
+          });
+          const persistedRecord = normalizeSetRecord({
+            ...remoteRecord,
+            sourcePath:
+              normalizedRecord.sourcePath || remoteRecord?.sourcePath || "",
+          });
+          await bridge.upsertLocalSet(user.id, persistedRecord);
+          return persistedRecord;
+        } catch (error) {
+          if (error?.code === "REMOTE_CONFLICT") {
+            throw error;
+          }
+
+          await bridge.queueSync(user.id, {
+            type: "upsert",
+            queuedAt: new Date().toISOString(),
+            record: normalizedRecord,
+          });
+          return normalizedRecord;
+        }
+      },
+      async deleteSets(setIds) {
+        const user = await getUserOrThrow();
+        await bridge.deleteLocalSets(user.id, setIds);
+
+        try {
+          await remoteAdapter.deleteSets(setIds);
+        } catch (error) {
+          await bridge.queueSync(user.id, {
+            type: "delete",
+            queuedAt: new Date().toISOString(),
+            setIds,
+          });
+        }
+      },
+      async pickNativeSetFiles() {
+        return bridge.pickNativeSetFiles();
+      },
+      async writeSetSourceFile(sourcePath, rawSource) {
+        return bridge.writeSetSourceFile(sourcePath, rawSource);
+      },
+    });
+  }
+
   function createPlatformAdapter({
     storage,
     getRuntimeConfig,
@@ -704,6 +1015,8 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
         : "";
     const nativeFileBridge = createNativeFileBridge();
 
+    let baseAdapter = createLocalDemoAdapter(storage, nativeFileBridge);
+
     if (supabaseUrl && supabaseAnonKey) {
       const resolvedCreateClient =
         typeof createClientRef === "function"
@@ -711,7 +1024,7 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
           : globalScope.__APP_SUPABASE__?.createClient;
 
       if (typeof resolvedCreateClient === "function") {
-        return createSupabaseAdapter(
+        baseAdapter = createSupabaseAdapter(
           { supabaseUrl, supabaseAnonKey },
           storage,
           resolvedCreateClient,
@@ -720,20 +1033,24 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
       }
     }
 
-    return createLocalDemoAdapter(storage, nativeFileBridge);
+    return createDesktopAdapter(baseAdapter);
   }
 
   const AppPlatformAdapter = Object.freeze({
     AUTH_REMEMBER_ME_KEY,
     createAuthSessionStorage,
+    createDesktopAdapter,
     createLocalDemoAdapter,
     createPlatformAdapter,
     createSupabaseAdapter,
+    createTauriBridge,
   });
 
   export {
     createAuthSessionStorage,
+    createDesktopAdapter,
     createLocalDemoAdapter,
     createPlatformAdapter,
     createSupabaseAdapter,
+    createTauriBridge,
   };
