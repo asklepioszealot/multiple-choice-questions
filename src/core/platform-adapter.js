@@ -693,18 +693,25 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
       return null;
     }
 
-    if (typeof globalScope.Buffer?.from === "function") {
-      const bytes = globalScope.Buffer.from(encoded, "base64");
-      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    }
-
-    if (typeof globalScope.atob === "function") {
-      const binary = globalScope.atob(encoded);
-      const bytes = new Uint8Array(binary.length);
+    const atobRef =
+      typeof globalThis?.atob === "function" ? globalThis.atob : globalScope.atob;
+    if (typeof atobRef === "function") {
+      const binary = atobRef(encoded);
+      const Uint8ArrayRef = globalScope.Uint8Array || Uint8Array;
+      const bytes = new Uint8ArrayRef(binary.length);
       for (let index = 0; index < binary.length; index += 1) {
         bytes[index] = binary.charCodeAt(index);
       }
       return bytes.buffer;
+    }
+
+    const bufferRef =
+      typeof globalThis?.Buffer?.from === "function"
+        ? globalThis.Buffer
+        : globalScope.Buffer;
+    if (typeof bufferRef?.from === "function") {
+      const bytes = bufferRef.from(encoded, "base64");
+      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     }
 
     return null;

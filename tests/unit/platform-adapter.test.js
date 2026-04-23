@@ -497,4 +497,179 @@ describe("platform adapter", () => {
       rawSource: "# Demo",
     });
   });
+
+  it("queues failed desktop saves locally when the remote write fails", async () => {
+    originalTauri = globalThis.__TAURI__;
+    const invoke = vi.fn(async (command, args) => {
+      if (command === "upsert_local_set") {
+        return args.record;
+      }
+
+      if (command === "queue_sync") {
+        return null;
+      }
+
+      throw new Error(`unexpected command ${command}`);
+    });
+    globalThis.__TAURI__ = {
+      core: {
+        invoke,
+      },
+    };
+
+    const createClient = vi.fn(() => ({
+      auth: {
+        getSession: vi.fn(async () => ({
+          data: {
+            session: {
+              user: {
+                id: "user-1",
+                email: "doctor@example.com",
+              },
+            },
+          },
+          error: null,
+        })),
+        onAuthStateChange: vi.fn(() => ({
+          data: {
+            subscription: {
+              unsubscribe: vi.fn(),
+            },
+          },
+        })),
+        signInWithPassword: vi.fn(),
+        signUp: vi.fn(),
+        signOut: vi.fn(async () => ({ error: null })),
+      },
+      from: vi.fn((tableName) => {
+        if (tableName !== "mcq_sets") {
+          throw new Error(`unexpected table ${tableName}`);
+        }
+
+        return {
+          upsert: vi.fn(() => ({
+            select: vi.fn(() => ({
+              single: vi.fn(async () => ({
+                data: null,
+                error: new Error("network failed"),
+              })),
+            })),
+          })),
+        };
+      }),
+    }));
+
+    const platformAdapter = createPlatformAdapter({
+      storage: createMemoryStorage(),
+      getRuntimeConfig() {
+        return {
+          supabaseUrl: "https://example.supabase.co",
+          supabaseAnonKey: "anon-key",
+        };
+      },
+      createClientRef: createClient,
+    });
+
+    const savedRecord = await platformAdapter.saveSet({
+      id: "desktop-demo",
+      slug: "desktop-demo",
+      setName: "Desktop Demo",
+      fileName: "desktop-demo.md",
+      sourceFormat: "markdown",
+      sourcePath: "C:\\sets\\desktop-demo.md",
+      rawSource: "# Desktop Demo",
+      questions: [],
+      updatedAt: "2026-04-04T12:00:00.000Z",
+    });
+
+    expect(platformAdapter.type).toBe("desktop-sync");
+    expect(savedRecord).toMatchObject({
+      id: "desktop-demo",
+      sourcePath: "C:\\sets\\desktop-demo.md",
+    });
+    expect(invoke).toHaveBeenNthCalledWith(1, "upsert_local_set", {
+      userId: "user-1",
+      record: expect.objectContaining({
+        id: "desktop-demo",
+      }),
+    });
+    expect(invoke).toHaveBeenNthCalledWith(2, "queue_sync", {
+      userId: "user-1",
+      operation: expect.objectContaining({
+        type: "upsert",
+        record: expect.objectContaining({
+          id: "desktop-demo",
+        }),
+      }),
+    });
+  });
+
+  it("decodes desktop apkg payloads from tauri into array buffers", async () => {
+    originalTauri = globalThis.__TAURI__;
+    const binaryPayload = Buffer.from([0x50, 0x4b, 0x03, 0x04]).toString("base64");
+    const invoke = vi.fn(async (command) => {
+      if (command === "pick_native_set_files") {
+        return [
+          {
+            path: "C:\\sets\\demo.apkg",
+            name: "demo.apkg",
+            binaryBase64: binaryPayload,
+          },
+        ];
+      }
+
+      throw new Error(`unexpected command ${command}`);
+    });
+    globalThis.__TAURI__ = {
+      core: {
+        invoke,
+      },
+    };
+
+    const createClient = vi.fn(() => ({
+      auth: {
+        getSession: vi.fn(async () => ({
+          data: {
+            session: {
+              user: {
+                id: "user-1",
+                email: "doctor@example.com",
+              },
+            },
+          },
+          error: null,
+        })),
+        onAuthStateChange: vi.fn(() => ({
+          data: {
+            subscription: {
+              unsubscribe: vi.fn(),
+            },
+          },
+        })),
+        signInWithPassword: vi.fn(),
+        signUp: vi.fn(),
+        signOut: vi.fn(async () => ({ error: null })),
+      },
+      from: vi.fn(),
+    }));
+
+    const platformAdapter = createPlatformAdapter({
+      storage: createMemoryStorage(),
+      getRuntimeConfig() {
+        return {
+          supabaseUrl: "https://example.supabase.co",
+          supabaseAnonKey: "anon-key",
+        };
+      },
+      createClientRef: createClient,
+    });
+
+    const files = await platformAdapter.pickNativeSetFiles();
+
+    expect(platformAdapter.type).toBe("desktop-sync");
+    expect(files).toHaveLength(1);
+    expect(files[0].name).toBe("demo.apkg");
+    expect(files[0].contents).toBeInstanceOf(ArrayBuffer);
+    expect([...new Uint8Array(files[0].contents)]).toEqual([0x50, 0x4b, 0x03, 0x04]);
+  });
 });
