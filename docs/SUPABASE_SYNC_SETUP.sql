@@ -1,3 +1,6 @@
+-- Bu SQL ayni Supabase projesinde flashcards-app ile birlikte calisabilecek sekilde tasarlandi.
+-- Izolasyon: tablo adlari mcq_* prefix ile; RLS policy'leri auth.uid() = user_id kosuluyla.
+-- Flashcards tablolarıyla cakisma yoktur (prefix: flashcard_*).
 -- Dedicated study-state setup for Multiple Choice Questions.
 -- User progress lives in a single per-user row.
 

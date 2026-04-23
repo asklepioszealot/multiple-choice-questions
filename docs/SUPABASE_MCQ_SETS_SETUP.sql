@@ -1,3 +1,6 @@
+-- Bu SQL ayni Supabase projesinde flashcards-app ile birlikte calisabilecek sekilde tasarlandi.
+-- Izolasyon: tablo adlari mcq_* prefix ile; RLS policy'leri auth.uid() = user_id kosuluyla.
+-- Flashcards tablolarıyla cakisma yoktur (prefix: flashcard_*).
 -- Core public schema for Multiple Choice Questions cloud set sync.
 -- This table stores MCQ set records per authenticated user.
 

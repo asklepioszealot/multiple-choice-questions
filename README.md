@@ -64,6 +64,10 @@ Smoke:
 npm run test:smoke
 ```
 
+## Supabase birlikte kullanim
+
+MCQ ve `flashcards-app` ayni Supabase projesini paylasabilir. Her iki uygulamaya da ayni `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` degerlerini verebilirsiniz; veri ayrimi tablo prefix'leri (`mcq_*` ve `flashcard_*`) ile saglanir. Kisa kurulum notlari icin `docs/SUPABASE_COEXISTENCE.md` dosyasina bakin.
+
 Unit:
 
 ```powershell
