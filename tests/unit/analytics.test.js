@@ -140,6 +140,13 @@ describe("analytics summary", () => {
       <div id="analytics-results-value"></div>
       <div id="analytics-completion-value"></div>
       <div id="analytics-last-study"></div>
+      <div id="analytics-distribution-meta"></div>
+      <div id="analytics-result-distribution"></div>
+      <div id="analytics-activity-meta"></div>
+      <div id="analytics-activity-trend"></div>
+      <div id="analytics-focus-title"></div>
+      <div id="analytics-focus-copy"></div>
+      <button id="analytics-focus-action" type="button" hidden></button>
       <table>
         <tbody id="analytics-subject-breakdown"></tbody>
       </table>
@@ -163,9 +170,41 @@ describe("analytics summary", () => {
       wrongAnswers: 3,
       completionRate: 55,
       lastStudyText: "Son calisma: 4. soru",
+      resultDistribution: {
+        correct: 8,
+        wrong: 3,
+        unanswered: 9,
+      },
+      activityTrend: [
+        { key: "2026-04-19", label: "Paz", correct: 1, wrong: 0, cleared: 0, total: 1 },
+        { key: "2026-04-20", label: "Pts", correct: 0, wrong: 2, cleared: 1, total: 3 },
+      ],
+      focusRecommendation: {
+        kind: "subject",
+        title: "Matematik ile devam et",
+        message: "1 soru bu konuda seni bekliyor.",
+        actionLabel: "Matematik odagina gec",
+        subject: "Matematik",
+      },
       subjectBreakdown: [
-        { subject: "Genel", correct: 2, wrong: 1, total: 3 },
-        { subject: "Matematik", correct: 1, wrong: 1, total: 2 },
+        {
+          subject: "Genel",
+          correct: 2,
+          wrong: 1,
+          totalQuestions: 3,
+          solvedQuestions: 3,
+          remaining: 0,
+          accuracy: 67,
+        },
+        {
+          subject: "Matematik",
+          correct: 1,
+          wrong: 1,
+          totalQuestions: 3,
+          solvedQuestions: 2,
+          remaining: 1,
+          accuracy: 50,
+        },
       ],
     });
 
@@ -179,12 +218,76 @@ describe("analytics summary", () => {
     expect(document.getElementById("analytics-last-study").textContent).toBe(
       "Son calisma: 4. soru",
     );
+    expect(document.getElementById("analytics-distribution-meta").textContent).toContain(
+      "Dogru 8",
+    );
+    expect(document.getElementById("analytics-activity-meta").textContent).toContain(
+      "4 hareket",
+    );
+    expect(document.getElementById("analytics-focus-title").textContent).toBe(
+      "Matematik ile devam et",
+    );
+    expect(document.getElementById("analytics-focus-action").hidden).toBe(false);
     expect(document.getElementById("analytics-subject-breakdown").children).toHaveLength(2);
     expect(document.getElementById("analytics-subject-breakdown").textContent).toContain(
       "Genel",
     );
     expect(document.getElementById("analytics-subject-breakdown").textContent).toContain(
+      "3 / 3",
+    );
+    expect(document.getElementById("analytics-subject-breakdown").textContent).toContain(
       "2 / 3",
     );
+  });
+
+  it("wires the focus action to a subject callback", () => {
+    document.body.innerHTML = `
+      <button id="analytics-toggle-btn" type="button"></button>
+      <section id="analytics-dashboard-manager" hidden></section>
+      <p id="analytics-summary-manager"></p>
+      <div id="analytics-focus-title"></div>
+      <div id="analytics-focus-copy"></div>
+      <button id="analytics-focus-action" type="button" hidden></button>
+      <tbody id="analytics-subject-breakdown"></tbody>
+    `;
+
+    const focusedSubjects = [];
+    const controller = createAnalyticsPanelController({
+      documentRef: document,
+      onSubjectSelect(subject) {
+        focusedSubjects.push(subject);
+      },
+    });
+
+    controller.renderSummary({
+      loadedSetCount: 1,
+      selectedSetCount: 1,
+      totalQuestions: 3,
+      solvedQuestions: 1,
+      correctAnswers: 1,
+      wrongAnswers: 0,
+      completionRate: 33,
+      subjectBreakdown: [
+        {
+          subject: "Noroloji",
+          totalQuestions: 2,
+          solvedQuestions: 1,
+          correct: 1,
+          wrong: 0,
+          remaining: 1,
+          accuracy: 100,
+        },
+      ],
+      focusRecommendation: {
+        kind: "subject",
+        title: "Noroloji ile devam et",
+        message: "1 soru bu konuda seni bekliyor.",
+        actionLabel: "Noroloji odagina gec",
+        subject: "Noroloji",
+      },
+    });
+
+    document.getElementById("analytics-focus-action").click();
+    expect(focusedSubjects).toEqual(["Noroloji"]);
   });
 });

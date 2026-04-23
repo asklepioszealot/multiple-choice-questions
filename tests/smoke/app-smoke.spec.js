@@ -95,10 +95,13 @@ async function clearStorage(page) {
   await page.reload();
 }
 
-async function seedLocalSets(page, { sets, selectedSetIds, assessments, session }) {
+async function seedLocalSets(
+  page,
+  { sets, selectedSetIds, assessments, session, analyticsVisible = false },
+) {
   await page.goto(appUrl());
   await page.evaluate(
-    ({ sets, selectedSetIds, assessments, session }) => {
+    ({ sets, selectedSetIds, assessments, session, analyticsVisible }) => {
       localStorage.clear();
       sessionStorage.clear();
       localStorage.setItem(
@@ -124,12 +127,14 @@ async function seedLocalSets(page, { sets, selectedSetIds, assessments, session 
       if (session) {
         localStorage.setItem("mc_session", JSON.stringify(session));
       }
+      localStorage.setItem("mc_analytics_visible", analyticsVisible ? "1" : "0");
     },
     {
       sets,
       selectedSetIds,
       assessments,
       session,
+      analyticsVisible,
     },
   );
   await page.reload();
@@ -744,6 +749,88 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#analytics-questions-value")).toHaveText("1 / 1");
     await expect(page.locator("#analytics-results-value")).toHaveText("1 / 0");
     await expect(page.locator("#analytics-completion-value")).toHaveText("%100");
+  });
+
+  test("analytics dashboard persists visibility and focus action opens the recommended subject", async ({
+    page,
+  }) => {
+    await seedLocalSets(page, {
+      sets: {
+        analytics: {
+          id: "analytics",
+          setName: "Analytics Demo",
+          fileName: "analytics-demo.json",
+          questions: [
+            {
+              id: "q-1",
+              q: "Genel soru 1?",
+              options: ["A", "B"],
+              correct: 0,
+              explanation: "Aciklama 1",
+              subject: "Genel",
+            },
+            {
+              id: "q-2",
+              q: "Genel soru 2?",
+              options: ["A", "B"],
+              correct: 0,
+              explanation: "Aciklama 2",
+              subject: "Genel",
+            },
+            {
+              id: "q-3",
+              q: "Noroloji soru 1?",
+              options: ["A", "B"],
+              correct: 1,
+              explanation: "Aciklama 3",
+              subject: "Noroloji",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["analytics"],
+      assessments: {
+        selectedAnswers: {
+          "set:analytics::id:q-1": 0,
+          "set:analytics::id:q-2": 1,
+        },
+        solutionVisible: {},
+        activityByDay: {
+          "2026-04-22": { correct: 1, wrong: 1, cleared: 1 },
+        },
+      },
+    });
+
+    await expect(page.locator("#analytics-dashboard-manager")).toBeHidden();
+    await page.locator("#analytics-toggle-btn").click();
+    await expect(page.locator("#analytics-dashboard-manager")).toBeVisible();
+    await expect(page.locator("#analytics-distribution-meta")).toContainText(
+      "Dogru 1",
+    );
+    await expect(page.locator("#analytics-activity-meta")).toContainText(
+      "3 hareket",
+    );
+    await expect(page.locator("#analytics-focus-title")).toContainText(
+      "Noroloji",
+    );
+    await expect(page.locator("#analytics-focus-action")).toContainText(
+      "Noroloji",
+    );
+
+    await page.reload();
+    await expect(page.locator("#analytics-dashboard-manager")).toBeVisible();
+
+    await page.locator("#analytics-close-btn").click();
+    await expect(page.locator("#analytics-dashboard-manager")).toBeHidden();
+    await page.reload();
+    await expect(page.locator("#analytics-dashboard-manager")).toBeHidden();
+
+    await page.locator("#analytics-toggle-btn").click();
+    await page.locator("#analytics-focus-action").click();
+    await expect(page.locator("#main-app")).toBeVisible();
+    await expect(page.locator("#topic-select")).toHaveValue("Noroloji");
+    await expect(page.locator("#question-counter")).toContainText("Soru 1 / 1");
+    await expect(page.locator("#subject-badge")).toHaveText("Noroloji");
   });
 
   test("sync conflict panel shows diff details and cloud resolution applies remote workspace", async ({

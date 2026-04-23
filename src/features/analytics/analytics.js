@@ -1,290 +1,509 @@
+import { buildAnalyticsSnapshot } from "./analytics-snapshot.js";
+
 const globalScope = typeof window !== "undefined" ? window : globalThis;
 
 const MANAGER_DASHBOARD_ID = "analytics-dashboard-manager";
-  const MANAGER_TOGGLE_ID = "analytics-toggle-btn";
-  const MANAGER_CLOSE_ID = "analytics-close-btn";
-  const MANAGER_SUMMARY_ID = "analytics-summary-manager";
+const MANAGER_TOGGLE_ID = "analytics-toggle-btn";
+const MANAGER_CLOSE_ID = "analytics-close-btn";
+const MANAGER_SUMMARY_ID = "analytics-summary-manager";
 
-  function toSafeArray(value) {
-    return Array.isArray(value) ? value : [];
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function toSafeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function toSafeObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function formatAnalyticsHeadline(summary = {}) {
+  const loadedSetCount = Number(summary.loadedSetCount) || 0;
+  const selectedSetCount = Number(summary.selectedSetCount) || 0;
+  const solvedQuestions = Number(summary.solvedQuestions) || 0;
+  const totalQuestions = Number(summary.totalQuestions) || 0;
+  const completionRate = Number(summary.completionRate) || 0;
+
+  return `${loadedSetCount} yuklu set • ${selectedSetCount} secili • ${solvedQuestions}/${totalQuestions} soru cozuldu • Tamamlanma %${completionRate}`;
+}
+
+function buildAnalyticsSummary(options = {}) {
+  const snapshot = buildAnalyticsSnapshot(options);
+  const subjectBreakdown = [...snapshot.subjectBreakdown]
+    .sort(
+      (left, right) =>
+        (left.encounterOrder || 0) - (right.encounterOrder || 0) ||
+        String(left.subject || "").localeCompare(String(right.subject || ""), "tr"),
+    )
+    .map((item) => ({
+      subject: item.subject,
+      correct: item.correct,
+      total: item.totalQuestions,
+      wrong: item.wrong,
+    }));
+
+  return {
+    loadedSetCount: snapshot.loadedSetCount,
+    selectedSetCount: snapshot.selectedSetCount,
+    scopedSetCount: snapshot.scopedSetCount,
+    totalQuestions: snapshot.totalQuestions,
+    solvedQuestions: snapshot.solvedQuestions,
+    correctAnswers: snapshot.correctAnswers,
+    wrongAnswers: snapshot.wrongAnswers,
+    completionRate: snapshot.completionRate,
+    lastStudyText: snapshot.lastStudyText,
+    subjectBreakdown,
+  };
+}
+
+function resolveElements(documentRef) {
+  return {
+    activityMeta: documentRef?.getElementById("analytics-activity-meta") || null,
+    activityTrend: documentRef?.getElementById("analytics-activity-trend") || null,
+    closeButton: documentRef?.getElementById(MANAGER_CLOSE_ID) || null,
+    completionValue: documentRef?.getElementById("analytics-completion-value") || null,
+    dashboard: documentRef?.getElementById(MANAGER_DASHBOARD_ID) || null,
+    distributionMeta:
+      documentRef?.getElementById("analytics-distribution-meta") || null,
+    distributionView:
+      documentRef?.getElementById("analytics-result-distribution") || null,
+    focusAction: documentRef?.getElementById("analytics-focus-action") || null,
+    focusCopy: documentRef?.getElementById("analytics-focus-copy") || null,
+    focusTitle: documentRef?.getElementById("analytics-focus-title") || null,
+    lastStudy: documentRef?.getElementById("analytics-last-study") || null,
+    questionsValue: documentRef?.getElementById("analytics-questions-value") || null,
+    resultsValue: documentRef?.getElementById("analytics-results-value") || null,
+    subjectBreakdownBody:
+      documentRef?.getElementById("analytics-subject-breakdown") || null,
+    setsMeta: documentRef?.getElementById("analytics-sets-meta") || null,
+    setsValue: documentRef?.getElementById("analytics-sets-value") || null,
+    summary: documentRef?.getElementById(MANAGER_SUMMARY_ID) || null,
+    toggleButton: documentRef?.getElementById(MANAGER_TOGGLE_ID) || null,
+  };
+}
+
+function syncAnalyticsToggleUi(toggleButton, visible) {
+  if (!toggleButton) {
+    return;
   }
 
-  function toSafeObject(value) {
-    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  toggleButton.setAttribute("aria-expanded", visible ? "true" : "false");
+  toggleButton.setAttribute(
+    "title",
+    visible ? "Istatistikler panelini gizle" : "Istatistikler panelini goster",
+  );
+  toggleButton.classList.toggle("is-active", visible);
+}
+
+function renderAnalyticsCard(title, meta, bodyMarkup) {
+  return `
+    <article class="analytics-card">
+      <div class="analytics-card-head">
+        <div>
+          <div class="analytics-card-title">${title}</div>
+          <div class="analytics-card-meta">${meta}</div>
+        </div>
+      </div>
+      <div class="analytics-card-body">${bodyMarkup}</div>
+    </article>
+  `;
+}
+
+function renderEmptyCard(message) {
+  return `<div class="analytics-empty-state">${message}</div>`;
+}
+
+function renderResultDistribution(distribution = {}) {
+  const segments = [
+    {
+      label: "Dogru",
+      value: Number(distribution.correct) || 0,
+      className: "is-correct",
+    },
+    {
+      label: "Yanlis",
+      value: Number(distribution.wrong) || 0,
+      className: "is-wrong",
+    },
+    {
+      label: "Bos",
+      value: Number(distribution.unanswered) || 0,
+      className: "is-unanswered",
+    },
+  ];
+  const total = Math.max(
+    1,
+    segments.reduce((sum, segment) => sum + segment.value, 0),
+  );
+
+  return `
+    <div class="analytics-stacked-bar" role="img" aria-label="Sonuc dagilimi">
+      ${segments
+        .map(
+          (segment) =>
+            `<span class="analytics-stacked-segment ${segment.className}" style="width:${(segment.value / total) * 100}%"></span>`,
+        )
+        .join("")}
+    </div>
+    <div class="analytics-legend">
+      ${segments
+        .map(
+          (segment) =>
+            `<div class="analytics-legend-item"><span class="analytics-legend-dot ${segment.className}"></span><span>${segment.label}</span><strong>${segment.value}</strong></div>`,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderActivityChart(points = []) {
+  const safePoints = toSafeArray(points);
+  if (safePoints.length === 0) {
+    return renderEmptyCard("Son 7 gun aktivitesi henuz olusmadi.");
   }
 
-  function resolveQuestionSubject(question) {
-    return typeof question?.subject === "string" && question.subject.trim()
-      ? question.subject.trim()
-      : "Genel";
-  }
+  const width = 280;
+  const height = 120;
+  const padding = 18;
+  const maxValue = Math.max(1, ...safePoints.map((point) => Number(point.total) || 0));
+  const stepX =
+    safePoints.length > 1 ? (width - padding * 2) / (safePoints.length - 1) : 0;
+  const coordinates = safePoints.map((point, index) => {
+    const value = Number(point.total) || 0;
+    const x = padding + stepX * index;
+    const y = height - padding - (value / maxValue) * (height - padding * 2);
+    return {
+      ...point,
+      value,
+      x,
+      y,
+    };
+  });
+  const linePoints = coordinates.map((point) => `${point.x},${point.y}`).join(" ");
+  const areaPoints = [
+    `${padding},${height - padding}`,
+    ...coordinates.map((point) => `${point.x},${point.y}`),
+    `${width - padding},${height - padding}`,
+  ].join(" ");
 
-  function buildAnalyticsSummary({
-    loadedSets,
-    pendingSession,
-    resolveQuestionKey,
-    selectedAnswers,
-    selectedSetIds,
-  } = {}) {
-    const loadedSetsMap = toSafeObject(loadedSets);
-    const allSetIds = Object.keys(loadedSetsMap);
-    const chosenSetIds = toSafeArray(selectedSetIds).filter(
-      (setId) => typeof setId === "string" && loadedSetsMap[setId],
-    );
-    const scopedSetIds = chosenSetIds.length > 0 ? chosenSetIds : allSetIds;
-    const selectedAnswersMap = toSafeObject(selectedAnswers);
-    const resolveQuestionKeyRef =
-      typeof resolveQuestionKey === "function"
-        ? resolveQuestionKey
-        : function fallbackResolveQuestionKey(question, setId, index) {
-            return `${setId}:${index}:${question?.q || ""}`;
-          };
+  return `
+    <svg viewBox="0 0 ${width} ${height}" class="analytics-chart analytics-chart-line" role="img" aria-label="Son 7 gun aktivite trendi">
+      <polygon points="${areaPoints}" class="analytics-line-fill"></polygon>
+      <polyline points="${linePoints}" class="analytics-line-stroke"></polyline>
+      ${coordinates
+        .map(
+          (point) =>
+            `<circle cx="${point.x}" cy="${point.y}" r="3.5" class="analytics-line-point"></circle>`,
+        )
+        .join("")}
+      ${coordinates
+        .map(
+          (point) =>
+            `<text x="${point.x}" y="${height - 4}" text-anchor="middle" class="analytics-axis-label">${point.label}</text>`,
+        )
+        .join("")}
+    </svg>
+    <div class="analytics-legend analytics-legend-compact">
+      <div class="analytics-legend-item"><span class="analytics-legend-dot is-correct"></span><span>Dogru</span><strong>${safePoints.reduce((sum, point) => sum + (Number(point.correct) || 0), 0)}</strong></div>
+      <div class="analytics-legend-item"><span class="analytics-legend-dot is-wrong"></span><span>Yanlis</span><strong>${safePoints.reduce((sum, point) => sum + (Number(point.wrong) || 0), 0)}</strong></div>
+      <div class="analytics-legend-item"><span class="analytics-legend-dot is-unanswered"></span><span>Temizlenen</span><strong>${safePoints.reduce((sum, point) => sum + (Number(point.cleared) || 0), 0)}</strong></div>
+    </div>
+  `;
+}
 
-    let totalQuestions = 0;
-    let solvedQuestions = 0;
-    let correctAnswers = 0;
-    let wrongAnswers = 0;
-    const subjectBreakdownMap = new Map();
-
-    scopedSetIds.forEach((setId) => {
-      const setRecord = loadedSetsMap[setId];
-      const questions = toSafeArray(setRecord?.questions);
-      totalQuestions += questions.length;
-
-      questions.forEach((question, index) => {
-        const questionKey = resolveQuestionKeyRef(question, setId, index);
-        if (selectedAnswersMap[questionKey] === undefined) {
-          return;
-        }
-
-        solvedQuestions += 1;
-        const subject = resolveQuestionSubject(question);
-        const subjectStats =
-          subjectBreakdownMap.get(subject) || { correct: 0, subject, total: 0, wrong: 0 };
-        subjectStats.total += 1;
-        if (selectedAnswersMap[questionKey] === question.correct) {
-          correctAnswers += 1;
-          subjectStats.correct += 1;
-        } else {
-          wrongAnswers += 1;
-          subjectStats.wrong += 1;
-        }
-        subjectBreakdownMap.set(subject, subjectStats);
-      });
-    });
-
-    const completionRate =
-      totalQuestions > 0 ? Math.round((solvedQuestions / totalQuestions) * 100) : 0;
-    const session = pendingSession && typeof pendingSession === "object" ? pendingSession : null;
-    const hasSessionProgress = Boolean(
-      session &&
-        ((Number.isInteger(session.currentQuestionIndex) &&
-          session.currentQuestionIndex >= 0) ||
-          (typeof session.currentQuestionKey === "string" &&
-            session.currentQuestionKey.trim())),
-    );
-    const lastStudyText = hasSessionProgress
-      ? `Son calisma: ${Number.isInteger(session.currentQuestionIndex) ? session.currentQuestionIndex + 1 : 1}. soru${session?.selectedTopic && session.selectedTopic !== "hepsi" ? ` • ${session.selectedTopic}` : ""}`
-      : "Son calisma: Henuz baslanmadi";
+function normalizeRenderSnapshot(summary = {}) {
+  const subjectBreakdown = toSafeArray(summary.subjectBreakdown).map((item, index) => {
+    const totalQuestions = Number(item?.totalQuestions ?? item?.total) || 0;
+    const solvedQuestions = Number(item?.solvedQuestions ?? item?.total) || 0;
+    const correct = Number(item?.correct) || 0;
+    const wrong = Number(item?.wrong) || 0;
+    const remaining = Number(item?.remaining) || Math.max(totalQuestions - solvedQuestions, 0);
 
     return {
-      completionRate,
-      correctAnswers,
-      loadedSetCount: allSetIds.length,
-      lastStudyText,
-      scopedSetCount: scopedSetIds.length,
-      selectedSetCount: chosenSetIds.length,
-      solvedQuestions,
-      subjectBreakdown: Array.from(subjectBreakdownMap.values()),
+      subject: item?.subject || "Genel",
       totalQuestions,
-      wrongAnswers,
+      solvedQuestions,
+      correct,
+      wrong,
+      remaining,
+      accuracy:
+        Number(item?.accuracy) ||
+        (solvedQuestions > 0 ? Math.round((correct / solvedQuestions) * 100) : 0),
+      encounterOrder: Number(item?.encounterOrder) || index,
     };
+  });
+  const totalQuestions = Number(summary.totalQuestions) || 0;
+  const solvedQuestions = Number(summary.solvedQuestions) || 0;
+  const correctAnswers = Number(summary.correctAnswers) || 0;
+  const wrongAnswers = Number(summary.wrongAnswers) || 0;
+
+  return {
+    loadedSetCount: Number(summary.loadedSetCount) || 0,
+    selectedSetCount: Number(summary.selectedSetCount) || 0,
+    scopedSetCount: Number(summary.scopedSetCount) || 0,
+    totalQuestions,
+    solvedQuestions,
+    correctAnswers,
+    wrongAnswers,
+    completionRate: Number(summary.completionRate) || 0,
+    lastStudyText: summary.lastStudyText || "Son calisma: Henuz baslanmadi",
+    resultDistribution: summary.resultDistribution || {
+      correct: correctAnswers,
+      wrong: wrongAnswers,
+      unanswered: Math.max(totalQuestions - solvedQuestions, 0),
+    },
+    subjectBreakdown,
+    activityTrend: toSafeArray(summary.activityTrend),
+    focusRecommendation:
+      summary.focusRecommendation ||
+      (subjectBreakdown[0]
+        ? {
+            kind: "subject",
+            title: `${subjectBreakdown[0].subject} ile devam et`,
+            message: `${subjectBreakdown[0].remaining} soru bu konuda seni bekliyor.`,
+            actionLabel: `${subjectBreakdown[0].subject} odagina gec`,
+            subject: subjectBreakdown[0].subject,
+          }
+        : {
+            kind: "empty",
+            title: "Henüz veri yok",
+            message: "Setlerde ilerleme olustukca odak onerisi burada gorunecek.",
+            actionLabel: "",
+            subject: null,
+          }),
+  };
+}
+
+function renderSubjectBreakdownTable({
+  body,
+  documentRef,
+  onSubjectSelect,
+  subjectBreakdown,
+}) {
+  if (!body) {
+    return;
   }
 
-  function formatAnalyticsHeadline(summary = {}) {
-    const loadedSetCount = Number(summary.loadedSetCount) || 0;
-    const selectedSetCount = Number(summary.selectedSetCount) || 0;
-    const solvedQuestions = Number(summary.solvedQuestions) || 0;
-    const totalQuestions = Number(summary.totalQuestions) || 0;
-    const completionRate = Number(summary.completionRate) || 0;
-
-    return `${loadedSetCount} yuklu set • ${selectedSetCount} secili • ${solvedQuestions}/${totalQuestions} soru cozuldu • Tamamlanma %${completionRate}`;
-  }
-
-  function resolveElements(documentRef) {
-    return {
-      closeButton: documentRef?.getElementById(MANAGER_CLOSE_ID) || null,
-      completionValue: documentRef?.getElementById("analytics-completion-value") || null,
-      dashboard: documentRef?.getElementById(MANAGER_DASHBOARD_ID) || null,
-      lastStudy: documentRef?.getElementById("analytics-last-study") || null,
-      questionsValue: documentRef?.getElementById("analytics-questions-value") || null,
-      resultsValue: documentRef?.getElementById("analytics-results-value") || null,
-      subjectBreakdownBody:
-        documentRef?.getElementById("analytics-subject-breakdown") || null,
-      setsMeta: documentRef?.getElementById("analytics-sets-meta") || null,
-      setsValue: documentRef?.getElementById("analytics-sets-value") || null,
-      summary: documentRef?.getElementById(MANAGER_SUMMARY_ID) || null,
-      toggleButton: documentRef?.getElementById(MANAGER_TOGGLE_ID) || null,
-    };
-  }
-
-  function syncAnalyticsToggleUi(toggleButton, visible) {
-    if (!toggleButton) {
+  body.replaceChildren();
+  if (subjectBreakdown.length === 0) {
+    const row = documentRef?.createElement("tr");
+    const cell = documentRef?.createElement("td");
+    if (!row || !cell) {
       return;
     }
 
-    toggleButton.setAttribute("aria-expanded", visible ? "true" : "false");
-    toggleButton.setAttribute(
-      "title",
-      visible ? "Istatistikler panelini gizle" : "Istatistikler panelini goster",
-    );
-    toggleButton.classList.toggle("is-active", visible);
+    cell.colSpan = 4;
+    cell.className = "analytics-subject-breakdown-empty";
+    cell.textContent = "Konu bazli veri yok";
+    row.appendChild(cell);
+    body.appendChild(row);
+    return;
   }
 
-  function createAnalyticsPanelController({
-    documentRef = globalScope.document,
-    stateRef = globalScope.AppState,
-  } = {}) {
-    const fallbackState = {
-      isVisible: false,
+  subjectBreakdown.forEach((item) => {
+    const row = documentRef?.createElement("tr");
+    if (!row) {
+      return;
+    }
+
+    const subjectCell = documentRef?.createElement("th");
+    const progressCell = documentRef?.createElement("td");
+    const accuracyCell = documentRef?.createElement("td");
+    const remainingCell = documentRef?.createElement("td");
+    if (!subjectCell || !progressCell || !accuracyCell || !remainingCell) {
+      return;
+    }
+
+    subjectCell.scope = "row";
+    if (typeof onSubjectSelect === "function" && item.remaining > 0) {
+      const button = documentRef?.createElement("button");
+      if (button) {
+        button.type = "button";
+        button.className = "analytics-subject-button";
+        button.textContent = item.subject;
+        button.addEventListener("click", () => {
+          onSubjectSelect(item.subject);
+        });
+        subjectCell.appendChild(button);
+      } else {
+        subjectCell.textContent = item.subject;
+      }
+    } else {
+      subjectCell.textContent = item.subject;
+    }
+
+    progressCell.textContent = `${item.solvedQuestions} / ${item.totalQuestions}`;
+    accuracyCell.textContent = `%${item.accuracy}`;
+    remainingCell.textContent = String(item.remaining);
+
+    row.appendChild(subjectCell);
+    row.appendChild(progressCell);
+    row.appendChild(accuracyCell);
+    row.appendChild(remainingCell);
+    body.appendChild(row);
+  });
+}
+
+function renderFocusRecommendation({ elements, recommendation, onSubjectSelect }) {
+  if (elements.focusTitle) {
+    elements.focusTitle.textContent = recommendation?.title || "Henüz öneri yok";
+  }
+  if (elements.focusCopy) {
+    elements.focusCopy.textContent =
+      recommendation?.message || "Setlerde ilerleme olustukca odak onerisi burada gorunecek.";
+  }
+  if (!elements.focusAction) {
+    return;
+  }
+
+  elements.focusAction.hidden = !(
+    recommendation?.kind === "subject" &&
+    typeof recommendation?.subject === "string" &&
+    recommendation.subject.trim()
+  );
+  elements.focusAction.textContent =
+    recommendation?.actionLabel || "Bu konuya odaklan";
+  elements.focusAction.onclick = null;
+
+  if (!elements.focusAction.hidden && typeof onSubjectSelect === "function") {
+    elements.focusAction.onclick = () => {
+      onSubjectSelect(recommendation.subject);
     };
+  }
+}
 
-    function resolvePanelState() {
-      const candidate = stateRef?.analyticsPanelState;
-      if (candidate && typeof candidate === "object") {
-        if (typeof candidate.isVisible !== "boolean") {
-          candidate.isVisible = false;
-        }
-        return candidate;
+function createAnalyticsPanelController({
+  documentRef = globalScope.document,
+  stateRef = globalScope.AppState,
+  onSubjectSelect = null,
+  onVisibilityChange = null,
+} = {}) {
+  const fallbackState = {
+    isVisible: false,
+  };
+
+  function resolvePanelState() {
+    const candidate = stateRef?.analyticsPanelState;
+    if (candidate && typeof candidate === "object") {
+      if (typeof candidate.isVisible !== "boolean") {
+        candidate.isVisible = false;
       }
-
-      return fallbackState;
+      return candidate;
     }
 
-    function syncVisibility() {
-      const elements = resolveElements(documentRef);
-      const visible = resolvePanelState().isVisible === true;
+    return fallbackState;
+  }
 
-      if (elements.dashboard) {
-        elements.dashboard.hidden = !visible;
-      }
-      if (elements.closeButton) {
-        elements.closeButton.hidden = !visible;
-      }
-      syncAnalyticsToggleUi(elements.toggleButton, visible);
-      return visible;
+  function syncVisibility() {
+    const elements = resolveElements(documentRef);
+    const visible = resolvePanelState().isVisible === true;
+
+    if (elements.dashboard) {
+      elements.dashboard.hidden = !visible;
+    }
+    if (elements.closeButton) {
+      elements.closeButton.hidden = !visible;
+    }
+    syncAnalyticsToggleUi(elements.toggleButton, visible);
+    return visible;
+  }
+
+  function setVisible(nextVisible) {
+    const state = resolvePanelState();
+    const visible = Boolean(nextVisible);
+    state.isVisible = visible;
+    const syncedVisible = syncVisibility();
+    if (typeof onVisibilityChange === "function") {
+      onVisibilityChange(syncedVisible);
+    }
+    return syncedVisible;
+  }
+
+  function renderSummary(summary = {}) {
+    const snapshot = normalizeRenderSnapshot(summary);
+    const elements = resolveElements(documentRef);
+
+    if (elements.summary) {
+      elements.summary.textContent = formatAnalyticsHeadline(snapshot);
+    }
+    if (elements.setsValue) {
+      elements.setsValue.textContent = `${snapshot.loadedSetCount} / ${snapshot.selectedSetCount}`;
+    }
+    if (elements.setsMeta) {
+      elements.setsMeta.textContent = "Yuklu / secili set";
+    }
+    if (elements.questionsValue) {
+      elements.questionsValue.textContent = `${snapshot.totalQuestions} / ${snapshot.solvedQuestions}`;
+    }
+    if (elements.resultsValue) {
+      elements.resultsValue.textContent = `${snapshot.correctAnswers} / ${snapshot.wrongAnswers}`;
+    }
+    if (elements.completionValue) {
+      elements.completionValue.textContent = `%${snapshot.completionRate}`;
+    }
+    if (elements.lastStudy) {
+      elements.lastStudy.textContent = snapshot.lastStudyText;
+    }
+    if (elements.distributionMeta) {
+      elements.distributionMeta.textContent = `Dogru ${snapshot.resultDistribution.correct} • Yanlis ${snapshot.resultDistribution.wrong} • Bos ${snapshot.resultDistribution.unanswered}`;
+    }
+    if (elements.distributionView) {
+      elements.distributionView.innerHTML = snapshot.totalQuestions
+        ? renderResultDistribution(snapshot.resultDistribution)
+        : renderEmptyCard("Sonuc dagilimi, cevaplar olustukca burada gosterilecek.");
+    }
+    if (elements.activityMeta) {
+      const totalActivity = snapshot.activityTrend.reduce(
+        (sum, point) => sum + (Number(point.total) || 0),
+        0,
+      );
+      elements.activityMeta.textContent = `Son 7 gun • ${totalActivity} hareket`;
+    }
+    if (elements.activityTrend) {
+      elements.activityTrend.innerHTML = renderActivityChart(snapshot.activityTrend);
     }
 
-    function setVisible(nextVisible) {
-      resolvePanelState().isVisible = Boolean(nextVisible);
-      return syncVisibility();
-    }
-
-    function renderSummary(summary = {}) {
-      const elements = resolveElements(documentRef);
-      const subjectBreakdown = Array.isArray(summary.subjectBreakdown)
-        ? summary.subjectBreakdown
-        : [];
-
-      if (elements.summary) {
-        elements.summary.textContent = formatAnalyticsHeadline(summary);
-      }
-      if (elements.setsValue) {
-        elements.setsValue.textContent = `${Number(summary.loadedSetCount) || 0} / ${Number(summary.selectedSetCount) || 0}`;
-      }
-      if (elements.setsMeta) {
-        elements.setsMeta.textContent = "Yuklu / secili set";
-      }
-      if (elements.questionsValue) {
-        elements.questionsValue.textContent = `${Number(summary.totalQuestions) || 0} / ${Number(summary.solvedQuestions) || 0}`;
-      }
-      if (elements.resultsValue) {
-        elements.resultsValue.textContent = `${Number(summary.correctAnswers) || 0} / ${Number(summary.wrongAnswers) || 0}`;
-      }
-      if (elements.completionValue) {
-        elements.completionValue.textContent = `%${Number(summary.completionRate) || 0}`;
-      }
-      if (elements.lastStudy) {
-        elements.lastStudy.textContent = summary.lastStudyText || "Son calisma: Henuz baslanmadi";
-      }
-      if (elements.subjectBreakdownBody) {
-        const emptyRow = () => {
-          const row = documentRef?.createElement("tr");
-          const cell = documentRef?.createElement("td");
-          if (!row || !cell) {
-            return;
-          }
-
-          cell.colSpan = 4;
-          cell.className = "analytics-subject-breakdown-empty";
-          cell.textContent = "Konu bazli veri yok";
-          row.appendChild(cell);
-          elements.subjectBreakdownBody.appendChild(row);
-        };
-
-        elements.subjectBreakdownBody.replaceChildren();
-        if (subjectBreakdown.length === 0) {
-          emptyRow();
-        } else {
-          subjectBreakdown.forEach((item) => {
-            const row = documentRef?.createElement("tr");
-            if (!row) {
-              return;
-            }
-
-            const subjectCell = documentRef?.createElement("th");
-            const resultCell = documentRef?.createElement("td");
-            const wrongCell = documentRef?.createElement("td");
-            const accuracyCell = documentRef?.createElement("td");
-            if (!subjectCell || !resultCell || !wrongCell || !accuracyCell) {
-              return;
-            }
-
-            const total = Number(item?.total) || 0;
-            const correct = Number(item?.correct) || 0;
-            const wrong = Number(item?.wrong) || 0;
-            const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
-
-            subjectCell.scope = "row";
-            subjectCell.textContent = item?.subject || "Genel";
-            resultCell.textContent = `${correct} / ${total}`;
-            wrongCell.textContent = String(wrong);
-            accuracyCell.textContent = `%${accuracy}`;
-
-            row.appendChild(subjectCell);
-            row.appendChild(resultCell);
-            row.appendChild(wrongCell);
-            row.appendChild(accuracyCell);
-            elements.subjectBreakdownBody.appendChild(row);
-          });
-        }
-      }
-    }
-
-    return Object.freeze({
-      closePanel() {
-        return setVisible(false);
-      },
-      openPanel() {
-        return setVisible(true);
-      },
-      renderSummary,
-      syncVisibility,
-      togglePanel() {
-        return setVisible(!resolvePanelState().isVisible);
-      },
+    renderFocusRecommendation({
+      elements,
+      recommendation: snapshot.focusRecommendation,
+      onSubjectSelect,
+    });
+    renderSubjectBreakdownTable({
+      body: elements.subjectBreakdownBody,
+      documentRef,
+      onSubjectSelect,
+      subjectBreakdown: snapshot.subjectBreakdown,
     });
   }
 
-  const AppAnalytics = Object.freeze({
-  buildAnalyticsSummary,
-  createAnalyticsPanelController,
-  formatAnalyticsHeadline
-});
+  return Object.freeze({
+    closePanel() {
+      return setVisible(false);
+    },
+    openPanel() {
+      return setVisible(true);
+    },
+    renderSummary,
+    syncVisibility,
+    togglePanel() {
+      return setVisible(!resolvePanelState().isVisible);
+    },
+  });
+}
 
-export {
+const AppAnalytics = Object.freeze({
+  buildAnalyticsSnapshot,
   buildAnalyticsSummary,
   createAnalyticsPanelController,
   formatAnalyticsHeadline,
-  AppAnalytics
+});
+
+export {
+  buildAnalyticsSnapshot,
+  buildAnalyticsSummary,
+  createAnalyticsPanelController,
+  formatAnalyticsHeadline,
+  AppAnalytics,
 };

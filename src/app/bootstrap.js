@@ -9,7 +9,7 @@ import {
 createRemoteWorkspaceSeed,
 detectSyncConflict,
 } from "../features/sync/conflict-resolution.js";
-import { buildAnalyticsSummary, createAnalyticsPanelController } from "../features/analytics/analytics.js";
+import { buildAnalyticsSnapshot, createAnalyticsPanelController } from "../features/analytics/analytics.js";
 import { createDesktopUpdateFeature } from "../features/desktop-update/desktop-update.js";
 import { buildSetRecord, formatEditableText, htmlToEditableText, normalizeQuestions, parseSetText, serializeSetRecord } from "../core/set-codec.js";
 import { sanitizeHtml } from "../core/security.js";
@@ -20,7 +20,7 @@ import { buildScoreSummary, formatScoreSummaryHtml, createRetryWrongAnswersState
 import { buildPrintableStudyHtml } from "../features/study/study-export.js";
 import { buildStudyQuestions, collectStudySubjects, createFilteredStudyView, getAdjacentQuestionIndex, getBoundedQuestionIndex, selectStudyAnswer, toggleStudySolution } from "../features/study/study-session.js";
 import { createStudyChromeState, getFullscreenToggleState, getAnswerLockStatusText, getAutoAdvanceStatusText, applyStudyTypographyPreferences, runWithQuestionInstantReset } from "../features/study/study-ui.js";
-import { buildQuestionKey, buildStudyStateSnapshot, resolveQuestionKey as cardId, loadPersistedStudyState, pickNewerStudyStateSnapshot, persistStudyState, persistStudyStateSnapshot, persistStudyTypographyPreferences, readSavedSession } from "../features/study-state/study-state.js";
+import { buildQuestionKey, buildStudyStateSnapshot, resolveQuestionKey as cardId, loadPersistedStudyState, pickNewerStudyStateSnapshot, persistStudyState, persistStudyStateSnapshot, persistStudyTypographyPreferences, readSavedSession, recordStudyActivity } from "../features/study-state/study-state.js";
 import { ThemeManager } from "../ui/theme.js";
 import {
 ANSWER_LOCK_KEY,
@@ -54,6 +54,7 @@ export async function startApp() {
         let questionOrder = [];
         let selectedAnswers = {};
         let solutionVisible = {};
+        let activityByDay = {};
         let pendingSession = null;
         let questionFontSize = DEFAULT_QUESTION_FONT_SIZE;
         let optionFontSize = DEFAULT_OPTION_FONT_SIZE;
@@ -67,6 +68,11 @@ export async function startApp() {
         let pendingRemoteStudyStateSnapshot = null;
         let lastSyncRetryAction = null;
         let pendingSyncConflict = null;
+        const analyticsUiState = {
+          analyticsPanelState: {
+            isVisible: false,
+          },
+        };
         // AppBootstrap no longer needed, using standard imports.
         const setManager = createSetManager({
           storage,
@@ -121,7 +127,11 @@ export async function startApp() {
         });
         const analyticsPanel = createAnalyticsPanelController({
           documentRef: document,
-          stateRef: window.AppState,
+          stateRef: analyticsUiState,
+          onSubjectSelect: focusAnalyticsSubject,
+          onVisibilityChange() {
+            saveState();
+          },
         });
         const editorFeature = createEditorFeature({
           buildSetRecord,
@@ -425,11 +435,16 @@ export async function startApp() {
         function resetStudyState(storageKeyPrefix = null) {
           selectedAnswers = {};
           solutionVisible = {};
+          activityByDay = {};
           pendingSession = null;
           autoAdvanceEnabled = false;
+          analyticsUiState.analyticsPanelState.isVisible = false;
           storage.removeItem(buildScopedStorageKey("mc_session", storageKeyPrefix));
           storage.removeItem(buildScopedStorageKey("mc_assessments", storageKeyPrefix));
           storage.removeItem(buildScopedStorageKey(AUTO_ADVANCE_KEY, storageKeyPrefix));
+          storage.removeItem(
+            buildScopedStorageKey("mc_analytics_visible", storageKeyPrefix),
+          );
           syncAutoAdvanceToggleUI();
           renderSetList();
         }
@@ -449,11 +464,13 @@ export async function startApp() {
             selectedSetIds: getSelectedSetIds(),
             selectedAnswers,
             solutionVisible,
+            activityByDay,
             questionFontSize,
             optionFontSize,
             fullscreenQuestionFontSize,
             fullscreenOptionFontSize,
             autoAdvanceEnabled,
+            isAnalyticsVisible: analyticsUiState.analyticsPanelState.isVisible,
             updatedAt: options.updatedAt,
           });
         }
@@ -498,6 +515,8 @@ export async function startApp() {
             (Array.isArray(snapshot.selectedSetIds) && snapshot.selectedSetIds.length > 0) ||
               Object.keys(snapshot.selectedAnswers || {}).length > 0 ||
               Object.keys(snapshot.solutionVisible || {}).length > 0 ||
+              Object.keys(snapshot.activityByDay || {}).length > 0 ||
+              snapshot.isAnalyticsVisible === true ||
               hasMeaningfulSession ||
               hasCustomTypographyState(snapshot),
           );
@@ -510,11 +529,14 @@ export async function startApp() {
             storageKeyPrefix: options.storageKeyPrefix ?? getStorageKeyPrefix(),
           });
           const typographyState = applyTypographyState(normalizedSnapshot);
-  
+
           selectedAnswers = normalizedSnapshot.selectedAnswers;
           solutionVisible = normalizedSnapshot.solutionVisible;
+          activityByDay = normalizedSnapshot.activityByDay || {};
           pendingSession = normalizedSnapshot.session;
           autoAdvanceEnabled = normalizedSnapshot.autoAdvanceEnabled !== false;
+          analyticsUiState.analyticsPanelState.isVisible =
+            normalizedSnapshot.isAnalyticsVisible === true;
           questionFontSize = typographyState.questionFontSize;
           optionFontSize = typographyState.optionFontSize;
           fullscreenQuestionFontSize = typographyState.fullscreenQuestionFontSize;
@@ -1044,25 +1066,75 @@ export async function startApp() {
         }
   
         function renderAnalyticsSummary() {
-          const summary = buildAnalyticsSummary({
+          const summary = buildAnalyticsSnapshot({
             loadedSets: getLoadedSets(),
             pendingSession,
             resolveQuestionKey: cardId,
             selectedAnswers,
             selectedSetIds: getSelectedSetIds(),
+            activityByDay,
           });
-  
+
           analyticsPanel.renderSummary(summary);
           desktopUpdateFeature.syncButtonState();
         }
-  
+
         function renderSetList() {
           const result = setManager.renderSetList();
           renderAnalyticsSummary();
           analyticsPanel.syncVisibility();
           return result;
         }
-  
+
+        function countRemovedAnswers(previousAnswers, nextAnswers) {
+          const previousAnswersMap =
+            previousAnswers &&
+            typeof previousAnswers === "object" &&
+            !Array.isArray(previousAnswers)
+              ? previousAnswers
+              : {};
+          const nextAnswersMap =
+            nextAnswers &&
+            typeof nextAnswers === "object" &&
+            !Array.isArray(nextAnswers)
+              ? nextAnswers
+              : {};
+
+          return Object.keys(previousAnswersMap).reduce((removedCount, key) => {
+            return previousAnswersMap[key] !== undefined &&
+              nextAnswersMap[key] === undefined
+              ? removedCount + 1
+              : removedCount;
+          }, 0);
+        }
+
+        function appendStudyActivity(delta) {
+          activityByDay = recordStudyActivity(activityByDay, delta);
+        }
+
+        function recordAnswerSelectionActivity(question, previousAnswer, nextAnswer) {
+          if (!question) {
+            return;
+          }
+
+          const delta = {};
+          if (previousAnswer !== undefined && previousAnswer !== nextAnswer) {
+            delta.cleared = 1;
+          }
+
+          if (nextAnswer !== undefined) {
+            if (nextAnswer === question.correct) {
+              delta.correct = 1;
+            } else {
+              delta.wrong = 1;
+            }
+          }
+
+          if (delta.correct || delta.wrong || delta.cleared) {
+            appendStudyActivity(delta);
+          }
+        }
+
         function toggleAnalyticsPanel() {
           const visible = analyticsPanel.togglePanel();
           if (visible) {
@@ -1074,7 +1146,45 @@ export async function startApp() {
         function closeAnalyticsPanel() {
           return analyticsPanel.closePanel();
         }
-  
+
+        function focusAnalyticsSubject(subject) {
+          const normalizedSubject =
+            typeof subject === "string" && subject.trim() ? subject.trim() : "";
+          if (!normalizedSubject) {
+            return false;
+          }
+
+          if (!authFeature.requireAuth() || hasPendingSyncConflict()) {
+            return false;
+          }
+
+          const mainApp = document.getElementById("main-app");
+          const isStudyVisible =
+            mainApp && window.getComputedStyle(mainApp).display !== "none";
+          if (!isStudyVisible) {
+            startStudy();
+          }
+
+          const topicSelect = document.getElementById("topic-select");
+          if (!topicSelect) {
+            return false;
+          }
+
+          const hasSubjectOption = [...topicSelect.options].some(
+            (option) => option.value === normalizedSubject,
+          );
+          if (!hasSubjectOption) {
+            return false;
+          }
+
+          topicSelect.value = normalizedSubject;
+          filterByTopic(false, {
+            preferredQuestionKey: pendingSession?.currentQuestionKey || null,
+            fallbackIndex: pendingSession?.currentQuestionIndex ?? null,
+          });
+          return true;
+        }
+
         function toggleSetCheck(setId) {
           return setManager.toggleSetCheck(setId);
         }
@@ -1711,6 +1821,11 @@ export async function startApp() {
   
         function selectOption(index) {
           const q = filteredQuestions[questionOrder[currentQuestionIndex]];
+          const questionKey = q ? cardId(q) : "";
+          const previousAnswer =
+            questionKey && selectedAnswers[questionKey] !== undefined
+              ? selectedAnswers[questionKey]
+              : undefined;
           const answerSelection = selectStudyAnswer({
             question: q,
             selectedAnswers,
@@ -1722,9 +1837,14 @@ export async function startApp() {
           if (answerSelection.blocked) {
             return;
           }
-  
+
           selectedAnswers = answerSelection.selectedAnswers;
-  
+          recordAnswerSelectionActivity(
+            q,
+            previousAnswer,
+            questionKey ? selectedAnswers[questionKey] : undefined,
+          );
+
           displayQuestion();
           updateScoreDisplay();
   
@@ -1887,6 +2007,7 @@ export async function startApp() {
         }
   
         function retryWrongAnswers() {
+          const previousSelectedAnswers = selectedAnswers;
           const retriedState = createRetryWrongAnswersState({
             allQuestions,
             selectedAnswers,
@@ -1898,10 +2019,17 @@ export async function startApp() {
             alert("Yanlış cevaplanan soru bulunamadı. Önce soruları cevaplayın.");
             return;
           }
-  
+
           filteredQuestions = retriedState.filteredQuestions;
           selectedAnswers = retriedState.selectedAnswers;
           solutionVisible = retriedState.solutionVisible;
+          const clearedAnswerCount = countRemovedAnswers(
+            previousSelectedAnswers,
+            selectedAnswers,
+          );
+          if (clearedAnswerCount > 0) {
+            appendStudyActivity({ cleared: clearedAnswerCount });
+          }
           questionOrder = retriedState.questionOrder;
           currentQuestionIndex = retriedState.currentQuestionIndex;
           document.getElementById("topic-select").value = "hepsi";
@@ -1920,15 +2048,23 @@ export async function startApp() {
             )
           )
             return;
+          const previousSelectedAnswers = selectedAnswers;
           const resetState = createResetStudyState({
             allQuestions,
             selectedAnswers,
             solutionVisible,
             resolveQuestionKey: cardId,
           });
-  
+
           selectedAnswers = resetState.selectedAnswers;
           solutionVisible = resetState.solutionVisible;
+          const clearedAnswerCount = countRemovedAnswers(
+            previousSelectedAnswers,
+            selectedAnswers,
+          );
+          if (clearedAnswerCount > 0) {
+            appendStudyActivity({ cleared: clearedAnswerCount });
+          }
           currentQuestionIndex = resetState.currentQuestionIndex;
           filteredQuestions = resetState.filteredQuestions;
           questionOrder = resetState.questionOrder;
@@ -1972,6 +2108,8 @@ export async function startApp() {
               selectedTopic: topicSelect ? topicSelect.value : "hepsi",
               selectedAnswers,
               solutionVisible,
+              activityByDay,
+              isAnalyticsVisible: analyticsUiState.analyticsPanelState.isVisible,
               storageKeyPrefix: getStorageKeyPrefix(),
             });
             persistStudyTypographyPreferences({
@@ -2022,7 +2160,10 @@ export async function startApp() {
             });
             selectedAnswers = loadedState.selectedAnswers;
             solutionVisible = loadedState.solutionVisible;
+            activityByDay = loadedState.activityByDay || {};
             pendingSession = loadedState.pendingSession;
+            analyticsUiState.analyticsPanelState.isVisible =
+              loadedState.isAnalyticsVisible === true;
             applyTypographyState(loadedState);
           } catch (e) {
             console.error("State loading error", e);

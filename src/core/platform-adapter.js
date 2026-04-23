@@ -180,6 +180,35 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
       return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, resolvedValue));
     }
 
+    function normalizeActivityCount(value) {
+      const numericValue = Number(value);
+      if (!Number.isFinite(numericValue) || numericValue <= 0) {
+        return 0;
+      }
+
+      return Math.round(numericValue);
+    }
+
+    function normalizeActivityByDay(value) {
+      const source =
+        value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      const activityByDay = {};
+
+      Object.entries(source).forEach(([dayKey, entry]) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) {
+          return;
+        }
+
+        activityByDay[dayKey] = {
+          correct: normalizeActivityCount(entry?.correct),
+          wrong: normalizeActivityCount(entry?.wrong),
+          cleared: normalizeActivityCount(entry?.cleared),
+        };
+      });
+
+      return activityByDay;
+    }
+
     return {
       selectedSetIds: Array.isArray(normalized.selectedSetIds)
         ? normalized.selectedSetIds.filter(
@@ -198,6 +227,7 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
         !Array.isArray(normalized.solutionVisible)
           ? normalized.solutionVisible
           : {},
+      activityByDay: normalizeActivityByDay(normalized.activityByDay),
       session:
         normalized.session &&
         typeof normalized.session === "object" &&
@@ -237,6 +267,7 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
         DEFAULT_TYPOGRAPHY_FONT_SIZES.fullscreenOptionFontSize,
       ),
       autoAdvanceEnabled: normalized.autoAdvanceEnabled !== false,
+      isAnalyticsVisible: normalized.isAnalyticsVisible === true,
       updatedAt:
         typeof normalized.updatedAt === "string" && normalized.updatedAt.trim()
           ? normalized.updatedAt.trim()
@@ -428,12 +459,14 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
           selectedSetIds: normalizedSnapshot.selectedSetIds,
           selectedAnswers: normalizedSnapshot.selectedAnswers,
           solutionVisible: normalizedSnapshot.solutionVisible,
+          activityByDay: normalizedSnapshot.activityByDay,
           session: normalizedSnapshot.session,
           questionFontSize: normalizedSnapshot.questionFontSize,
           optionFontSize: normalizedSnapshot.optionFontSize,
           fullscreenQuestionFontSize: normalizedSnapshot.fullscreenQuestionFontSize,
           fullscreenOptionFontSize: normalizedSnapshot.fullscreenOptionFontSize,
           autoAdvanceEnabled: normalizedSnapshot.autoAdvanceEnabled,
+          isAnalyticsVisible: normalizedSnapshot.isAnalyticsVisible,
           updatedAt: normalizedSnapshot.updatedAt,
         },
         updated_at: normalizedSnapshot.updatedAt,

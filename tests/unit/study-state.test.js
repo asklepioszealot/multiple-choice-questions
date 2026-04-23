@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   buildStudyStateSnapshot,
+  buildActivityDayKey,
   buildQuestionKey,
   legacyQuestionId,
   loadPersistedStudyState,
   migrateLegacyAssessmentState,
+  normalizeActivityByDay,
   normalizeStudyStateSnapshot,
   normalizeStudyTypographyPreferences,
   pickNewerStudyStateSnapshot,
   persistStudyState,
+  recordStudyActivity,
   readSavedSession,
   resolveQuestionKey,
 } from "../../src/features/study-state/study-state.js";
@@ -85,7 +88,13 @@ describe("study-state helpers", () => {
           return JSON.stringify({
             selectedAnswers: { [legacyKey]: 2 },
             solutionVisible: { [legacyKey]: true },
+            activityByDay: {
+              "2026-04-19": { correct: 1, wrong: 0, cleared: 0 },
+            },
           });
+        }
+        if (key === "mc_analytics_visible") {
+          return "1";
         }
         return null;
       },
@@ -105,6 +114,10 @@ describe("study-state helpers", () => {
     expect(loaded.pendingSession?.selectedTopic).toBe("Genel");
     expect(loaded.selectedAnswers["set:demo::idx:0"]).toBe(2);
     expect(loaded.solutionVisible["set:demo::idx:0"]).toBe(true);
+    expect(loaded.activityByDay).toEqual({
+      "2026-04-19": { correct: 1, wrong: 0, cleared: 0 },
+    });
+    expect(loaded.isAnalyticsVisible).toBe(true);
     expect(writes).toHaveLength(1);
     expect(writes[0][0]).toBe("mc_assessments");
   });
@@ -136,10 +149,12 @@ describe("study-state helpers", () => {
       [
         "mc_assessments",
         {
+          activityByDay: {},
           selectedAnswers: { "set:demo::idx:3": 1 },
           solutionVisible: { "set:demo::idx:3": true },
         },
       ],
+      ["mc_analytics_visible", 0],
     ]);
   });
 
@@ -161,6 +176,7 @@ describe("study-state helpers", () => {
       selectedSetIds: ["demo"],
       selectedAnswers: { "set:demo::idx:1": 0 },
       solutionVisible: { "set:demo::idx:1": true },
+      activityByDay: {},
       questionFontSize: 29,
       optionFontSize: 18,
       fullscreenQuestionFontSize: 22,
@@ -171,7 +187,32 @@ describe("study-state helpers", () => {
         selectedTopic: "Genel",
       },
       autoAdvanceEnabled: false,
+      isAnalyticsVisible: false,
       updatedAt: "2026-04-04T12:00:00.000Z",
+    });
+  });
+
+  it("normalizes activity maps and records local daily deltas", () => {
+    expect(
+      normalizeActivityByDay({
+        "2026-04-20": { correct: 1, wrong: "2", cleared: -1 },
+        invalid: { correct: 99 },
+      }),
+    ).toEqual({
+      "2026-04-20": { correct: 1, wrong: 2, cleared: 0 },
+    });
+
+    expect(buildActivityDayKey(new Date("2026-04-20T22:30:00.000Z"))).toBe(
+      "2026-04-21",
+    );
+    expect(
+      recordStudyActivity(
+        { "2026-04-21": { correct: 1, wrong: 0, cleared: 0 } },
+        { wrong: 2, cleared: 1 },
+        new Date("2026-04-21T08:00:00.000Z"),
+      ),
+    ).toEqual({
+      "2026-04-21": { correct: 1, wrong: 2, cleared: 1 },
     });
   });
 
@@ -205,20 +246,24 @@ describe("study-state helpers", () => {
       selectedSetIds: ["demo"],
       selectedAnswers: {},
       solutionVisible: {},
+      activityByDay: {},
       session: null,
       autoAdvanceEnabled: true,
+      isAnalyticsVisible: false,
       updatedAt: "2026-04-03T12:00:00.000Z",
     };
     const remoteSnapshot = {
       selectedSetIds: ["remote"],
       selectedAnswers: { "set:remote::idx:0": 1 },
       solutionVisible: {},
+      activityByDay: {},
       questionFontSize: 25,
       optionFontSize: 17,
       fullscreenQuestionFontSize: 22,
       fullscreenOptionFontSize: 15,
       session: null,
       autoAdvanceEnabled: false,
+      isAnalyticsVisible: false,
       updatedAt: "2026-04-04T12:00:00.000Z",
     };
 

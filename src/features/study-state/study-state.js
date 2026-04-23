@@ -5,6 +5,7 @@ function createStorageKey(prefix, key) {
   }
 
   const STUDY_TYPOGRAPHY_STORAGE_KEY = "mc_study_typography";
+  const STUDY_ANALYTICS_VISIBLE_STORAGE_KEY = "mc_analytics_visible";
   const DEFAULT_TYPOGRAPHY_FONT_SIZES = Object.freeze({
     questionFontSize: 25,
     optionFontSize: 17,
@@ -110,6 +111,63 @@ function createStorageKey(prefix, key) {
       : [];
   }
 
+  function normalizeActivityCount(value) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+      return 0;
+    }
+
+    return Math.round(numericValue);
+  }
+
+  function normalizeActivityByDay(value) {
+    const normalized = normalizePlainObject(value);
+    const activityByDay = {};
+
+    Object.entries(normalized).forEach(([dayKey, entry]) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) {
+        return;
+      }
+
+      activityByDay[dayKey] = {
+        correct: normalizeActivityCount(entry?.correct),
+        wrong: normalizeActivityCount(entry?.wrong),
+        cleared: normalizeActivityCount(entry?.cleared),
+      };
+    });
+
+    return activityByDay;
+  }
+
+  function buildActivityDayKey(now = new Date()) {
+    const safeNow = now instanceof Date ? now : new Date(now);
+    const day = new Date(safeNow);
+    day.setHours(0, 0, 0, 0);
+    const year = day.getFullYear();
+    const month = String(day.getMonth() + 1).padStart(2, "0");
+    const dayOfMonth = String(day.getDate()).padStart(2, "0");
+    return `${year}-${month}-${dayOfMonth}`;
+  }
+
+  function recordStudyActivity(activityByDay, delta, now = new Date()) {
+    const normalizedActivity = normalizeActivityByDay(activityByDay);
+    const dayKey = buildActivityDayKey(now);
+    const currentEntry = normalizedActivity[dayKey] || {
+      correct: 0,
+      wrong: 0,
+      cleared: 0,
+    };
+
+    return {
+      ...normalizedActivity,
+      [dayKey]: {
+        correct: currentEntry.correct + normalizeActivityCount(delta?.correct),
+        wrong: currentEntry.wrong + normalizeActivityCount(delta?.wrong),
+        cleared: currentEntry.cleared + normalizeActivityCount(delta?.cleared),
+      },
+    };
+  }
+
   function normalizeSessionState(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       return null;
@@ -137,9 +195,11 @@ function createStorageKey(prefix, key) {
       selectedSetIds: normalizeSelectedSetIds(normalized.selectedSetIds),
       selectedAnswers: normalizePlainObject(normalized.selectedAnswers),
       solutionVisible: normalizePlainObject(normalized.solutionVisible),
+      activityByDay: normalizeActivityByDay(normalized.activityByDay),
       session: normalizeSessionState(normalized.session),
       ...normalizeStudyTypographyPreferences(normalized),
       autoAdvanceEnabled: normalized.autoAdvanceEnabled !== false,
+      isAnalyticsVisible: normalized.isAnalyticsVisible === true,
       updatedAt:
         typeof normalized.updatedAt === "string" && normalized.updatedAt.trim()
           ? normalized.updatedAt
@@ -248,6 +308,7 @@ function createStorageKey(prefix, key) {
   }) {
     let selectedAnswers = {};
     let solutionVisible = {};
+    let activityByDay = {};
 
     try {
       const savedAssessments = storage?.getItem?.(
@@ -263,10 +324,12 @@ function createStorageKey(prefix, key) {
           state && typeof state.solutionVisible === "object"
             ? state.solutionVisible
             : {};
+        activityByDay = normalizeActivityByDay(state?.activityByDay);
       }
     } catch {
       selectedAnswers = {};
       solutionVisible = {};
+      activityByDay = {};
     }
 
     const pendingSession = readSavedSession(
@@ -291,6 +354,7 @@ function createStorageKey(prefix, key) {
         JSON.stringify({
           selectedAnswers: migrated.selectedAnswers,
           solutionVisible: migrated.solutionVisible,
+          activityByDay,
         }),
       );
     }
@@ -298,7 +362,15 @@ function createStorageKey(prefix, key) {
     return {
       selectedAnswers: migrated.selectedAnswers,
       solutionVisible: migrated.solutionVisible,
+      activityByDay,
       pendingSession,
+      isAnalyticsVisible:
+        storage?.getItem?.(
+          createStorageKey(
+            storageKeyPrefix,
+            STUDY_ANALYTICS_VISIBLE_STORAGE_KEY,
+          ),
+        ) === "1",
       ...typographyPreferences,
       changed: migrated.changed,
     };
@@ -311,6 +383,8 @@ function createStorageKey(prefix, key) {
     selectedTopic,
     selectedAnswers,
     solutionVisible,
+    activityByDay,
+    isAnalyticsVisible,
     storageKeyPrefix = "",
   }) {
     const sessionState = {
@@ -328,7 +402,12 @@ function createStorageKey(prefix, key) {
       JSON.stringify({
         selectedAnswers,
         solutionVisible,
+        activityByDay: normalizeActivityByDay(activityByDay),
       }),
+    );
+    storage?.setItem?.(
+      createStorageKey(storageKeyPrefix, STUDY_ANALYTICS_VISIBLE_STORAGE_KEY),
+      isAnalyticsVisible === true ? "1" : "0",
     );
 
     return sessionState;
@@ -364,17 +443,20 @@ function createStorageKey(prefix, key) {
     selectedSetIds,
     selectedAnswers,
     solutionVisible,
+    activityByDay,
     questionFontSize,
     optionFontSize,
     fullscreenQuestionFontSize,
     fullscreenOptionFontSize,
     autoAdvanceEnabled,
+    isAnalyticsVisible,
     updatedAt,
   }) {
     return normalizeStudyStateSnapshot({
       selectedSetIds,
       selectedAnswers,
       solutionVisible,
+      activityByDay,
       questionFontSize,
       optionFontSize,
       fullscreenQuestionFontSize,
@@ -387,6 +469,7 @@ function createStorageKey(prefix, key) {
         selectedTopic: selectedTopic || "hepsi",
       },
       autoAdvanceEnabled,
+      isAnalyticsVisible,
       updatedAt: updatedAt || new Date().toISOString(),
     });
   }
@@ -432,6 +515,7 @@ function createStorageKey(prefix, key) {
       JSON.stringify({
         selectedAnswers: normalizedSnapshot.selectedAnswers,
         solutionVisible: normalizedSnapshot.solutionVisible,
+        activityByDay: normalizedSnapshot.activityByDay,
       }),
     );
     storage?.setItem?.(
@@ -441,6 +525,10 @@ function createStorageKey(prefix, key) {
     storage?.setItem?.(
       createStorageKey(storageKeyPrefix, "mc_auto_advance"),
       normalizedSnapshot.autoAdvanceEnabled ? "1" : "0",
+    );
+    storage?.setItem?.(
+      createStorageKey(storageKeyPrefix, STUDY_ANALYTICS_VISIBLE_STORAGE_KEY),
+      normalizedSnapshot.isAnalyticsVisible ? "1" : "0",
     );
     storage?.setItem?.(
       createStorageKey(storageKeyPrefix, STUDY_TYPOGRAPHY_STORAGE_KEY),
@@ -460,8 +548,11 @@ function createStorageKey(prefix, key) {
   legacyQuestionId,
   resolveQuestionKey,
   normalizeStudyStateSnapshot,
+  normalizeActivityByDay,
   normalizeStudyTypographyPreferences,
+  buildActivityDayKey,
   clampFontSize,
+  recordStudyActivity,
   migrateLegacyAssessmentState,
   readSavedSession,
   readSavedTypographyPreferences,
@@ -478,8 +569,11 @@ export {
   legacyQuestionId,
   resolveQuestionKey,
   normalizeStudyStateSnapshot,
+  normalizeActivityByDay,
   normalizeStudyTypographyPreferences,
+  buildActivityDayKey,
   clampFontSize,
+  recordStudyActivity,
   migrateLegacyAssessmentState,
   readSavedSession,
   readSavedTypographyPreferences,

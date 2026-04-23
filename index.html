@@ -976,11 +976,22 @@
         border-radius: 16px;
         padding: 16px 18px;
       }
+      .analytics-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
       .analytics-card-label {
         display: block;
         font-size: 13px;
         color: var(--color-text-secondary);
         margin-bottom: 6px;
+      }
+      .analytics-card-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--color-text-primary);
       }
       .analytics-card-value {
         font-size: 22px;
@@ -992,9 +1003,25 @@
         font-size: 13px;
         color: var(--color-text-secondary);
       }
+      .analytics-card-body {
+        margin-top: 14px;
+      }
       .analytics-last-study {
         grid-column: 1 / -1;
         padding: 14px 18px;
+      }
+      .analytics-distribution-card,
+      .analytics-activity-card {
+        grid-column: span 2;
+      }
+      .analytics-focus-card {
+        grid-column: 1 / -1;
+      }
+      .analytics-focus-copy {
+        min-height: 40px;
+      }
+      .analytics-focus-action {
+        margin-top: 14px;
       }
       .analytics-subject-breakdown-card {
         grid-column: 1 / -1;
@@ -1036,10 +1063,103 @@
       .analytics-subject-breakdown-table td:nth-child(4) {
         text-align: right;
       }
+      .analytics-subject-button {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--color-text-primary);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .analytics-subject-button:hover {
+        color: var(--color-accent);
+      }
       .analytics-subject-breakdown-empty {
         font-style: italic;
         color: var(--color-text-secondary);
         text-align: center !important;
+      }
+      .analytics-stacked-bar {
+        display: flex;
+        width: 100%;
+        min-height: 16px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(15, 23, 42, 0.08);
+      }
+      .analytics-stacked-segment {
+        display: block;
+        min-width: 6px;
+      }
+      .analytics-stacked-segment.is-correct,
+      .analytics-legend-dot.is-correct {
+        background: #22c55e;
+      }
+      .analytics-stacked-segment.is-wrong,
+      .analytics-legend-dot.is-wrong {
+        background: #ef4444;
+      }
+      .analytics-stacked-segment.is-unanswered,
+      .analytics-legend-dot.is-unanswered {
+        background: #94a3b8;
+      }
+      .analytics-legend {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .analytics-legend.analytics-legend-compact {
+        margin-top: 12px;
+      }
+      .analytics-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--color-text-secondary);
+      }
+      .analytics-legend-item strong {
+        margin-left: auto;
+        color: var(--color-text-primary);
+      }
+      .analytics-legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        flex: 0 0 10px;
+      }
+      .analytics-chart {
+        width: 100%;
+        display: block;
+      }
+      .analytics-line-fill {
+        fill: rgba(59, 130, 246, 0.12);
+      }
+      .analytics-line-stroke {
+        fill: none;
+        stroke: #2563eb;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .analytics-line-point {
+        fill: #2563eb;
+        stroke: rgba(255, 255, 255, 0.92);
+        stroke-width: 1.5;
+      }
+      .analytics-axis-label {
+        fill: var(--color-text-secondary);
+        font-size: 10px;
+      }
+      .analytics-empty-state {
+        padding: 18px 16px;
+        border: 1px dashed rgba(15, 23, 42, 0.16);
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.02);
+        color: var(--color-text-secondary);
+        font-size: 13px;
       }
       .analytics-toggle-btn.is-active {
         background: rgba(15, 23, 42, 0.12);
@@ -1737,6 +1857,57 @@
               Son calisma: Henuz baslanmadi
             </div>
           </div>
+          <div class="analytics-card analytics-distribution-card">
+            <div class="analytics-card-head">
+              <div>
+                <span class="analytics-card-label">Sonuc dagilimi</span>
+                <div class="analytics-card-meta" id="analytics-distribution-meta">
+                  Dogru 0 • Yanlis 0 • Bos 0
+                </div>
+              </div>
+            </div>
+            <div class="analytics-card-body" id="analytics-result-distribution">
+              <div class="analytics-empty-state">
+                Sonuc dagilimi, cevaplar olustukca burada gosterilecek.
+              </div>
+            </div>
+          </div>
+          <div class="analytics-card analytics-activity-card">
+            <div class="analytics-card-head">
+              <div>
+                <span class="analytics-card-label">Aktivite trendi</span>
+                <div class="analytics-card-meta" id="analytics-activity-meta">
+                  Son 7 gun • 0 hareket
+                </div>
+              </div>
+            </div>
+            <div class="analytics-card-body" id="analytics-activity-trend">
+              <div class="analytics-empty-state">
+                Son 7 gun aktivitesi henuz olusmadi.
+              </div>
+            </div>
+          </div>
+          <div class="analytics-card analytics-focus-card">
+            <div class="analytics-card-head">
+              <div>
+                <span class="analytics-card-label">Odak onerisi</span>
+                <div class="analytics-card-title" id="analytics-focus-title">
+                  Henuz veri yok
+                </div>
+              </div>
+            </div>
+            <div class="analytics-card-meta analytics-focus-copy" id="analytics-focus-copy">
+              Set yuklendiginde ve sorular cozuldukce odak onerisi burada gorunecek.
+            </div>
+            <button
+              class="btn btn-secondary analytics-focus-action"
+              id="analytics-focus-action"
+              type="button"
+              hidden
+            >
+              Bu konuya odaklan
+            </button>
+          </div>
           <div class="analytics-card analytics-subject-breakdown-card">
             <span class="analytics-card-label">Konu bazli performans</span>
             <div class="analytics-subject-breakdown-wrap">
@@ -1744,9 +1915,9 @@
                 <thead>
                   <tr>
                     <th>Konu</th>
-                    <th>Dogru / toplam</th>
-                    <th>Yanlis</th>
+                    <th>Cozulen / toplam</th>
                     <th>Basari</th>
+                    <th>Kalan</th>
                   </tr>
                 </thead>
                 <tbody id="analytics-subject-breakdown">
