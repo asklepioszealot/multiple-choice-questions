@@ -1,38 +1,41 @@
 // src/app/sync-status.js
 const globalScope = typeof window !== "undefined" ? window : globalThis;
 
-function buildSnapshot(state, detail = "") {
-    const normalizedDetail =
-      typeof detail === "string" ? detail.trim() : String(detail || "").trim();
+function buildStatusMessage(state, detail = "", retryLabel = "", isRetrying = false) {
+    if (state === "syncing" && isRetrying && retryLabel) {
+      return `${retryLabel} yeniden deneniyor...`;
+    }
 
     if (state === "syncing") {
-      return Object.freeze({
-        state: "syncing",
-        detail: normalizedDetail,
-        message: "Bulut ile esitleniyor...",
-        canRetry: false,
-        visible: true,
-      });
+      return "Bulut ile esitleniyor...";
     }
 
     if (state === "synced") {
-      return Object.freeze({
-        state: "synced",
-        detail: normalizedDetail,
-        message: "Bulut ile esitlendi.",
-        canRetry: false,
-        visible: true,
-      });
+      return "Bulut ile esitlendi.";
     }
 
     if (state === "error") {
+      return detail ? `Sync hatasi: ${detail}` : "Sync hatasi";
+    }
+
+    return "";
+  }
+
+  function buildSnapshot(state, detail = "", options = {}) {
+    const normalizedDetail =
+      typeof detail === "string" ? detail.trim() : String(detail || "").trim();
+    const retryLabel =
+      typeof options.retryLabel === "string" ? options.retryLabel.trim() : "";
+    const isRetrying = options.isRetrying === true;
+
+    if (state === "syncing" || state === "synced" || state === "error") {
       return Object.freeze({
-        state: "error",
+        state,
         detail: normalizedDetail,
-        message: normalizedDetail
-          ? `Sync hatasi: ${normalizedDetail}`
-          : "Sync hatasi",
-        canRetry: true,
+        retryLabel,
+        isRetrying,
+        message: buildStatusMessage(state, normalizedDetail, retryLabel, isRetrying),
+        canRetry: state === "error" && !isRetrying,
         visible: true,
       });
     }
@@ -40,6 +43,8 @@ function buildSnapshot(state, detail = "") {
     return Object.freeze({
       state: "idle",
       detail: "",
+      retryLabel: "",
+      isRetrying: false,
       message: "",
       canRetry: false,
       visible: false,
@@ -59,14 +64,14 @@ function buildSnapshot(state, detail = "") {
     }
 
     return Object.freeze({
-      markSyncing(detail = "") {
-        return commit(buildSnapshot("syncing", detail));
+      markSyncing(detail = "", options = {}) {
+        return commit(buildSnapshot("syncing", detail, options));
       },
-      markSynced(detail = "") {
-        return commit(buildSnapshot("synced", detail));
+      markSynced(detail = "", options = {}) {
+        return commit(buildSnapshot("synced", detail, options));
       },
-      markError(detail = "") {
-        return commit(buildSnapshot("error", detail));
+      markError(detail = "", options = {}) {
+        return commit(buildSnapshot("error", detail, options));
       },
       reset() {
         return commit(buildSnapshot("idle"));

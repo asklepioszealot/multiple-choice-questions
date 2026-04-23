@@ -66,7 +66,8 @@ export async function startApp() {
         let autoAdvanceTimeoutId = null;
         let remoteStudyStateSyncTimeoutId = null;
         let pendingRemoteStudyStateSnapshot = null;
-        let lastSyncRetryAction = null;
+        let lastSyncRetryDescriptor = null;
+        let allowTestSyncStatusPreview = false;
         let pendingSyncConflict = null;
         const analyticsUiState = {
           analyticsPanelState: {
@@ -195,6 +196,10 @@ export async function startApp() {
             platformAdapter.supportsRemoteSync === true
           );
         }
+
+        function isSyncStatusActive() {
+          return isRemoteWorkspaceActive() || allowTestSyncStatusPreview;
+        }
   
         function normalizeSyncErrorMessage(error) {
           const message =
@@ -212,11 +217,12 @@ export async function startApp() {
             return;
           }
   
-          if (!isRemoteWorkspaceActive() || !snapshot?.visible) {
+          if (!isSyncStatusActive() || !snapshot?.visible) {
             syncStatusEl.textContent = "";
             syncStatusEl.className = "sync-status";
             syncStatusEl.style.display = "none";
             retryButton.style.display = "none";
+            retryButton.disabled = true;
             desktopUpdateFeature.syncButtonState();
             return;
           }
@@ -225,48 +231,105 @@ export async function startApp() {
           syncStatusEl.className = `sync-status ${snapshot.state}`;
           syncStatusEl.style.display = "inline-flex";
           retryButton.style.display = snapshot.canRetry ? "inline-flex" : "none";
+          retryButton.disabled = snapshot.canRetry !== true;
+          const retryLabel = snapshot.retryLabel || "Sync";
+          retryButton.textContent = snapshot.isRetrying
+            ? `${retryLabel} yeniden deneniyor...`
+            : `${retryLabel} tekrar dene`;
+          retryButton.setAttribute(
+            "aria-label",
+            snapshot.isRetrying
+              ? `${retryLabel} yeniden deneniyor`
+              : `${retryLabel} tekrar dene`,
+          );
           desktopUpdateFeature.syncButtonState();
         }
-  
+
         function markSyncing(detail = "") {
-          if (!isRemoteWorkspaceActive()) {
+          if (!isSyncStatusActive()) {
             renderSyncStatus(syncStatus.reset());
             return;
           }
-  
-          renderSyncStatus(syncStatus.markSyncing(detail));
+
+          renderSyncStatus(
+            syncStatus.markSyncing(detail, {
+              retryLabel:
+                lastSyncRetryDescriptor?.isRetrying === true
+                  ? lastSyncRetryDescriptor.label
+                  : "",
+              isRetrying: lastSyncRetryDescriptor?.isRetrying === true,
+            }),
+          );
         }
-  
+
         function markSynced(detail = "") {
-          if (!isRemoteWorkspaceActive()) {
+          if (!isSyncStatusActive()) {
             renderSyncStatus(syncStatus.reset());
             return;
           }
-  
-          lastSyncRetryAction = null;
+
+          lastSyncRetryDescriptor = null;
           renderSyncStatus(syncStatus.markSynced(detail));
         }
-  
-        function markSyncError(error, retryAction = null) {
-          if (!isRemoteWorkspaceActive()) {
+
+        function createRetryDescriptor(kind, label, run) {
+          if (typeof run !== "function") {
+            return null;
+          }
+
+          return {
+            kind: typeof kind === "string" && kind.trim() ? kind.trim() : "workspace",
+            label: typeof label === "string" && label.trim() ? label.trim() : "Sync",
+            run,
+            isRetrying: false,
+          };
+        }
+
+        function markSyncError(error, retryDescriptor = null) {
+          if (!isSyncStatusActive()) {
             renderSyncStatus(syncStatus.reset());
             return;
           }
-  
-          lastSyncRetryAction = typeof retryAction === "function" ? retryAction : null;
-          renderSyncStatus(syncStatus.markError(normalizeSyncErrorMessage(error)));
+
+          lastSyncRetryDescriptor =
+            retryDescriptor && typeof retryDescriptor.run === "function"
+              ? retryDescriptor
+              : null;
+          renderSyncStatus(
+            syncStatus.markError(normalizeSyncErrorMessage(error), {
+              retryLabel: lastSyncRetryDescriptor?.label || "",
+            }),
+          );
         }
-  
+
         async function retryCloudSync() {
-          if (!isRemoteWorkspaceActive()) {
+          if (!isSyncStatusActive()) {
             renderSyncStatus(syncStatus.reset());
             return null;
           }
-  
-          if (typeof lastSyncRetryAction === "function") {
-            return lastSyncRetryAction();
+
+          if (lastSyncRetryDescriptor && typeof lastSyncRetryDescriptor.run === "function") {
+            if (lastSyncRetryDescriptor.isRetrying) {
+              return null;
+            }
+
+            lastSyncRetryDescriptor.isRetrying = true;
+            renderSyncStatus(
+              syncStatus.markSyncing(lastSyncRetryDescriptor.kind, {
+                retryLabel: lastSyncRetryDescriptor.label,
+                isRetrying: true,
+              }),
+            );
+
+            try {
+              return await lastSyncRetryDescriptor.run();
+            } finally {
+              if (lastSyncRetryDescriptor) {
+                lastSyncRetryDescriptor.isRetrying = false;
+              }
+            }
           }
-  
+
           return loadSyncedWorkspace({
             fallbackWorkspace: captureWorkspaceSeed(),
             fallbackStudySnapshot: buildCurrentStudyStateSnapshot(),
@@ -603,7 +666,10 @@ export async function startApp() {
             markSynced("setler");
             return savedRecord;
           } catch (error) {
-            markSyncError(error, () => saveRemoteSetRecord(setRecord));
+            markSyncError(
+              error,
+              createRetryDescriptor("sets", "Setler", () => saveRemoteSetRecord(setRecord)),
+            );
             throw error;
           }
         }
@@ -620,7 +686,12 @@ export async function startApp() {
             markSynced("setler");
             return result;
           } catch (error) {
-            markSyncError(error, () => deleteRemoteSetRecords(setIds));
+            markSyncError(
+              error,
+              createRetryDescriptor("sets", "Setler", () =>
+                deleteRemoteSetRecords(setIds),
+              ),
+            );
             throw error;
           }
         }
@@ -658,10 +729,17 @@ export async function startApp() {
           } catch (error) {
             console.error("Remote study-state sync error", error);
             pendingRemoteStudyStateSnapshot = snapshotToSync;
-            markSyncError(error, async function retryPendingStudyStateSync() {
-              pendingRemoteStudyStateSnapshot = snapshotToSync;
-              return flushRemoteStudyStateSync();
-            });
+            markSyncError(
+              error,
+              createRetryDescriptor(
+                "study-state",
+                "Ilerleme",
+                async function retryPendingStudyStateSync() {
+                  pendingRemoteStudyStateSnapshot = snapshotToSync;
+                  return flushRemoteStudyStateSync();
+                },
+              ),
+            );
           }
         }
   
@@ -789,7 +867,12 @@ export async function startApp() {
           } catch (error) {
             console.error("Remote set load error", error);
             syncLoadFailed = true;
-            markSyncError(error, () => loadSyncedWorkspace(options));
+            markSyncError(
+              error,
+              createRetryDescriptor("workspace", "Calisma alani", () =>
+                loadSyncedWorkspace(options),
+              ),
+            );
           }
   
           if (remoteRecords.length === 0 && hasWorkspaceSeed(localWorkspaceSeed)) {
@@ -798,7 +881,12 @@ export async function startApp() {
             } catch (error) {
               console.error("Remote set seed error", error);
               syncLoadFailed = true;
-              markSyncError(error, () => loadSyncedWorkspace(options));
+              markSyncError(
+                error,
+                createRetryDescriptor("workspace", "Calisma alani", () =>
+                  loadSyncedWorkspace(options),
+                ),
+              );
             }
           }
   
@@ -814,7 +902,12 @@ export async function startApp() {
           } catch (error) {
             console.error("Remote study-state load error", error);
             syncLoadFailed = true;
-            markSyncError(error, () => loadSyncedWorkspace(options));
+            markSyncError(
+              error,
+              createRetryDescriptor("workspace", "Calisma alani", () =>
+                loadSyncedWorkspace(options),
+              ),
+            );
           }
   
           if (!syncLoadFailed) {
@@ -862,7 +955,12 @@ export async function startApp() {
               } catch (error) {
                 console.error("Remote reconciliation upload error", error);
                 syncLoadFailed = true;
-                markSyncError(error, () => loadSyncedWorkspace(options));
+                markSyncError(
+                  error,
+                  createRetryDescriptor("workspace", "Calisma alani", () =>
+                    loadSyncedWorkspace(options),
+                  ),
+                );
               }
             }
   
@@ -1038,7 +1136,14 @@ export async function startApp() {
             return true;
           } catch (error) {
             pendingSyncConflict = conflictState;
-            markSyncError(error, useLocalConflictResolution);
+            markSyncError(
+              error,
+              createRetryDescriptor(
+                "workspace",
+                "Calisma alani",
+                useLocalConflictResolution,
+              ),
+            );
             renderSyncConflictPanel();
             throw error;
           }
@@ -1411,7 +1516,7 @@ export async function startApp() {
         }
 
         function continueAsDemoAuth() {
-          lastSyncRetryAction = null;
+          lastSyncRetryDescriptor = null;
           clearSyncConflictState();
           renderSyncStatus(syncStatus.reset());
           renderSetList();
@@ -1460,7 +1565,7 @@ export async function startApp() {
           clearAutoAdvanceTimer();
           clearRemoteStudyStateSyncTimer();
           pendingRemoteStudyStateSnapshot = null;
-          lastSyncRetryAction = null;
+          lastSyncRetryDescriptor = null;
           clearSyncConflictState();
           if (isFullscreen) {
             toggleFullscreen();
@@ -2580,6 +2685,24 @@ export async function startApp() {
         window.__MCQ_TEST_HOOKS__ = Object.freeze({
           clearSyncConflictPreview() {
             clearSyncConflictState();
+          },
+          getSyncStatusSnapshot() {
+            return syncStatus.getSnapshot();
+          },
+          setSyncRetryPreview({ detail = "", label = "Sync", run, delayMs = 60 } = {}) {
+            allowTestSyncStatusPreview = true;
+            const retryRun =
+              typeof run === "function"
+                ? run
+                : async () => {
+                    window.__MCQ_SYNC_RETRY_RUNS__ =
+                      Number(window.__MCQ_SYNC_RETRY_RUNS__ || 0) + 1;
+                    await new Promise((resolve) => setTimeout(resolve, delayMs));
+                    markSynced("calisma alani");
+                    return true;
+                  };
+            lastSyncRetryDescriptor = createRetryDescriptor("workspace", label, retryRun);
+            markSyncError(new Error(detail || "Test retry"), lastSyncRetryDescriptor);
           },
           showSyncConflictPreview(conflictState) {
             pendingSyncConflict = conflictState;

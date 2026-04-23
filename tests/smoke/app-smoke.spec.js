@@ -958,6 +958,56 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#set-list .set-name")).toContainText("Kardiyoloji");
   });
 
+  test("sync retry button replays the failed action safely and shows retry-specific status", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.evaluate(() => {
+      window.__MCQ_SYNC_RETRY_RUNS__ = 0;
+      window.__MCQ_TEST_HOOKS__.setSyncRetryPreview({
+        detail: "Baglanti koptu",
+        label: "Calisma alani",
+        delayMs: 120,
+      });
+    });
+
+    await expect(page.locator("#sync-status")).toContainText(
+      "Sync hatasi: Baglanti koptu",
+    );
+    await expect(page.locator("#sync-retry-btn")).toBeVisible();
+    await expect(page.locator("#sync-retry-btn")).toContainText(
+      "Calisma alani tekrar dene",
+    );
+
+    await page.locator("#sync-retry-btn").click();
+
+    await expect(page.locator("#sync-status")).toContainText(
+      "Calisma alani yeniden deneniyor...",
+    );
+    await expect(page.locator("#sync-retry-btn")).toBeHidden();
+
+    await page.locator("#sync-retry-btn").click({ force: true }).catch(() => null);
+
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          runs: window.__MCQ_SYNC_RETRY_RUNS__,
+          snapshot: window.__MCQ_TEST_HOOKS__.getSyncStatusSnapshot(),
+        })),
+      )
+      .toMatchObject({
+        runs: 1,
+        snapshot: {
+          state: "synced",
+          isRetrying: false,
+          message: "Bulut ile esitlendi.",
+        },
+      });
+  });
+
   test("desktop import writes edited markdown back to its source file", async ({
     page,
   }) => {
