@@ -5,10 +5,8 @@ import { createPlatformAdapter } from "../core/platform-adapter.js";
 import { getRuntimeConfig, hasDriveConfig, hasSupabaseConfig, isDesktopRuntime } from "../core/runtime-config.js";
 import { createAuthFeature } from "../features/auth/auth-shell.js";
 import { createSyncStatusController } from "./sync-status.js";
-import {
-createRemoteWorkspaceSeed,
-detectSyncConflict,
-} from "../features/sync/conflict-resolution.js";
+import { detectSyncConflict } from "../features/sync/conflict-resolution.js";
+import { createSyncOrchestration } from "../features/sync/sync-orchestration.js";
 import { buildAnalyticsSnapshot, createAnalyticsPanelController } from "../features/analytics/analytics.js";
 import { createDesktopUpdateFeature } from "../features/desktop-update/desktop-update.js";
 import { buildSetRecord, formatEditableText, htmlToEditableText, normalizeQuestions, parseSetText, serializeSetRecord } from "../core/set-codec.js";
@@ -66,17 +64,13 @@ export async function startApp() {
         let autoAdvanceEnabled = false;
         let topicSourceVisible = false;
         let autoAdvanceTimeoutId = null;
-        let remoteStudyStateSyncTimeoutId = null;
-        let pendingRemoteStudyStateSnapshot = null;
-        let lastSyncRetryDescriptor = null;
-        let allowTestSyncStatusPreview = false;
-        let pendingSyncConflict = null;
         const analyticsUiState = {
           analyticsPanelState: {
             isVisible: false,
           },
         };
         // AppBootstrap no longer needed, using standard imports.
+        let syncOrch;
         const setManager = createSetManager({
           storage,
           buildSetRecord,
@@ -86,11 +80,13 @@ export async function startApp() {
             return selectedAnswers;
           },
           resolveQuestionKey: cardId,
-          getStorageKeyPrefix,
-          onSetImported: saveRemoteSetRecord,
+          getStorageKeyPrefix: () => syncOrch?.getStorageKeyPrefix() ?? "",
+          onSetImported: (record) =>
+            syncOrch ? syncOrch.saveRemoteSetRecord(record) : Promise.resolve(record),
           onRender: renderAnalyticsSummary,
-          onSetsRemoved: deleteRemoteSetRecords,
-          onSelectionChanged: handleSelectionChanged,
+          onSetsRemoved: (ids) =>
+            syncOrch ? syncOrch.deleteRemoteSetRecords(ids) : null,
+          onSelectionChanged: () => syncOrch?.handleSelectionChanged(),
           getTopicSourceVisible() {
             return topicSourceVisible;
           },
@@ -162,381 +158,54 @@ export async function startApp() {
           confirmRef: window.confirm?.bind(window),
           consoleRef: window.console,
         });
-  
-        function getAuthSession() {
-          return authFeature.getAuthSession();
-        }
-  
-        function getStorageKeyPrefix() {
-          const authSession = getAuthSession();
-          if (
-            authSession &&
-            authSession.mode === "supabase" &&
-            typeof authSession.userId === "string" &&
-            authSession.userId.trim()
-          ) {
-            return `mc_user::${authSession.userId.trim()}`;
-          }
-  
-          return "";
-        }
-  
-        function buildScopedStorageKey(key, prefixOverride = null) {
-          const prefix =
-            typeof prefixOverride === "string" ? prefixOverride : getStorageKeyPrefix();
-          return prefix ? `${prefix}::${key}` : key;
-        }
-  
-        function getScopedStorageItem(key, prefixOverride = null) {
-          return storage.getItem(buildScopedStorageKey(key, prefixOverride));
-        }
-  
-        function setScopedStorageItem(key, value, prefixOverride = null) {
-          storage.setItem(buildScopedStorageKey(key, prefixOverride), value);
-        }
-  
-        function isRemoteWorkspaceActive() {
-          return (
-            getAuthSession()?.mode === "supabase" &&
-            platformAdapter.supportsRemoteSync === true
-          );
-        }
 
-        function isSyncStatusActive() {
-          return isRemoteWorkspaceActive() || allowTestSyncStatusPreview;
-        }
-  
-        function normalizeSyncErrorMessage(error) {
-          const message =
-            typeof error?.message === "string" && error.message.trim()
-              ? error.message.trim()
-              : "Bilinmeyen hata";
-          return message.replace(/\.$/, "");
-        }
-  
-        function renderSyncStatus(snapshot = syncStatus.getSnapshot()) {
-          const syncStatusEl = document.getElementById("sync-status");
-          const retryButton = document.getElementById("sync-retry-btn");
-  
-          if (!syncStatusEl || !retryButton) {
-            return;
-          }
-  
-          if (!isSyncStatusActive() || !snapshot?.visible) {
-            syncStatusEl.textContent = "";
-            syncStatusEl.className = "sync-status";
-            syncStatusEl.style.display = "none";
-            retryButton.style.display = "none";
-            retryButton.disabled = true;
-            desktopUpdateFeature.syncButtonState();
-            return;
-          }
-  
-          syncStatusEl.textContent = snapshot.message;
-          syncStatusEl.className = `sync-status ${snapshot.state}`;
-          syncStatusEl.style.display = "inline-flex";
-          retryButton.style.display = snapshot.canRetry ? "inline-flex" : "none";
-          retryButton.disabled = snapshot.canRetry !== true;
-          const retryLabel = snapshot.retryLabel || "Sync";
-          retryButton.textContent = snapshot.isRetrying
-            ? `${retryLabel} yeniden deneniyor...`
-            : `${retryLabel} tekrar dene`;
-          retryButton.setAttribute(
-            "aria-label",
-            snapshot.isRetrying
-              ? `${retryLabel} yeniden deneniyor`
-              : `${retryLabel} tekrar dene`,
-          );
-          desktopUpdateFeature.syncButtonState();
-        }
+        syncOrch = createSyncOrchestration({
+          storage,
+          platformAdapter,
+          authFeature,
+          syncStatus,
+          setManager,
+          desktopUpdateFeature,
+          documentRef: document,
+          consoleRef: window.console,
+          getCurrentStudyStateSnapshot: () => buildCurrentStudyStateSnapshot(),
+          applyStudyStateSnapshot: (snapshot, opts) =>
+            applyStudyStateSnapshot(snapshot, opts),
+          resetStudyState: (prefix) => resetStudyState(prefix),
+          renderSetList: () => renderSetList(),
+          hasMeaningfulStudyStateSnapshot,
+          loadLocalStudyState: (prefix) => loadState(prefix),
+        });
 
-        function markSyncing(detail = "") {
-          if (!isSyncStatusActive()) {
-            renderSyncStatus(syncStatus.reset());
-            return;
-          }
+        const {
+          getStorageKeyPrefix,
+          buildScopedStorageKey,
+          getScopedStorageItem,
+          setScopedStorageItem,
+          isRemoteWorkspaceActive,
+          renderSyncStatus,
+          markSyncing,
+          markSynced,
+          markSyncError,
+          createRetryDescriptor,
+          retryCloudSync,
+          captureWorkspaceSeed,
+          hasWorkspaceSeed,
+          applyWorkspaceSeed,
+          hasPendingSyncConflict,
+          clearSyncConflictState,
+          saveRemoteSetRecord,
+          deleteRemoteSetRecords,
+          scheduleRemoteStudyStateSync,
+          clearRemoteStudyStateSyncTimer,
+          handleSelectionChanged,
+          loadSyncedWorkspace,
+          useCloudConflictResolution,
+          useLocalConflictResolution,
+          resetRetryStateOnAuthChange,
+          resetPendingStudyStateOnSignOut,
+        } = syncOrch;
 
-          renderSyncStatus(
-            syncStatus.markSyncing(detail, {
-              retryLabel:
-                lastSyncRetryDescriptor?.isRetrying === true
-                  ? lastSyncRetryDescriptor.label
-                  : "",
-              isRetrying: lastSyncRetryDescriptor?.isRetrying === true,
-            }),
-          );
-        }
-
-        function markSynced(detail = "") {
-          if (!isSyncStatusActive()) {
-            renderSyncStatus(syncStatus.reset());
-            return;
-          }
-
-          lastSyncRetryDescriptor = null;
-          renderSyncStatus(syncStatus.markSynced(detail));
-        }
-
-        function createRetryDescriptor(kind, label, run) {
-          if (typeof run !== "function") {
-            return null;
-          }
-
-          return {
-            kind: typeof kind === "string" && kind.trim() ? kind.trim() : "workspace",
-            label: typeof label === "string" && label.trim() ? label.trim() : "Sync",
-            run,
-            isRetrying: false,
-          };
-        }
-
-        function markSyncError(error, retryDescriptor = null) {
-          if (!isSyncStatusActive()) {
-            renderSyncStatus(syncStatus.reset());
-            return;
-          }
-
-          lastSyncRetryDescriptor =
-            retryDescriptor && typeof retryDescriptor.run === "function"
-              ? retryDescriptor
-              : null;
-          renderSyncStatus(
-            syncStatus.markError(normalizeSyncErrorMessage(error), {
-              retryLabel: lastSyncRetryDescriptor?.label || "",
-            }),
-          );
-        }
-
-        async function retryCloudSync() {
-          if (!isSyncStatusActive()) {
-            renderSyncStatus(syncStatus.reset());
-            return null;
-          }
-
-          if (lastSyncRetryDescriptor && typeof lastSyncRetryDescriptor.run === "function") {
-            if (lastSyncRetryDescriptor.isRetrying) {
-              return null;
-            }
-
-            lastSyncRetryDescriptor.isRetrying = true;
-            renderSyncStatus(
-              syncStatus.markSyncing(lastSyncRetryDescriptor.kind, {
-                retryLabel: lastSyncRetryDescriptor.label,
-                isRetrying: true,
-              }),
-            );
-
-            try {
-              return await lastSyncRetryDescriptor.run();
-            } finally {
-              if (lastSyncRetryDescriptor) {
-                lastSyncRetryDescriptor.isRetrying = false;
-              }
-            }
-          }
-
-          return loadSyncedWorkspace({
-            fallbackWorkspace: captureWorkspaceSeed(),
-            fallbackStudySnapshot: buildCurrentStudyStateSnapshot(),
-          });
-        }
-  
-        function cloneJson(value) {
-          return JSON.parse(JSON.stringify(value));
-        }
-  
-        function captureWorkspaceSeed() {
-          return {
-            loadedSets: cloneJson(getLoadedSets()),
-            selectedSetIds: [...getSelectedSetIds()],
-          };
-        }
-  
-        function hasWorkspaceSeed(seed) {
-          return Boolean(seed && Object.keys(seed.loadedSets || {}).length > 0);
-        }
-  
-        function hasPendingSyncConflict() {
-          return Boolean(pendingSyncConflict);
-        }
-  
-        function formatSyncConflictSummary(summary = {}) {
-          return `${summary.setCount || 0} set, ${summary.questionCount || 0} soru, ${summary.answeredCount || 0} cevap`;
-        }
-  
-        function formatConflictTimestamp(value) {
-          const parsed = Date.parse(value || "");
-          if (!Number.isFinite(parsed)) {
-            return "";
-          }
-  
-          return new Date(parsed).toLocaleString("tr-TR", {
-            hour12: false,
-          });
-        }
-  
-        function renderSyncConflictDetailList(elementId, lines) {
-          const listEl = document.getElementById(elementId);
-          if (!listEl) {
-            return;
-          }
-  
-          listEl.innerHTML = "";
-          lines.forEach((line) => {
-            const item = document.createElement("li");
-            item.textContent = line;
-            listEl.appendChild(item);
-          });
-        }
-  
-        function formatConflictFreshness(newerSide) {
-          if (newerSide === "local") {
-            return "Yerel daha yeni";
-          }
-  
-          if (newerSide === "remote") {
-            return "Bulut daha yeni";
-          }
-
-          return "Iki taraf da degismis";
-        }
-
-        function hasRenderableStudyDiff(conflict, studySummary) {
-          const studyDiff = conflict?.studyDiff || {};
-
-          return Boolean(
-            conflict?.studyConflict ||
-              studyDiff.activeQuestionChanged ||
-              studyDiff.activityChanged ||
-              studyDiff.analyticsVisibilityChanged ||
-              studyDiff.topicChanged ||
-              (studySummary.localAnsweredCount || 0) > 0 ||
-              (studySummary.remoteAnsweredCount || 0) > 0 ||
-              (studySummary.localActivityCount || 0) > 0 ||
-              (studySummary.remoteActivityCount || 0) > 0 ||
-              studySummary.localAnalyticsVisible === true ||
-              studySummary.remoteAnalyticsVisible === true ||
-              (studySummary.localTopic || "hepsi") !== "hepsi" ||
-              (studySummary.remoteTopic || "hepsi") !== "hepsi"
-          );
-        }
-
-        function buildSyncConflictDetailLines(conflict, side) {
-          const lines = [];
-          const decisionEnvelope = conflict?.decisionEnvelope || {};
-          const studySummary = decisionEnvelope.studyStateSummary || {};
-  
-          (decisionEnvelope.blockingConflicts || []).forEach((entry) => {
-            const timestamp =
-              side === "local"
-                ? formatConflictTimestamp(entry.localUpdatedAt)
-                : formatConflictTimestamp(entry.remoteUpdatedAt);
-            lines.push(
-              `${entry.setName}: ${formatConflictFreshness(entry.newerSide)}${timestamp ? ` | Son degisim: ${timestamp}` : ""} | Soru farki: ${entry.questionDelta || 0} | Cevap farki: ${entry.answerDelta || 0}`,
-            );
-          });
-  
-          if (hasRenderableStudyDiff(conflict, studySummary)) {
-            const answeredCount =
-              side === "local"
-                ? studySummary.localAnsweredCount
-                : studySummary.remoteAnsweredCount;
-            const topic =
-              side === "local"
-                ? studySummary.localTopic
-                : studySummary.remoteTopic;
-            const activityCount =
-              side === "local"
-                ? studySummary.localActivityCount
-                : studySummary.remoteActivityCount;
-            const analyticsVisible =
-              side === "local"
-                ? studySummary.localAnalyticsVisible
-                : studySummary.remoteAnalyticsVisible;
-            lines.push(`İlerleme: ${answeredCount || 0} cevap`);
-            lines.push(`Konu filtresi: ${topic || "hepsi"}`);
-            lines.push(`Aktivite: ${activityCount || 0} hareket`);
-            lines.push(
-              `Analytics paneli: ${analyticsVisible ? "Acik" : "Kapali"}`,
-            );
-            if ((studySummary.blockingAnswerCount || 0) > 0) {
-              lines.push(
-                `Cakisan cevap sayisi: ${studySummary.blockingAnswerCount || 0}`,
-              );
-            }
-          }
-  
-          if (lines.length === 0) {
-            lines.push("Ek fark bilgisi yok.");
-          }
-  
-          return lines;
-        }
-  
-        function renderSyncConflictPanel() {
-          const panel = document.getElementById("sync-conflict-panel");
-          const localSummaryEl = document.getElementById("sync-conflict-local-summary");
-          const remoteSummaryEl = document.getElementById("sync-conflict-remote-summary");
-          const messageEl = document.getElementById("sync-conflict-message");
-          const localDetailList = document.getElementById("sync-conflict-local-details");
-          const remoteDetailList = document.getElementById("sync-conflict-remote-details");
-  
-          if (
-            !panel ||
-            !localSummaryEl ||
-            !remoteSummaryEl ||
-            !messageEl ||
-            !localDetailList ||
-            !remoteDetailList
-          ) {
-            return;
-          }
-  
-          if (!pendingSyncConflict) {
-            panel.style.display = "none";
-            messageEl.textContent = "";
-            localSummaryEl.textContent = "";
-            remoteSummaryEl.textContent = "";
-            localDetailList.innerHTML = "";
-            remoteDetailList.innerHTML = "";
-            return;
-          }
-  
-          panel.style.display = "flex";
-          const blockingSetCount =
-            pendingSyncConflict.conflict?.decisionEnvelope?.blockingConflicts?.length || 0;
-          messageEl.textContent =
-            blockingSetCount > 0
-              ? `${blockingSetCount} sette iki taraf da degismis. Hangisi esas alinsin?`
-              : "Yerel calisma alani ile bulut verisi farkli. Hangisi esas alinsin?";
-          localSummaryEl.textContent = formatSyncConflictSummary(
-            pendingSyncConflict.conflict.localSummary,
-          );
-          remoteSummaryEl.textContent = formatSyncConflictSummary(
-            pendingSyncConflict.conflict.remoteSummary,
-          );
-          renderSyncConflictDetailList(
-            "sync-conflict-local-details",
-            buildSyncConflictDetailLines(pendingSyncConflict.conflict, "local"),
-          );
-          renderSyncConflictDetailList(
-            "sync-conflict-remote-details",
-            buildSyncConflictDetailLines(pendingSyncConflict.conflict, "remote"),
-          );
-        }
-  
-        function clearSyncConflictState() {
-          pendingSyncConflict = null;
-          renderSyncConflictPanel();
-        }
-  
-        function applyWorkspaceSeed(seed, options = {}) {
-          setManager.replaceLoadedSets(Object.values(seed?.loadedSets || {}), {
-            selectedSetIds: seed?.selectedSetIds || [],
-            storageKeyPrefix: options.storageKeyPrefix ?? null,
-          });
-        }
-  
         function resetStudyState(storageKeyPrefix = null) {
           selectedAnswers = {};
           solutionVisible = {};
@@ -657,501 +326,6 @@ export async function startApp() {
           syncAutoAdvanceToggleUI();
           syncTypographyControls();
           renderSetList();
-        }
-  
-        async function saveRemoteSetRecord(setRecord) {
-          if (!isRemoteWorkspaceActive() || typeof platformAdapter.saveSet !== "function") {
-            return setRecord;
-          }
-  
-          markSyncing("setler");
-  
-          try {
-            const savedRecord = await platformAdapter.saveSet(setRecord);
-            markSynced("setler");
-            return savedRecord;
-          } catch (error) {
-            markSyncError(
-              error,
-              createRetryDescriptor("sets", "Setler", () => saveRemoteSetRecord(setRecord)),
-            );
-            throw error;
-          }
-        }
-  
-        async function deleteRemoteSetRecords(setIds) {
-          if (!isRemoteWorkspaceActive() || typeof platformAdapter.deleteSets !== "function") {
-            return null;
-          }
-  
-          markSyncing("setler");
-  
-          try {
-            const result = await platformAdapter.deleteSets(setIds);
-            markSynced("setler");
-            return result;
-          } catch (error) {
-            markSyncError(
-              error,
-              createRetryDescriptor("sets", "Setler", () =>
-                deleteRemoteSetRecords(setIds),
-              ),
-            );
-            throw error;
-          }
-        }
-  
-        function clearRemoteStudyStateSyncTimer() {
-          if (remoteStudyStateSyncTimeoutId) {
-            clearTimeout(remoteStudyStateSyncTimeoutId);
-            remoteStudyStateSyncTimeoutId = null;
-          }
-        }
-  
-        async function flushRemoteStudyStateSync() {
-          if (
-            !isRemoteWorkspaceActive() ||
-            typeof platformAdapter.saveUserState !== "function" ||
-            !pendingRemoteStudyStateSnapshot
-          ) {
-            return;
-          }
-  
-          const snapshotToSync = pendingRemoteStudyStateSnapshot;
-          pendingRemoteStudyStateSnapshot = null;
-          markSyncing("ilerleme");
-  
-          try {
-            const savedSnapshot = await platformAdapter.saveUserState(snapshotToSync);
-            if (savedSnapshot) {
-              persistStudyStateSnapshot({
-                storage,
-                snapshot: savedSnapshot,
-                storageKeyPrefix: getStorageKeyPrefix(),
-              });
-            }
-            markSynced("ilerleme");
-          } catch (error) {
-            console.error("Remote study-state sync error", error);
-            pendingRemoteStudyStateSnapshot = snapshotToSync;
-            markSyncError(
-              error,
-              createRetryDescriptor(
-                "study-state",
-                "Ilerleme",
-                async function retryPendingStudyStateSync() {
-                  pendingRemoteStudyStateSnapshot = snapshotToSync;
-                  return flushRemoteStudyStateSync();
-                },
-              ),
-            );
-          }
-        }
-  
-        function scheduleRemoteStudyStateSync(snapshot = buildCurrentStudyStateSnapshot()) {
-          if (
-            !isRemoteWorkspaceActive() ||
-            typeof platformAdapter.saveUserState !== "function"
-          ) {
-            return;
-          }
-  
-          pendingRemoteStudyStateSnapshot = snapshot;
-          clearRemoteStudyStateSyncTimer();
-          remoteStudyStateSyncTimeoutId = setTimeout(() => {
-            remoteStudyStateSyncTimeoutId = null;
-            void flushRemoteStudyStateSync();
-          }, 600);
-        }
-  
-        function handleSelectionChanged() {
-          scheduleRemoteStudyStateSync(buildCurrentStudyStateSnapshot());
-        }
-  
-        async function seedRemoteWorkspaceFromSeed(seed) {
-          if (
-            !isRemoteWorkspaceActive() ||
-            !hasWorkspaceSeed(seed) ||
-            typeof platformAdapter.saveSet !== "function"
-          ) {
-            return [];
-          }
-  
-          const savedRecords = [];
-          for (const [setId, setRecord] of Object.entries(seed.loadedSets || {})) {
-            const savedRecord = await platformAdapter.saveSet({
-              id: setRecord.id || setId,
-              slug: setRecord.slug || setId,
-              setName: setRecord.setName,
-              fileName: setRecord.fileName,
-              sourceFormat: setRecord.sourceFormat,
-              rawSource: setRecord.rawSource,
-              questions: setRecord.questions,
-              updatedAt: setRecord.updatedAt || new Date().toISOString(),
-            });
-            savedRecords.push(savedRecord);
-          }
-  
-          return savedRecords;
-        }
-  
-        async function uploadReconciledLocalRecords(records = [], remoteIdsToDelete = []) {
-          if (
-            !isRemoteWorkspaceActive() ||
-            ((typeof platformAdapter.saveSet !== "function" ||
-              !Array.isArray(records) ||
-              records.length === 0) &&
-              (typeof platformAdapter.deleteSets !== "function" ||
-                !Array.isArray(remoteIdsToDelete) ||
-                remoteIdsToDelete.length === 0))
-          ) {
-            return [];
-          }
-  
-          const savedRecords = [];
-          if (
-            Array.isArray(remoteIdsToDelete) &&
-            remoteIdsToDelete.length > 0 &&
-            typeof platformAdapter.deleteSets === "function"
-          ) {
-            await platformAdapter.deleteSets(remoteIdsToDelete);
-          }
-  
-          for (const record of records) {
-            savedRecords.push(
-              await platformAdapter.saveSet({
-                ...record,
-                updatedAt: record.updatedAt || new Date().toISOString(),
-              }),
-            );
-          }
-          return savedRecords;
-        }
-  
-        async function loadSyncedWorkspace(options = {}) {
-          if (!isRemoteWorkspaceActive()) {
-            renderSyncStatus(syncStatus.reset());
-            clearSyncConflictState();
-            return;
-          }
-  
-          markSyncing("calisma alani");
-  
-          const userPrefix = getStorageKeyPrefix();
-          const fallbackWorkspace = hasWorkspaceSeed(options.fallbackWorkspace)
-            ? options.fallbackWorkspace
-            : null;
-          const fallbackSnapshot = hasMeaningfulStudyStateSnapshot(
-            options.fallbackStudySnapshot,
-          )
-            ? options.fallbackStudySnapshot
-            : null;
-  
-          setManager.loadStoredSets(userPrefix);
-          loadState(userPrefix);
-  
-          const userScopedWorkspace = captureWorkspaceSeed();
-          const userScopedSnapshot = hasMeaningfulStudyStateSnapshot(
-            buildCurrentStudyStateSnapshot(),
-          )
-            ? buildCurrentStudyStateSnapshot()
-            : null;
-          const localWorkspaceSeed = hasWorkspaceSeed(userScopedWorkspace)
-            ? userScopedWorkspace
-            : fallbackWorkspace;
-          const localWorkspacePrefix = hasWorkspaceSeed(userScopedWorkspace)
-            ? userPrefix
-            : "";
-          const localSnapshotSeed = userScopedSnapshot || fallbackSnapshot;
-          const localSnapshotPrefix = userScopedSnapshot ? userPrefix : "";
-  
-          let remoteRecords = [];
-          let syncLoadFailed = false;
-          try {
-            remoteRecords = await platformAdapter.loadSets();
-          } catch (error) {
-            console.error("Remote set load error", error);
-            syncLoadFailed = true;
-            markSyncError(
-              error,
-              createRetryDescriptor("workspace", "Calisma alani", () =>
-                loadSyncedWorkspace(options),
-              ),
-            );
-          }
-  
-          if (remoteRecords.length === 0 && hasWorkspaceSeed(localWorkspaceSeed)) {
-            try {
-              remoteRecords = await seedRemoteWorkspaceFromSeed(localWorkspaceSeed);
-            } catch (error) {
-              console.error("Remote set seed error", error);
-              syncLoadFailed = true;
-              markSyncError(
-                error,
-                createRetryDescriptor("workspace", "Calisma alani", () =>
-                  loadSyncedWorkspace(options),
-                ),
-              );
-            }
-          }
-  
-          let remoteSnapshot = null;
-  
-          try {
-            remoteSnapshot =
-              typeof platformAdapter.loadUserState === "function"
-                ? await platformAdapter.loadUserState()
-                : null;
-            if (remoteSnapshot) {
-            }
-          } catch (error) {
-            console.error("Remote study-state load error", error);
-            syncLoadFailed = true;
-            markSyncError(
-              error,
-              createRetryDescriptor("workspace", "Calisma alani", () =>
-                loadSyncedWorkspace(options),
-              ),
-            );
-          }
-  
-          if (!syncLoadFailed) {
-            let conflict = detectSyncConflict({
-              localWorkspace: localWorkspaceSeed,
-              remoteRecords,
-              localSnapshot: localSnapshotSeed,
-              remoteSnapshot,
-            });
-  
-            if (
-              !conflict.hasConflict &&
-              (conflict.recordsToUpload.length > 0 ||
-                (conflict.remoteIdsToDelete || []).length > 0)
-            ) {
-              try {
-                const uploadedRecords = await uploadReconciledLocalRecords(
-                  conflict.recordsToUpload,
-                  conflict.remoteIdsToDelete,
-                );
-                if (uploadedRecords.length > 0) {
-                  const nextRemoteMap = new Map(
-                    remoteRecords
-                      .filter(
-                        (record) =>
-                          record &&
-                          record.id &&
-                          !(conflict.remoteIdsToDelete || []).includes(record.id),
-                      )
-                      .map((record) => [record.id, record]),
-                  );
-                  uploadedRecords.forEach((record) => {
-                    if (record?.id) {
-                      nextRemoteMap.set(record.id, record);
-                    }
-                  });
-                  remoteRecords = [...nextRemoteMap.values()];
-                  conflict = detectSyncConflict({
-                    localWorkspace: localWorkspaceSeed,
-                    remoteRecords,
-                    localSnapshot: localSnapshotSeed,
-                    remoteSnapshot,
-                  });
-                }
-              } catch (error) {
-                console.error("Remote reconciliation upload error", error);
-                syncLoadFailed = true;
-                markSyncError(
-                  error,
-                  createRetryDescriptor("workspace", "Calisma alani", () =>
-                    loadSyncedWorkspace(options),
-                  ),
-                );
-              }
-            }
-  
-            if (conflict.hasConflict) {
-              pendingSyncConflict = {
-                conflict,
-                userPrefix,
-                localWorkspaceSeed,
-                localWorkspacePrefix,
-                localSnapshotSeed,
-                localSnapshotPrefix,
-                remoteRecords,
-                remoteSnapshot,
-              };
-              renderSyncConflictPanel();
-              renderSyncStatus(syncStatus.reset());
-  
-              if (hasWorkspaceSeed(localWorkspaceSeed)) {
-                applyWorkspaceSeed(localWorkspaceSeed, {
-                  storageKeyPrefix: localWorkspacePrefix,
-                });
-              } else {
-                applyWorkspaceSeed({ loadedSets: {}, selectedSetIds: [] }, {
-                  storageKeyPrefix: localWorkspacePrefix,
-                });
-              }
-  
-              if (hasMeaningfulStudyStateSnapshot(localSnapshotSeed)) {
-                applyStudyStateSnapshot(localSnapshotSeed, {
-                  storageKeyPrefix: localSnapshotPrefix,
-                });
-              } else {
-                resetStudyState(localSnapshotPrefix);
-              }
-              return;
-            }
-          }
-  
-          clearSyncConflictState();
-  
-          const resolvedConflict = detectSyncConflict({
-            localWorkspace: localWorkspaceSeed,
-            remoteRecords,
-            localSnapshot: localSnapshotSeed,
-            remoteSnapshot,
-          });
-  
-          applyWorkspaceSeed(resolvedConflict.mergedWorkspace, {
-            storageKeyPrefix: userPrefix,
-          });
-  
-          let finalSnapshot = resolvedConflict.mergedSnapshot;
-          if (hasMeaningfulStudyStateSnapshot(finalSnapshot)) {
-            if (resolvedConflict.shouldPersistMergedSnapshot) {
-              scheduleRemoteStudyStateSync(finalSnapshot);
-            }
-          } else if (remoteSnapshot) {
-            finalSnapshot = pickNewerStudyStateSnapshot(
-              localSnapshotSeed,
-              remoteSnapshot,
-            );
-            if (
-              finalSnapshot === localSnapshotSeed &&
-              hasMeaningfulStudyStateSnapshot(localSnapshotSeed)
-            ) {
-              scheduleRemoteStudyStateSync(localSnapshotSeed);
-            }
-          } else if (hasMeaningfulStudyStateSnapshot(localSnapshotSeed)) {
-            finalSnapshot = localSnapshotSeed;
-            scheduleRemoteStudyStateSync(localSnapshotSeed);
-          }
-  
-          if (hasMeaningfulStudyStateSnapshot(finalSnapshot)) {
-            applyStudyStateSnapshot(finalSnapshot, {
-              storageKeyPrefix: userPrefix,
-            });
-          } else {
-            renderSetList();
-          }
-  
-          if (!syncLoadFailed) {
-            markSynced("calisma alani");
-          }
-        }
-  
-        async function useCloudConflictResolution() {
-          if (!pendingSyncConflict) {
-            return null;
-          }
-  
-          const conflictState = pendingSyncConflict;
-          clearSyncConflictState();
-          markSyncing("calisma alani");
-  
-          const remoteSelectedSetIds = Array.isArray(
-            conflictState.remoteSnapshot?.selectedSetIds,
-          )
-            ? conflictState.remoteSnapshot.selectedSetIds
-            : conflictState.remoteRecords.map((record) => record.id).filter(Boolean);
-  
-          applyWorkspaceSeed(
-            createRemoteWorkspaceSeed(conflictState.remoteRecords, remoteSelectedSetIds),
-            {
-              storageKeyPrefix: conflictState.userPrefix,
-            },
-          );
-  
-          if (hasMeaningfulStudyStateSnapshot(conflictState.remoteSnapshot)) {
-            applyStudyStateSnapshot(conflictState.remoteSnapshot, {
-              storageKeyPrefix: conflictState.userPrefix,
-            });
-          } else {
-            resetStudyState(conflictState.userPrefix);
-          }
-  
-          markSynced("calisma alani");
-          return true;
-        }
-  
-        async function useLocalConflictResolution() {
-          if (!pendingSyncConflict) {
-            return null;
-          }
-  
-          const conflictState = pendingSyncConflict;
-          clearSyncConflictState();
-          markSyncing("calisma alani");
-  
-          try {
-            const remoteIds = conflictState.remoteRecords
-              .map((record) => record.id)
-              .filter(Boolean);
-            const localRecords = Object.values(
-              conflictState.localWorkspaceSeed?.loadedSets || {},
-            );
-            const localIds = localRecords.map((record) => record.id).filter(Boolean);
-            const removeIds = remoteIds.filter((setId) => !localIds.includes(setId));
-  
-            if (
-              removeIds.length > 0 &&
-              typeof platformAdapter.deleteSets === "function"
-            ) {
-              await platformAdapter.deleteSets(removeIds);
-            }
-  
-            for (const record of localRecords) {
-              await platformAdapter.saveSet({
-                ...record,
-                updatedAt: record.updatedAt || new Date().toISOString(),
-              });
-            }
-  
-            if (
-              hasMeaningfulStudyStateSnapshot(conflictState.localSnapshotSeed) &&
-              typeof platformAdapter.saveUserState === "function"
-            ) {
-              await platformAdapter.saveUserState(conflictState.localSnapshotSeed);
-            }
-  
-            applyWorkspaceSeed(conflictState.localWorkspaceSeed, {
-              storageKeyPrefix: conflictState.userPrefix,
-            });
-  
-            if (hasMeaningfulStudyStateSnapshot(conflictState.localSnapshotSeed)) {
-              applyStudyStateSnapshot(conflictState.localSnapshotSeed, {
-                storageKeyPrefix: conflictState.userPrefix,
-              });
-            } else {
-              resetStudyState(conflictState.userPrefix);
-            }
-  
-            markSynced("calisma alani");
-            return true;
-          } catch (error) {
-            pendingSyncConflict = conflictState;
-            markSyncError(
-              error,
-              createRetryDescriptor(
-                "workspace",
-                "Calisma alani",
-                useLocalConflictResolution,
-              ),
-            );
-            renderSyncConflictPanel();
-            throw error;
-          }
         }
   
         function getExplanationHtml(question) {
@@ -1521,7 +695,7 @@ export async function startApp() {
         }
 
         function continueAsDemoAuth() {
-          lastSyncRetryDescriptor = null;
+          resetRetryStateOnAuthChange();
           clearSyncConflictState();
           renderSyncStatus(syncStatus.reset());
           renderSetList();
@@ -1569,8 +743,7 @@ export async function startApp() {
   
           clearAutoAdvanceTimer();
           clearRemoteStudyStateSyncTimer();
-          pendingRemoteStudyStateSnapshot = null;
-          lastSyncRetryDescriptor = null;
+          resetPendingStudyStateOnSignOut();
           clearSyncConflictState();
           if (isFullscreen) {
             toggleFullscreen();
@@ -2709,33 +1882,7 @@ export async function startApp() {
           detectSyncConflict,
         });
   
-        window.__MCQ_TEST_HOOKS__ = Object.freeze({
-          clearSyncConflictPreview() {
-            clearSyncConflictState();
-          },
-          getSyncStatusSnapshot() {
-            return syncStatus.getSnapshot();
-          },
-          setSyncRetryPreview({ detail = "", label = "Sync", run, delayMs = 60 } = {}) {
-            allowTestSyncStatusPreview = true;
-            const retryRun =
-              typeof run === "function"
-                ? run
-                : async () => {
-                    window.__MCQ_SYNC_RETRY_RUNS__ =
-                      Number(window.__MCQ_SYNC_RETRY_RUNS__ || 0) + 1;
-                    await new Promise((resolve) => setTimeout(resolve, delayMs));
-                    markSynced("calisma alani");
-                    return true;
-                  };
-            lastSyncRetryDescriptor = createRetryDescriptor("workspace", label, retryRun);
-            markSyncError(new Error(detail || "Test retry"), lastSyncRetryDescriptor);
-          },
-          showSyncConflictPreview(conflictState) {
-            pendingSyncConflict = conflictState;
-            renderSyncConflictPanel();
-          },
-        });
+        window.__MCQ_TEST_HOOKS__ = syncOrch.testHooks;
   
         
   
