@@ -1,1891 +1,686 @@
 // src/app/bootstrap.js
+import { bindStaticEvents } from "./bootstrap-events.js";
 import { showScreen } from "./screen.js";
-import * as storage from "../core/storage.js";
-import { createPlatformAdapter } from "../core/platform-adapter.js";
-import { getRuntimeConfig, hasDriveConfig, hasSupabaseConfig, isDesktopRuntime } from "../core/runtime-config.js";
-import { createAuthFeature } from "../features/auth/auth-shell.js";
 import { createSyncStatusController } from "./sync-status.js";
-import { detectSyncConflict } from "../features/sync/conflict-resolution.js";
-import { createSyncOrchestration } from "../features/sync/sync-orchestration.js";
-import { buildAnalyticsSnapshot, createAnalyticsPanelController } from "../features/analytics/analytics.js";
+import * as storage from "../core/storage.js";
+import {
+  buildSetRecord,
+  formatEditableText,
+  htmlToEditableText,
+  normalizeQuestions,
+  parseSetText,
+  serializeSetRecord,
+} from "../core/set-codec.js";
+import { createPlatformAdapter } from "../core/platform-adapter.js";
+import {
+  getRuntimeConfig,
+  hasDriveConfig,
+  hasSupabaseConfig,
+  isDesktopRuntime,
+} from "../core/runtime-config.js";
+import {
+  buildAnalyticsSnapshot,
+  createAnalyticsPanelController,
+} from "../features/analytics/analytics.js";
+import { createAuthHandlers } from "../features/auth/auth-handlers.js";
+import { createAuthFeature } from "../features/auth/auth-shell.js";
 import { createDesktopUpdateFeature } from "../features/desktop-update/desktop-update.js";
-import { buildSetRecord, formatEditableText, htmlToEditableText, normalizeQuestions, parseSetText, serializeSetRecord } from "../core/set-codec.js";
-import { sanitizeHtml } from "../core/security.js";
-import { createSetManager } from "../features/set-manager/set-manager.js";
 import { createEditorFeature } from "../features/editor/editor.js";
 import { createGoogleDriveFeature } from "../features/google-drive/google-drive.js";
-import { buildScoreSummary, formatScoreSummaryHtml, createRetryWrongAnswersState, createResetStudyState, shuffleQuestionOrder } from "../features/study/study-actions.js";
-import { buildPrintableStudyHtml } from "../features/study/study-export.js";
-import { buildStudyQuestions, collectStudySubjects, createFilteredStudyView, getAdjacentQuestionIndex, getBoundedQuestionIndex, selectStudyAnswer, toggleStudySolution } from "../features/study/study-session.js";
-import { createStudyChromeState, getFullscreenToggleState, getAnswerLockStatusText, getAutoAdvanceStatusText, applyStudyTypographyPreferences, runWithQuestionInstantReset } from "../features/study/study-ui.js";
-import { buildQuestionKey, buildStudyStateSnapshot, resolveQuestionKey as cardId, loadPersistedStudyState, pickNewerStudyStateSnapshot, persistStudyState, persistStudyStateSnapshot, persistStudyTypographyPreferences, readSavedSession, recordStudyActivity } from "../features/study-state/study-state.js";
+import { createSetManager } from "../features/set-manager/set-manager.js";
+import { detectSyncConflict } from "../features/sync/conflict-resolution.js";
+import { createSyncOrchestration } from "../features/sync/sync-orchestration.js";
+import { createActivityTracker } from "../features/study/activity-tracking.js";
+import { createStudyChrome } from "../features/study/study-chrome.js";
+import { createStudyPersistence } from "../features/study/study-persistence.js";
+import { createStudyRunner } from "../features/study/study-runner.js";
+import { createStudyStateBridge } from "../features/study/study-state-bridge.js";
+import { resolveQuestionKey as cardId } from "../features/study-state/study-state.js";
 import { ThemeManager } from "../ui/theme.js";
 import {
-ANSWER_LOCK_KEY,
-AUTO_ADVANCE_KEY,
-DEFAULT_STUDY_TYPOGRAPHY,
-THEME_CONTROL_IDS,
-THEME_KEY,
-TOPIC_SOURCE_KEY,
+  DEFAULT_STUDY_TYPOGRAPHY,
+  THEME_CONTROL_IDS,
 } from "../shared/constants.js";
-import * as state from './state.js';
-
-function bindEvent(target, eventName, handler) {
-  target?.addEventListener(eventName, handler);
-}
-
-function bindAll(selector, eventName, handler, root = document) {
-  root.querySelectorAll(selector).forEach((target) => {
-    target.addEventListener(eventName, handler);
-  });
-}
 
 export async function startApp() {
-        const DEFAULT_QUESTION_FONT_SIZE = DEFAULT_STUDY_TYPOGRAPHY.questionFontSize;
-        const DEFAULT_OPTION_FONT_SIZE = DEFAULT_STUDY_TYPOGRAPHY.optionFontSize;
-        const DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE = DEFAULT_STUDY_TYPOGRAPHY.fullscreenQuestionFontSize;
-        const DEFAULT_FULLSCREEN_OPTION_FONT_SIZE = DEFAULT_STUDY_TYPOGRAPHY.fullscreenOptionFontSize;
-  
-        // --- ESKİ DEĞİŞKENLER ---
-        let currentQuestionIndex = 0;
-        let allQuestions = [];
-        let filteredQuestions = [];
-        let questionOrder = [];
-        let selectedAnswers = {};
-        let solutionVisible = {};
-        let activityByDay = {};
-        let pendingSession = null;
-        let questionFontSize = DEFAULT_QUESTION_FONT_SIZE;
-        let optionFontSize = DEFAULT_OPTION_FONT_SIZE;
-        let fullscreenQuestionFontSize = DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE;
-        let fullscreenOptionFontSize = DEFAULT_FULLSCREEN_OPTION_FONT_SIZE;
-        let isFullscreen = false;
-        let answerLockEnabled = false;
-        let autoAdvanceEnabled = false;
-        let topicSourceVisible = false;
-        let autoAdvanceTimeoutId = null;
-        const analyticsUiState = {
-          analyticsPanelState: {
-            isVisible: false,
-          },
-        };
-        // AppBootstrap no longer needed, using standard imports.
-        let syncOrch;
-        const setManager = createSetManager({
-          storage,
-          buildSetRecord,
-          normalizeQuestions,
-          parseSetText,
-          getSelectedAnswers() {
-            return selectedAnswers;
-          },
-          resolveQuestionKey: cardId,
-          getStorageKeyPrefix: () => syncOrch?.getStorageKeyPrefix() ?? "",
-          onSetImported: (record) =>
-            syncOrch ? syncOrch.saveRemoteSetRecord(record) : Promise.resolve(record),
-          onRender: renderAnalyticsSummary,
-          onSetsRemoved: (ids) =>
-            syncOrch ? syncOrch.deleteRemoteSetRecords(ids) : null,
-          onSelectionChanged: () => syncOrch?.handleSelectionChanged(),
-          getTopicSourceVisible() {
-            return topicSourceVisible;
-          },
-          documentRef: document,
-          setTimeoutRef: window.setTimeout.bind(window),
-          clearTimeoutRef: window.clearTimeout.bind(window),
-          alertRef: window.alert?.bind(window),
-          consoleRef: window.console,
-        });
-        const platformAdapter = createPlatformAdapter({
-          storage,
-          getRuntimeConfig,
-        });
-        const authFeature = createAuthFeature({
-          storage,
-          platformAdapter,
-          getRuntimeConfig,
-          hasSupabaseConfig,
-          showScreen,
-          documentRef: document,
-        });
-        const googleDrive = createGoogleDriveFeature({
-          getRuntimeConfig,
-          hasDriveConfig,
-          isDesktopRuntime,
-          loadSetFromText,
-          loadSetFromBinary,
-          selectSet,
-          renderSetList,
-          showUndoToast,
-          documentRef: document,
-          alertRef: window.alert?.bind(window),
-          consoleRef: window.console,
-          fetchRef: window.fetch?.bind(window),
-          setTimeoutRef: window.setTimeout.bind(window),
-          clearTimeoutRef: window.clearTimeout.bind(window),
-        });
-        const syncStatus = createSyncStatusController({
-          onChange: (snapshot) => renderSyncStatus(snapshot),
-        });
-        const analyticsPanel = createAnalyticsPanelController({
-          documentRef: document,
-          stateRef: analyticsUiState,
-          onSubjectSelect: focusAnalyticsSubject,
-          onVisibilityChange() {
-            saveState();
-          },
-        });
-        const editorFeature = createEditorFeature({
-          buildSetRecord,
-          documentRef: document,
-          formatEditableText,
-          htmlToEditableText,
-          parseSetText,
-          serializeSetRecord,
-          showScreen,
-          saveSetRecord: saveEditedSetRecord,
-          writeSourceFile(sourcePath, rawSource) {
-            return platformAdapter.writeSetSourceFile(sourcePath, rawSource);
-          },
-          confirmRef: window.confirm?.bind(window),
-        });
-        const desktopUpdateFeature = createDesktopUpdateFeature({
-          stateRef: window.AppState,
-          isDesktopRuntimeRef: isDesktopRuntime,
-          documentRef: document,
-          windowRef: window,
-          alertRef: window.alert?.bind(window),
-          confirmRef: window.confirm?.bind(window),
-          consoleRef: window.console,
-        });
+  const defaults = Object.freeze({
+    DEFAULT_QUESTION_FONT_SIZE: DEFAULT_STUDY_TYPOGRAPHY.questionFontSize,
+    DEFAULT_OPTION_FONT_SIZE: DEFAULT_STUDY_TYPOGRAPHY.optionFontSize,
+    DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE:
+      DEFAULT_STUDY_TYPOGRAPHY.fullscreenQuestionFontSize,
+    DEFAULT_FULLSCREEN_OPTION_FONT_SIZE:
+      DEFAULT_STUDY_TYPOGRAPHY.fullscreenOptionFontSize,
+  });
 
-        syncOrch = createSyncOrchestration({
-          storage,
-          platformAdapter,
-          authFeature,
-          syncStatus,
-          setManager,
-          desktopUpdateFeature,
-          documentRef: document,
-          consoleRef: window.console,
-          getCurrentStudyStateSnapshot: () => buildCurrentStudyStateSnapshot(),
-          applyStudyStateSnapshot: (snapshot, opts) =>
-            applyStudyStateSnapshot(snapshot, opts),
-          resetStudyState: (prefix) => resetStudyState(prefix),
-          renderSetList: () => renderSetList(),
-          hasMeaningfulStudyStateSnapshot,
-          loadLocalStudyState: (prefix) => loadState(prefix),
-        });
+  let currentQuestionIndex = 0;
+  let allQuestions = [];
+  let filteredQuestions = [];
+  let questionOrder = [];
+  let selectedAnswers = {};
+  let solutionVisible = {};
+  let activityByDay = {};
+  let pendingSession = null;
+  let questionFontSize = defaults.DEFAULT_QUESTION_FONT_SIZE;
+  let optionFontSize = defaults.DEFAULT_OPTION_FONT_SIZE;
+  let fullscreenQuestionFontSize =
+    defaults.DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE;
+  let fullscreenOptionFontSize =
+    defaults.DEFAULT_FULLSCREEN_OPTION_FONT_SIZE;
+  let isFullscreen = false;
+  let answerLockEnabled = false;
+  let autoAdvanceEnabled = false;
+  let topicSourceVisible = false;
+  let autoAdvanceTimeoutId = null;
+  const analyticsUiState = {
+    analyticsPanelState: {
+      isVisible: false,
+    },
+  };
 
-        const {
-          getStorageKeyPrefix,
-          buildScopedStorageKey,
-          getScopedStorageItem,
-          setScopedStorageItem,
-          isRemoteWorkspaceActive,
-          renderSyncStatus,
-          markSyncing,
-          markSynced,
-          markSyncError,
-          createRetryDescriptor,
-          retryCloudSync,
-          captureWorkspaceSeed,
-          hasWorkspaceSeed,
-          applyWorkspaceSeed,
-          hasPendingSyncConflict,
-          clearSyncConflictState,
-          saveRemoteSetRecord,
-          deleteRemoteSetRecords,
-          scheduleRemoteStudyStateSync,
-          clearRemoteStudyStateSyncTimer,
-          handleSelectionChanged,
-          loadSyncedWorkspace,
-          useCloudConflictResolution,
-          useLocalConflictResolution,
-          resetRetryStateOnAuthChange,
-          resetPendingStudyStateOnSignOut,
-        } = syncOrch;
+  let syncOrch;
+  let studyChrome;
+  let studyStateBridge;
+  let studyPersistence;
+  let studyRunner;
+  let authHandlers;
 
-        function resetStudyState(storageKeyPrefix = null) {
-          selectedAnswers = {};
-          solutionVisible = {};
-          activityByDay = {};
-          pendingSession = null;
-          autoAdvanceEnabled = false;
-          analyticsUiState.analyticsPanelState.isVisible = false;
-          storage.removeItem(buildScopedStorageKey("mc_session", storageKeyPrefix));
-          storage.removeItem(buildScopedStorageKey("mc_assessments", storageKeyPrefix));
-          storage.removeItem(buildScopedStorageKey(AUTO_ADVANCE_KEY, storageKeyPrefix));
-          storage.removeItem(
-            buildScopedStorageKey("mc_analytics_visible", storageKeyPrefix),
-          );
-          syncAutoAdvanceToggleUI();
-          renderSetList();
-        }
-  
-        function buildCurrentStudyStateSnapshot(options = {}) {
-          return buildStudyStateSnapshot({
-            activeQuestion:
-              filteredQuestions.length > 0
-                ? filteredQuestions[questionOrder[currentQuestionIndex]]
-                : null,
-            currentQuestionIndex,
-            selectedTopic:
-              options.selectedTopic ??
-              document.getElementById("topic-select")?.value ??
-              pendingSession?.selectedTopic ??
-              "hepsi",
-            selectedSetIds: getSelectedSetIds(),
-            selectedAnswers,
-            solutionVisible,
-            activityByDay,
-            questionFontSize,
-            optionFontSize,
-            fullscreenQuestionFontSize,
-            fullscreenOptionFontSize,
-            autoAdvanceEnabled,
-            isAnalyticsVisible: analyticsUiState.analyticsPanelState.isVisible,
-            updatedAt: options.updatedAt,
-          });
-        }
-  
-        function hasCustomTypographyState(snapshot) {
-          if (!snapshot || typeof snapshot !== "object") {
-            return false;
-          }
-  
-          const questionSize = Number(snapshot.questionFontSize);
-          const optionSize = Number(snapshot.optionFontSize);
-          const fullscreenQuestionSize = Number(snapshot.fullscreenQuestionFontSize);
-          const fullscreenOptionSize = Number(snapshot.fullscreenOptionFontSize);
-  
-          return Boolean(
-            (Number.isFinite(questionSize) &&
-              questionSize !== DEFAULT_QUESTION_FONT_SIZE) ||
-              (Number.isFinite(optionSize) &&
-                optionSize !== DEFAULT_OPTION_FONT_SIZE) ||
-              (Number.isFinite(fullscreenQuestionSize) &&
-                fullscreenQuestionSize !== DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE) ||
-              (Number.isFinite(fullscreenOptionSize) &&
-                fullscreenOptionSize !== DEFAULT_FULLSCREEN_OPTION_FONT_SIZE),
-          );
-        }
-  
-        function hasMeaningfulStudyStateSnapshot(snapshot) {
-          if (!snapshot || typeof snapshot !== "object") {
-            return false;
-          }
-  
-          const session = snapshot.session;
-          const hasMeaningfulSession = Boolean(
-            session &&
-              ((typeof session.currentQuestionKey === "string" &&
-                session.currentQuestionKey.trim()) ||
-                (Number.isInteger(session.currentQuestionIndex) &&
-                  session.currentQuestionIndex > 0)),
-          );
-  
-          return Boolean(
-            (Array.isArray(snapshot.selectedSetIds) && snapshot.selectedSetIds.length > 0) ||
-              Object.keys(snapshot.selectedAnswers || {}).length > 0 ||
-              Object.keys(snapshot.solutionVisible || {}).length > 0 ||
-              Object.keys(snapshot.activityByDay || {}).length > 0 ||
-              snapshot.isAnalyticsVisible === true ||
-              hasMeaningfulSession ||
-              hasCustomTypographyState(snapshot),
-          );
-        }
-  
-        function applyStudyStateSnapshot(snapshot, options = {}) {
-          const normalizedSnapshot = persistStudyStateSnapshot({
-            storage,
-            snapshot,
-            storageKeyPrefix: options.storageKeyPrefix ?? getStorageKeyPrefix(),
-          });
-          const typographyState = applyTypographyState(normalizedSnapshot);
+  function getStudyContext() {
+    return {
+      currentQuestionIndex,
+      allQuestions,
+      filteredQuestions,
+      questionOrder,
+      selectedAnswers,
+      solutionVisible,
+      activityByDay,
+      pendingSession,
+      questionFontSize,
+      optionFontSize,
+      fullscreenQuestionFontSize,
+      fullscreenOptionFontSize,
+      isFullscreen,
+      answerLockEnabled,
+      autoAdvanceEnabled,
+      topicSourceVisible,
+      autoAdvanceTimeoutId,
+      isAnalyticsVisible: analyticsUiState.analyticsPanelState.isVisible,
+    };
+  }
 
-          selectedAnswers = normalizedSnapshot.selectedAnswers;
-          solutionVisible = normalizedSnapshot.solutionVisible;
-          activityByDay = normalizedSnapshot.activityByDay || {};
-          pendingSession = normalizedSnapshot.session;
-          autoAdvanceEnabled = normalizedSnapshot.autoAdvanceEnabled !== false;
-          analyticsUiState.analyticsPanelState.isVisible =
-            normalizedSnapshot.isAnalyticsVisible === true;
-          questionFontSize = typographyState.questionFontSize;
-          optionFontSize = typographyState.optionFontSize;
-          fullscreenQuestionFontSize = typographyState.fullscreenQuestionFontSize;
-          fullscreenOptionFontSize = typographyState.fullscreenOptionFontSize;
-  
-          if (Array.isArray(normalizedSnapshot.selectedSetIds)) {
-            setManager.setSelectedSetIds(normalizedSnapshot.selectedSetIds, {
-              storageKeyPrefix: options.storageKeyPrefix ?? getStorageKeyPrefix(),
-              notify: false,
-            });
-          }
-  
-          syncAutoAdvanceToggleUI();
-          syncTypographyControls();
-          renderSetList();
-        }
-  
-        function getExplanationHtml(question) {
-          if (
-            question &&
-            typeof question.explanation === "string" &&
-            question.explanation.trim()
-          ) {
-            return question.explanation;
-          }
-          return '<span class="highlight-important">⚠️ Açıklama bulunamadı.</span>';
-        }
-  
-        function getLoadedSets() {
-          return setManager.getLoadedSets();
-        }
-  
-        function getSelectedSetIds() {
-          return setManager.getSelectedSetIds();
-        }
-  
-        function loadSetFromText(text, fileName, importOptions = {}) {
-          return setManager.loadSetFromText(text, fileName, importOptions);
-        }
+  function setStudyContext(partial = {}) {
+    if ("currentQuestionIndex" in partial) {
+      currentQuestionIndex = partial.currentQuestionIndex;
+    }
+    if ("allQuestions" in partial) {
+      allQuestions = partial.allQuestions;
+    }
+    if ("filteredQuestions" in partial) {
+      filteredQuestions = partial.filteredQuestions;
+    }
+    if ("questionOrder" in partial) {
+      questionOrder = partial.questionOrder;
+    }
+    if ("selectedAnswers" in partial) {
+      selectedAnswers = partial.selectedAnswers;
+    }
+    if ("solutionVisible" in partial) {
+      solutionVisible = partial.solutionVisible;
+    }
+    if ("activityByDay" in partial) {
+      activityByDay = partial.activityByDay;
+    }
+    if ("pendingSession" in partial) {
+      pendingSession = partial.pendingSession;
+    }
+    if ("questionFontSize" in partial) {
+      questionFontSize = partial.questionFontSize;
+    }
+    if ("optionFontSize" in partial) {
+      optionFontSize = partial.optionFontSize;
+    }
+    if ("fullscreenQuestionFontSize" in partial) {
+      fullscreenQuestionFontSize = partial.fullscreenQuestionFontSize;
+    }
+    if ("fullscreenOptionFontSize" in partial) {
+      fullscreenOptionFontSize = partial.fullscreenOptionFontSize;
+    }
+    if ("isFullscreen" in partial) {
+      isFullscreen = partial.isFullscreen;
+    }
+    if ("answerLockEnabled" in partial) {
+      answerLockEnabled = partial.answerLockEnabled;
+    }
+    if ("autoAdvanceEnabled" in partial) {
+      autoAdvanceEnabled = partial.autoAdvanceEnabled;
+    }
+    if ("topicSourceVisible" in partial) {
+      topicSourceVisible = partial.topicSourceVisible;
+    }
+    if ("autoAdvanceTimeoutId" in partial) {
+      autoAdvanceTimeoutId = partial.autoAdvanceTimeoutId;
+    }
+    if ("isAnalyticsVisible" in partial) {
+      analyticsUiState.analyticsPanelState.isVisible =
+        partial.isAnalyticsVisible === true;
+    }
 
-        function loadSetFromBinary(arrayBuffer, fileName, importOptions = {}) {
-          return setManager.loadSetFromBinary(arrayBuffer, fileName, importOptions);
-        }
-  
-        function handleFileSelect(event) {
-          return setManager.handleFileSelect(event);
-        }
-  
-        async function openSetImport() {
-          if (hasPendingSyncConflict()) {
-            return null;
-          }
-  
-          if (
-            isDesktopRuntime() &&
-            typeof platformAdapter.pickNativeSetFiles === "function"
-          ) {
-            try {
-              const files = await platformAdapter.pickNativeSetFiles();
-              await setManager.importNativeFiles(files);
-              renderSetList();
-              return files;
-            } catch (error) {
-              console.error("Native set import error", error);
-              window.alert?.(
-                error?.message || "Yerel dosya secilirken bir hata olustu.",
-              );
-              return null;
-            }
-          }
-  
-          document.getElementById("file-picker")?.click();
-          return null;
-        }
-  
-        function renderAnalyticsSummary() {
-          const summary = buildAnalyticsSnapshot({
-            loadedSets: getLoadedSets(),
-            pendingSession,
-            resolveQuestionKey: cardId,
-            selectedAnswers,
-            selectedSetIds: getSelectedSetIds(),
-            activityByDay,
-          });
+    return getStudyContext();
+  }
 
-          analyticsPanel.renderSummary(summary);
-          desktopUpdateFeature.syncButtonState();
-        }
+  const setManager = createSetManager({
+    storage,
+    buildSetRecord,
+    normalizeQuestions,
+    parseSetText,
+    getSelectedAnswers() {
+      return selectedAnswers;
+    },
+    resolveQuestionKey: cardId,
+    getStorageKeyPrefix: () => syncOrch?.getStorageKeyPrefix() ?? "",
+    onSetImported: (record) =>
+      syncOrch ? syncOrch.saveRemoteSetRecord(record) : Promise.resolve(record),
+    onRender: renderAnalyticsSummary,
+    onSetsRemoved: (ids) =>
+      syncOrch ? syncOrch.deleteRemoteSetRecords(ids) : null,
+    onSelectionChanged: () => syncOrch?.handleSelectionChanged(),
+    getTopicSourceVisible() {
+      return topicSourceVisible;
+    },
+    documentRef: document,
+    setTimeoutRef: window.setTimeout.bind(window),
+    clearTimeoutRef: window.clearTimeout.bind(window),
+    alertRef: window.alert?.bind(window),
+    consoleRef: window.console,
+  });
 
-        function renderSetList() {
-          const result = setManager.renderSetList();
-          renderAnalyticsSummary();
-          analyticsPanel.syncVisibility();
-          return result;
-        }
+  const platformAdapter = createPlatformAdapter({
+    storage,
+    getRuntimeConfig,
+  });
+  const authFeature = createAuthFeature({
+    storage,
+    platformAdapter,
+    getRuntimeConfig,
+    hasSupabaseConfig,
+    showScreen,
+    documentRef: document,
+  });
+  const googleDrive = createGoogleDriveFeature({
+    getRuntimeConfig,
+    hasDriveConfig,
+    isDesktopRuntime,
+    loadSetFromText: (...args) => setManager.loadSetFromText(...args),
+    loadSetFromBinary: (...args) => setManager.loadSetFromBinary(...args),
+    selectSet: (...args) => setManager.selectSet(...args),
+    renderSetList: () => renderSetList(),
+    showUndoToast: (...args) => setManager.showUndoToast(...args),
+    documentRef: document,
+    alertRef: window.alert?.bind(window),
+    consoleRef: window.console,
+    fetchRef: window.fetch?.bind(window),
+    setTimeoutRef: window.setTimeout.bind(window),
+    clearTimeoutRef: window.clearTimeout.bind(window),
+  });
+  const syncStatus = createSyncStatusController({
+    onChange: (snapshot) => renderSyncStatus(snapshot),
+  });
+  const analyticsPanel = createAnalyticsPanelController({
+    documentRef: document,
+    stateRef: analyticsUiState,
+    onSubjectSelect: (subject) => focusAnalyticsSubject(subject),
+    onVisibilityChange() {
+      studyPersistence?.saveState();
+    },
+  });
+  const editorFeature = createEditorFeature({
+    buildSetRecord,
+    documentRef: document,
+    formatEditableText,
+    htmlToEditableText,
+    parseSetText,
+    serializeSetRecord,
+    showScreen,
+    saveSetRecord: saveEditedSetRecord,
+    writeSourceFile(sourcePath, rawSource) {
+      return platformAdapter.writeSetSourceFile(sourcePath, rawSource);
+    },
+    confirmRef: window.confirm?.bind(window),
+  });
+  const desktopUpdateFeature = createDesktopUpdateFeature({
+    stateRef: window.AppState,
+    isDesktopRuntimeRef: isDesktopRuntime,
+    documentRef: document,
+    windowRef: window,
+    alertRef: window.alert?.bind(window),
+    confirmRef: window.confirm?.bind(window),
+    consoleRef: window.console,
+  });
 
-        function countRemovedAnswers(previousAnswers, nextAnswers) {
-          const previousAnswersMap =
-            previousAnswers &&
-            typeof previousAnswers === "object" &&
-            !Array.isArray(previousAnswers)
-              ? previousAnswers
-              : {};
-          const nextAnswersMap =
-            nextAnswers &&
-            typeof nextAnswers === "object" &&
-            !Array.isArray(nextAnswers)
-              ? nextAnswers
-              : {};
+  syncOrch = createSyncOrchestration({
+    storage,
+    platformAdapter,
+    authFeature,
+    syncStatus,
+    setManager,
+    desktopUpdateFeature,
+    documentRef: document,
+    consoleRef: window.console,
+    getCurrentStudyStateSnapshot: (options) =>
+      studyStateBridge?.buildCurrentStudyStateSnapshot(options) ?? null,
+    applyStudyStateSnapshot: (snapshot, options) =>
+      studyStateBridge?.applyStudyStateSnapshot(snapshot, options),
+    resetStudyState: (storageKeyPrefix) =>
+      studyStateBridge?.resetStudyState(storageKeyPrefix),
+    renderSetList: () => renderSetList(),
+    hasMeaningfulStudyStateSnapshot: (snapshot) =>
+      studyStateBridge?.hasMeaningfulStudyStateSnapshot(snapshot) ?? false,
+    loadLocalStudyState: (storageKeyPrefix) =>
+      studyPersistence?.loadState(storageKeyPrefix),
+  });
 
-          return Object.keys(previousAnswersMap).reduce((removedCount, key) => {
-            return previousAnswersMap[key] !== undefined &&
-              nextAnswersMap[key] === undefined
-              ? removedCount + 1
-              : removedCount;
-          }, 0);
-        }
+  const {
+    getStorageKeyPrefix,
+    buildScopedStorageKey,
+    getScopedStorageItem,
+    isRemoteWorkspaceActive,
+    renderSyncStatus,
+    retryCloudSync,
+    captureWorkspaceSeed,
+    hasPendingSyncConflict,
+    clearSyncConflictState,
+    scheduleRemoteStudyStateSync,
+    clearRemoteStudyStateSyncTimer,
+    loadSyncedWorkspace,
+    useCloudConflictResolution,
+    useLocalConflictResolution,
+    resetRetryStateOnAuthChange,
+    resetPendingStudyStateOnSignOut,
+  } = syncOrch;
 
-        function appendStudyActivity(delta) {
-          activityByDay = recordStudyActivity(activityByDay, delta);
-        }
+  studyChrome = createStudyChrome({
+    storage,
+    documentRef: document,
+    windowRef: window,
+    buildScopedStorageKey,
+    getStorageKeyPrefix,
+    scheduleRemoteStudyStateSync,
+    buildCurrentStudyStateSnapshot: (options) =>
+      studyStateBridge?.buildCurrentStudyStateSnapshot(options),
+    defaults,
+    getContext: getStudyContext,
+    setContext: setStudyContext,
+    onTopicSourceVisibilityChange: () => renderSetList(),
+    onStatePersist: () => studyPersistence?.saveState(),
+  });
 
-        function recordAnswerSelectionActivity(question, previousAnswer, nextAnswer) {
-          if (!question) {
-            return;
-          }
+  const activityTracker = createActivityTracker({
+    getActivityByDay: () => getStudyContext().activityByDay,
+    setActivityByDay: (nextActivityByDay) => {
+      setStudyContext({
+        activityByDay: nextActivityByDay,
+      });
+    },
+  });
 
-          const delta = {};
-          if (previousAnswer !== undefined && previousAnswer !== nextAnswer) {
-            delta.cleared = 1;
-          }
+  studyStateBridge = createStudyStateBridge({
+    storage,
+    documentRef: document,
+    setManager,
+    getStudyContext,
+    setStudyContext,
+    getStorageKeyPrefix,
+    buildScopedStorageKey,
+    renderSetList: () => renderSetList(),
+    syncAutoAdvanceToggleUI: () => studyChrome.syncAutoAdvanceToggleUI(),
+    syncTypographyControls: () => studyChrome.syncTypographyControls(),
+    applyTypographyState: (snapshot) => studyChrome.applyTypographyState(snapshot),
+    defaults,
+  });
 
-          if (nextAnswer !== undefined) {
-            if (nextAnswer === question.correct) {
-              delta.correct = 1;
-            } else {
-              delta.wrong = 1;
-            }
-          }
+  studyPersistence = createStudyPersistence({
+    storage,
+    getScopedStorageItem,
+    getLoadedSets: () => setManager.getLoadedSets(),
+    getStorageKeyPrefix,
+    getStudyStateSnapshot: (options) =>
+      studyStateBridge.buildCurrentStudyStateSnapshot(options),
+    scheduleRemoteStudyStateSync,
+    setStudyContext,
+    getStudyTypographyState: () => studyChrome.getStudyTypographyState(),
+    applyTypographyState: (state) => studyChrome.applyTypographyState(state),
+    syncThemeControlsUI: () => studyRunner?.syncThemeControlsUI(),
+    syncAnswerLockToggleUI: () => studyChrome.syncAnswerLockToggleUI(),
+    syncAutoAdvanceToggleUI: () => studyChrome.syncAutoAdvanceToggleUI(),
+    syncTopicSourceToggleUI: () => studyChrome.syncTopicSourceToggleUI(),
+    syncTypographyControls: () => studyChrome.syncTypographyControls(),
+    syncManagerSettingsPanelState: () =>
+      studyRunner?.syncManagerSettingsPanelState(),
+    consoleRef: window.console,
+  });
 
-          if (delta.correct || delta.wrong || delta.cleared) {
-            appendStudyActivity(delta);
-          }
-        }
+  studyRunner = createStudyRunner({
+    documentRef: document,
+    windowRef: window,
+    storage,
+    showScreen,
+    authFeature,
+    setManager,
+    desktopUpdateFeature,
+    studyChrome,
+    studyPersistence,
+    activityTracker,
+    getStorageKeyPrefix,
+    hasPendingSyncConflict,
+    confirmEditorNavigation,
+    renderSetList: () => renderSetList(),
+    getContext: getStudyContext,
+    setContext: setStudyContext,
+    alertRef: window.alert?.bind(window),
+    confirmRef: window.confirm?.bind(window),
+  });
 
-        function toggleAnalyticsPanel() {
-          const visible = analyticsPanel.togglePanel();
-          if (visible) {
-            renderAnalyticsSummary();
-          }
-          return visible;
-        }
-  
-        function closeAnalyticsPanel() {
-          return analyticsPanel.closePanel();
-        }
+  authHandlers = createAuthHandlers({
+    authFeature,
+    syncStatus,
+    resetRetryStateOnAuthChange,
+    clearSyncConflictState,
+    renderSyncStatus: (snapshot) => renderSyncStatus(snapshot),
+    captureWorkspaceSeed,
+    loadSyncedWorkspace,
+    clearRemoteStudyStateSyncTimer,
+    clearAutoAdvanceTimer: () => studyChrome.clearAutoAdvanceTimer(),
+    resetPendingStudyStateOnSignOut,
+    setManager,
+    googleDrive,
+    loadState: (storageKeyPrefix) => studyPersistence.loadState(storageKeyPrefix),
+    renderSetList: () => renderSetList(),
+    buildCurrentStudyStateSnapshot: (options) =>
+      studyStateBridge.buildCurrentStudyStateSnapshot(options),
+    confirmEditorNavigation,
+    getIsFullscreen: () => getStudyContext().isFullscreen,
+    toggleFullscreen: () => studyChrome.toggleFullscreen(),
+  });
 
-        function focusAnalyticsSubject(subject) {
-          const normalizedSubject =
-            typeof subject === "string" && subject.trim() ? subject.trim() : "";
-          if (!normalizedSubject) {
-            return false;
-          }
+  function renderAnalyticsSummary() {
+    const { pendingSession, selectedAnswers, activityByDay } = getStudyContext();
+    const summary = buildAnalyticsSnapshot({
+      loadedSets: setManager.getLoadedSets(),
+      pendingSession,
+      resolveQuestionKey: cardId,
+      selectedAnswers,
+      selectedSetIds: setManager.getSelectedSetIds(),
+      activityByDay,
+    });
 
-          if (!authFeature.requireAuth() || hasPendingSyncConflict()) {
-            return false;
-          }
+    analyticsPanel.renderSummary(summary);
+    desktopUpdateFeature.syncButtonState();
+  }
 
-          const mainApp = document.getElementById("main-app");
-          const isStudyVisible =
-            mainApp && window.getComputedStyle(mainApp).display !== "none";
-          if (!isStudyVisible) {
-            startStudy();
-          }
+  function renderSetList() {
+    const result = setManager.renderSetList();
+    renderAnalyticsSummary();
+    analyticsPanel.syncVisibility();
+    return result;
+  }
 
-          const topicSelect = document.getElementById("topic-select");
-          if (!topicSelect) {
-            return false;
-          }
+  async function saveEditedSetRecord(record) {
+    const savedRecord = await setManager.saveSetRecord(record);
+    renderSetList();
+    return savedRecord;
+  }
 
-          const hasSubjectOption = [...topicSelect.options].some(
-            (option) => option.value === normalizedSubject,
-          );
-          if (!hasSubjectOption) {
-            return false;
-          }
+  function confirmEditorNavigation(message, blockedMessage) {
+    if (window.AppState?.currentScreen !== "editor") {
+      return true;
+    }
 
-          topicSelect.value = normalizedSubject;
-          filterByTopic(false, {
-            preferredQuestionKey: pendingSession?.currentQuestionKey || null,
-            fallbackIndex: pendingSession?.currentQuestionIndex ?? null,
-          });
-          return true;
-        }
+    return editorFeature.confirmNavigateAway(message, blockedMessage);
+  }
 
-        function toggleSetCheck(setId) {
-          return setManager.toggleSetCheck(setId);
-        }
-  
-        function deleteSet(setId) {
-          return setManager.deleteSet(setId);
-        }
-  
-        function toggleDeleteMode() {
-          return setManager.toggleDeleteMode();
-        }
-  
-        function selectAllSets() {
-          return setManager.selectAllSets();
-        }
-  
-        function clearSetSelection() {
-          return setManager.clearSetSelection();
-        }
-  
-        function removeSelectedSets() {
-          return setManager.removeSelectedSets();
-        }
-  
-        function undoLastRemoval() {
-          return setManager.undoLastRemoval();
-        }
-  
-        function selectSet(setId) {
-          return setManager.selectSet(setId);
-        }
-  
-        function showUndoToast(message) {
-          return setManager.showUndoToast(message);
-        }
-  
-        async function saveEditedSetRecord(record) {
-          const savedRecord = await setManager.saveSetRecord(record);
-          renderSetList();
-          return savedRecord;
-        }
-  
-        function confirmEditorNavigation(message, blockedMessage) {
-          if (window.AppState?.currentScreen !== "editor") {
-            return true;
-          }
-  
-          return editorFeature.confirmNavigateAway(message, blockedMessage);
-        }
-  
-        function openSelectedSetEditor() {
-          if (hasPendingSyncConflict()) {
-            return;
-          }
-  
-          if (
-            !confirmEditorNavigation(
-              "Kaydedilmemis degisiklikler var. Baska bir sete gecersen editor kapanacak. Devam etmek istiyor musun?",
-              "Kaydedilmemis degisiklikler korunuyor.",
-            )
-          ) {
-            return false;
-          }
-  
-          const selectedSetIds = getSelectedSetIds();
-          if (selectedSetIds.length !== 1) {
-            return;
-          }
-  
-          const record = getLoadedSets()[selectedSetIds[0]];
-          if (!record) {
-            return;
-          }
-  
-          editorFeature.openEditor(record);
-        }
-  
-        function openNewSetEditor() {
-          if (hasPendingSyncConflict()) {
-            return;
-          }
-  
-          if (
-            !confirmEditorNavigation(
-              "Kaydedilmemis degisiklikler var. Yeni taslak acarsan editor kapanacak. Devam etmek istiyor musun?",
-              "Kaydedilmemis degisiklikler korunuyor.",
-            )
-          ) {
-            return false;
-          }
-  
-          editorFeature.openNewDraft({
-            sourceFormat: "markdown",
-          });
-        }
-  
-        function closeEditor() {
+  function openSelectedSetEditor() {
+    if (hasPendingSyncConflict()) {
+      return;
+    }
+
+    if (
+      !confirmEditorNavigation(
+        "Kaydedilmemis degisiklikler var. Baska bir sete gecersen editor kapanacak. Devam etmek istiyor musun?",
+        "Kaydedilmemis degisiklikler korunuyor.",
+      )
+    ) {
+      return false;
+    }
+
+    const selectedSetIds = setManager.getSelectedSetIds();
+    if (selectedSetIds.length !== 1) {
+      return;
+    }
+
+    const record = setManager.getLoadedSets()[selectedSetIds[0]];
+    if (!record) {
+      return;
+    }
+
+    editorFeature.openEditor(record);
+    return true;
+  }
+
+  function openNewSetEditor() {
+    if (hasPendingSyncConflict()) {
+      return;
+    }
+
+    if (
+      !confirmEditorNavigation(
+        "Kaydedilmemis degisiklikler var. Yeni taslak acarsan editor kapanacak. Devam etmek istiyor musun?",
+        "Kaydedilmemis degisiklikler korunuyor.",
+      )
+    ) {
+      return false;
+    }
+
+    editorFeature.openNewDraft({
+      sourceFormat: "markdown",
+    });
+    return true;
+  }
+
+  async function openSetImport() {
+    if (hasPendingSyncConflict()) {
+      return null;
+    }
+
+    if (
+      isDesktopRuntime() &&
+      typeof platformAdapter.pickNativeSetFiles === "function"
+    ) {
+      try {
+        const files = await platformAdapter.pickNativeSetFiles();
+        await setManager.importNativeFiles(files);
+        renderSetList();
+        return files;
+      } catch (error) {
+        window.console.error("Native set import error", error);
+        window.alert?.(
+          error?.message || "Yerel dosya secilirken bir hata olustu.",
+        );
+        return null;
+      }
+    }
+
+    document.getElementById("file-picker")?.click();
+    return null;
+  }
+
+  function focusAnalyticsSubject(subject) {
+    const normalizedSubject =
+      typeof subject === "string" && subject.trim() ? subject.trim() : "";
+    if (!normalizedSubject) {
+      return false;
+    }
+
+    if (!authFeature.requireAuth() || hasPendingSyncConflict()) {
+      return false;
+    }
+
+    const mainApp = document.getElementById("main-app");
+    const isStudyVisible =
+      mainApp && window.getComputedStyle(mainApp).display !== "none";
+    if (!isStudyVisible) {
+      studyRunner.startStudy();
+    }
+
+    const topicSelect = document.getElementById("topic-select");
+    if (!topicSelect) {
+      return false;
+    }
+
+    const hasSubjectOption = [...topicSelect.options].some(
+      (option) => option.value === normalizedSubject,
+    );
+    if (!hasSubjectOption) {
+      return false;
+    }
+
+    topicSelect.value = normalizedSubject;
+    const { pendingSession } = getStudyContext();
+    studyRunner.filterByTopic(false, {
+      preferredQuestionKey: pendingSession?.currentQuestionKey || null,
+      fallbackIndex: pendingSession?.currentQuestionIndex ?? null,
+    });
+    return true;
+  }
+
+  async function initApp() {
+    ThemeManager.renderThemeOptions(THEME_CONTROL_IDS);
+    studyRunner.syncManagerSettingsPanelState();
+    bindStaticEvents({
+      documentRef: document,
+      windowRef: window,
+      handlers: {
+        authGoogleDrive: () => googleDrive.authGoogleDrive(),
+        addEditorOption: () => editorFeature.addOption(),
+        addEditorQuestion: () => editorFeature.addQuestion(),
+        applyEditorRaw: () => editorFeature.applyRaw(),
+        checkDesktopUpdates: () => studyRunner.checkDesktopUpdates(),
+        clearSetSelection: () => setManager.clearSetSelection(),
+        closeAnalyticsPanel: () => analyticsPanel.closePanel(),
+        closeEditor: () => {
           const closed = editorFeature.closeEditor();
           if (closed !== false) {
             renderSetList();
           }
           return closed;
-        }
-  
-        function saveEditor() {
-          return editorFeature.save();
-        }
-  
-        function exportEditorJson() {
-          return editorFeature.exportJson();
-        }
-  
-        function exportEditorSource() {
-          return editorFeature.exportSource();
-        }
-  
-        function selectEditorQuestion(index) {
-          return editorFeature.selectQuestion(index);
-        }
-  
-        function showEditorVisual() {
-          return editorFeature.setMode("visual");
-        }
-  
-        function showEditorRaw() {
-          return editorFeature.setMode("raw");
-        }
-  
-        function updateEditorSetName(value) {
-          return editorFeature.updateMetaField("setName", value);
-        }
-  
-        function updateEditorQuestionText(value) {
-          return editorFeature.updateCurrentQuestionField("q", value);
-        }
-  
-        function updateEditorQuestionSubject(value) {
-          return editorFeature.updateCurrentQuestionField("subject", value);
-        }
-  
-        function updateEditorQuestionExplanation(value) {
-          return editorFeature.updateCurrentQuestionField("explanation", value);
-        }
-  
-        function updateEditorCorrectIndex(value) {
-          return editorFeature.updateCurrentQuestionField("correct", value);
-        }
-  
-        function updateEditorOption(index, value) {
-          return editorFeature.updateCurrentOption(index, value);
-        }
-  
-        function addEditorQuestion() {
-          return editorFeature.addQuestion();
-        }
-  
-        function duplicateCurrentEditorQuestion() {
-          return editorFeature.duplicateQuestion();
-        }
-  
-        function moveCurrentEditorQuestion(direction) {
-          return editorFeature.moveQuestion(direction);
-        }
-  
-        function removeCurrentEditorQuestion() {
-          return editorFeature.removeQuestion();
-        }
-  
-        function addEditorOption() {
-          return editorFeature.addOption();
-        }
-  
-        function removeEditorOption(index) {
-          return editorFeature.removeOption(index);
-        }
-  
-        function applyEditorRaw() {
-          return editorFeature.applyRaw();
-        }
+        },
+        continueAsDemoAuth: () => authHandlers.continueAsDemoAuth(),
+        deleteSet: (setId) => setManager.deleteSet(setId),
+        duplicateCurrentEditorQuestion: () => editorFeature.duplicateQuestion(),
+        exportEditorJson: () => editorFeature.exportJson(),
+        exportEditorSource: () => editorFeature.exportSource(),
+        exportPrintable: () => studyRunner.exportPrintable(),
+        filterByTopic: (...args) => studyRunner.filterByTopic(...args),
+        getIsFullscreen: () => getStudyContext().isFullscreen,
+        handleFileSelect: (event) => setManager.handleFileSelect(event),
+        jumpToQuestion: () => studyRunner.jumpToQuestion(),
+        moveCurrentEditorQuestion: (direction) =>
+          editorFeature.moveQuestion(direction),
+        nextQuestion: () => studyRunner.nextQuestion(),
+        openNewSetEditor,
+        openSelectedSetEditor,
+        openSetImport,
+        previousQuestion: () => studyRunner.previousQuestion(),
+        removeCurrentEditorQuestion: () => editorFeature.removeQuestion(),
+        removeEditorOption: (index) => editorFeature.removeOption(index),
+        removeSelectedSets: () => setManager.removeSelectedSets(),
+        resetQuiz: () => studyRunner.resetQuiz(),
+        resetTypographyPreferences: () => studyChrome.resetTypographyPreferences(),
+        retryCloudSync: () => retryCloudSync(),
+        retryWrongAnswers: () => studyRunner.retryWrongAnswers(),
+        saveEditor: () => editorFeature.save(),
+        selectAllSets: () => setManager.selectAllSets(),
+        selectEditorQuestion: (index) => editorFeature.selectQuestion(index),
+        selectOption: (index) => studyRunner.selectOption(index),
+        setAnswerLock: (isEnabled) => studyChrome.setAnswerLock(isEnabled),
+        setAutoAdvance: (isEnabled) => studyChrome.setAutoAdvance(isEnabled),
+        setFullscreenOptionFontSize: (value) =>
+          studyChrome.setFullscreenOptionFontSize(value),
+        setFullscreenQuestionFontSize: (value) =>
+          studyChrome.setFullscreenQuestionFontSize(value),
+        setOptionFontSize: (value) => studyChrome.setOptionFontSize(value),
+        setQuestionFontSize: (value) => studyChrome.setQuestionFontSize(value),
+        setTheme: (themeName) => studyRunner.setTheme(themeName),
+        setTopicSourceVisibility: (isVisible) =>
+          studyChrome.setTopicSourceVisibility(isVisible),
+        shouldPreventUnload: () => editorFeature.shouldPreventUnload(),
+        showEditorRaw: () => editorFeature.setMode("raw"),
+        showEditorVisual: () => editorFeature.setMode("visual"),
+        showSetManager: () => studyRunner.showSetManager(),
+        shuffleQuestions: () => studyRunner.shuffleQuestions(),
+        signInAuth: () => authHandlers.signInAuth(),
+        signOutAuth: () => authHandlers.signOutAuth(),
+        signUpAuth: () => authHandlers.signUpAuth(),
+        startStudy: () => studyRunner.startStudy(),
+        toggleAnalyticsPanel: () => {
+          const visible = analyticsPanel.togglePanel();
+          if (visible) {
+            renderAnalyticsSummary();
+          }
+          return visible;
+        },
+        toggleDeleteMode: () => setManager.toggleDeleteMode(),
+        toggleFullscreen: () => studyChrome.toggleFullscreen(),
+        toggleManagerSettingsPanel: (forceState) =>
+          studyRunner.toggleManagerSettingsPanel(forceState),
+        toggleSetCheck: (setId) => setManager.toggleSetCheck(setId),
+        toggleSolution: () => studyRunner.toggleSolution(),
+        undoLastRemoval: () => setManager.undoLastRemoval(),
+        updateEditorCorrectIndex: (value) =>
+          editorFeature.updateCurrentQuestionField("correct", value),
+        updateEditorOption: (index, value) =>
+          editorFeature.updateCurrentOption(index, value),
+        updateEditorQuestionExplanation: (value) =>
+          editorFeature.updateCurrentQuestionField("explanation", value),
+        updateEditorQuestionSubject: (value) =>
+          editorFeature.updateCurrentQuestionField("subject", value),
+        updateEditorQuestionText: (value) =>
+          editorFeature.updateCurrentQuestionField("q", value),
+        updateEditorSetName: (value) =>
+          editorFeature.updateMetaField("setName", value),
+        useCloudConflictResolution: () => useCloudConflictResolution(),
+        useLocalConflictResolution: () => useLocalConflictResolution(),
+      },
+      constants: {
+        THEME_CONTROL_IDS,
+      },
+    });
+    setManager.loadStoredSets("");
+    studyPersistence.loadState("");
+    const fallbackWorkspace = captureWorkspaceSeed();
+    const fallbackStudySnapshot =
+      studyStateBridge.buildCurrentStudyStateSnapshot();
+    await authFeature.loadAuthSession();
+    if (isRemoteWorkspaceActive()) {
+      await loadSyncedWorkspace({
+        fallbackWorkspace,
+        fallbackStudySnapshot,
+      });
+    } else {
+      clearSyncConflictState();
+      renderSyncStatus(syncStatus.reset());
+    }
+    authFeature.syncAuthUi();
+    showScreen(authFeature.resolveInitialScreen());
+    renderSetList();
+    desktopUpdateFeature.syncButtonState();
+    desktopUpdateFeature.scheduleStartupCheck();
+    googleDrive.syncDriveButtonState();
+    googleDrive.initGoogleDrive();
+  }
 
-        function insertEditorMediaToken(field, kind) {
-          return editorFeature.insertMediaToken(field, kind);
-        }
+  window.AppSyncConflict = Object.freeze({
+    detectSyncConflict,
+  });
+  window.__MCQ_TEST_HOOKS__ = syncOrch.testHooks;
 
-        function insertEditorFormattingToken(field, action) {
-          return editorFeature.insertFormattingToken(field, action);
-        }
-
-        function continueAsDemoAuth() {
-          resetRetryStateOnAuthChange();
-          clearSyncConflictState();
-          renderSyncStatus(syncStatus.reset());
-          renderSetList();
-          googleDrive.syncDriveButtonState();
-          return authFeature.continueAsDemo();
-        }
-  
-        async function signInAuth() {
-          const fallbackWorkspace = captureWorkspaceSeed();
-          const fallbackStudySnapshot = buildCurrentStudyStateSnapshot();
-          const session = await authFeature.attemptPasswordAuth("signin");
-          if (session) {
-            await loadSyncedWorkspace({
-              fallbackWorkspace,
-              fallbackStudySnapshot,
-            });
-            renderSetList();
-          }
-          return session;
-        }
-  
-        async function signUpAuth() {
-          const fallbackWorkspace = captureWorkspaceSeed();
-          const fallbackStudySnapshot = buildCurrentStudyStateSnapshot();
-          const session = await authFeature.attemptPasswordAuth("signup");
-          if (session) {
-            await loadSyncedWorkspace({
-              fallbackWorkspace,
-              fallbackStudySnapshot,
-            });
-            renderSetList();
-          }
-          return session;
-        }
-  
-        async function signOutAuth() {
-          if (
-            !confirmEditorNavigation(
-              "Kaydedilmemis degisiklikler var. Cikis yaparsan editor degisiklikleri kaybolacak. Devam etmek istiyor musun?",
-              "Kaydedilmemis degisiklikler korunuyor.",
-            )
-          ) {
-            return false;
-          }
-  
-          clearAutoAdvanceTimer();
-          clearRemoteStudyStateSyncTimer();
-          resetPendingStudyStateOnSignOut();
-          clearSyncConflictState();
-          if (isFullscreen) {
-            toggleFullscreen();
-          }
-          const result = await authFeature.signOut();
-          renderSyncStatus(syncStatus.reset());
-          setManager.loadStoredSets("");
-          loadState("");
-          renderSetList();
-          googleDrive.syncDriveButtonState();
-          return result;
-        }
-  
-        function initGoogleDrive() {
-          return googleDrive.initGoogleDrive();
-        }
-  
-        function authGoogleDrive() {
-          return googleDrive.authGoogleDrive();
-        }
-  
-        function updateFullscreenInfo(question) {
-          const counterEl = document.getElementById("fullscreen-question-counter");
-          const subjectEl = document.getElementById("fullscreen-subject-badge");
-          const prevBtn = document.getElementById("fullscreen-prev-btn");
-          const nextBtn = document.getElementById("fullscreen-next-btn");
-          const chromeState = createStudyChromeState({
-            currentQuestionIndex,
-            totalQuestions: filteredQuestions.length,
-            subject: question ? question.subject : "",
-          });
-  
-          if (counterEl) {
-            counterEl.textContent = chromeState.counterText;
-          }
-          if (subjectEl) {
-            subjectEl.textContent = chromeState.subjectText;
-          }
-          if (prevBtn) {
-            prevBtn.disabled = chromeState.disablePrev;
-          }
-          if (nextBtn) {
-            nextBtn.disabled = chromeState.disableNext;
-          }
-        }
-  
-        function syncAnswerLockToggleUI() {
-          const toggle = document.getElementById("answer-lock-toggle-manager");
-          if (toggle) {
-            toggle.checked = answerLockEnabled;
-          }
-          const status = document.getElementById("answer-lock-status");
-          if (status) {
-            status.textContent = getAnswerLockStatusText(answerLockEnabled);
-          }
-        }
-  
-        function setAnswerLock(isEnabled) {
-          answerLockEnabled = Boolean(isEnabled);
-          storage.setItem(ANSWER_LOCK_KEY, answerLockEnabled ? "1" : "0");
-          syncAnswerLockToggleUI();
-        }
-  
-        function syncAutoAdvanceToggleUI() {
-          const toggle = document.getElementById("auto-advance-toggle-manager");
-          if (toggle) {
-            toggle.checked = autoAdvanceEnabled;
-          }
-          const status = document.getElementById("auto-advance-status");
-          if (status) {
-            status.textContent = getAutoAdvanceStatusText(autoAdvanceEnabled);
-          }
-        }
-  
-        function syncTopicSourceToggleUI() {
-          const toggle = document.getElementById("topic-source-visibility-toggle");
-          if (toggle) {
-            toggle.checked = topicSourceVisible;
-          }
-        }
-
-        function setTopicSourceVisibility(isVisible) {
-          topicSourceVisible = Boolean(isVisible);
-          storage.setItem(TOPIC_SOURCE_KEY, topicSourceVisible ? "1" : "0");
-          syncTopicSourceToggleUI();
-          renderSetList();
-        }
-
-        function getStudyTypographyState() {
-          return {
-            questionFontSize,
-            optionFontSize,
-            fullscreenQuestionFontSize,
-            fullscreenOptionFontSize,
-          };
-        }
-  
-        function syncTypographyControls() {
-          const questionInput = document.getElementById("question-font-size");
-          const optionInput = document.getElementById("option-font-size");
-          const fullscreenQuestionInput = document.getElementById(
-            "fullscreen-question-font-size",
-          );
-          const fullscreenOptionInput = document.getElementById(
-            "fullscreen-option-font-size",
-          );
-  
-          if (questionInput) {
-            questionInput.value = String(questionFontSize);
-          }
-          if (optionInput) {
-            optionInput.value = String(optionFontSize);
-          }
-          if (fullscreenQuestionInput) {
-            fullscreenQuestionInput.value = String(fullscreenQuestionFontSize);
-          }
-          if (fullscreenOptionInput) {
-            fullscreenOptionInput.value = String(fullscreenOptionFontSize);
-          }
-        }
-  
-        function applyTypographyState(nextState) {
-          const normalizedState = applyStudyTypographyPreferences(nextState, document);
-  
-          questionFontSize = normalizedState.questionFontSize;
-          optionFontSize = normalizedState.optionFontSize;
-          fullscreenQuestionFontSize = normalizedState.fullscreenQuestionFontSize;
-          fullscreenOptionFontSize = normalizedState.fullscreenOptionFontSize;
-          syncTypographyControls();
-          return normalizedState;
-        }
-  
-        function setQuestionFontSize(value) {
-          applyTypographyState({
-            questionFontSize: value,
-            optionFontSize,
-            fullscreenQuestionFontSize,
-            fullscreenOptionFontSize,
-          });
-          saveState();
-        }
-  
-        function setOptionFontSize(value) {
-          applyTypographyState({
-            questionFontSize,
-            optionFontSize: value,
-            fullscreenQuestionFontSize,
-            fullscreenOptionFontSize,
-          });
-          saveState();
-        }
-  
-        function setFullscreenQuestionFontSize(value) {
-          applyTypographyState({
-            questionFontSize,
-            optionFontSize,
-            fullscreenQuestionFontSize: value,
-            fullscreenOptionFontSize,
-          });
-          saveState();
-        }
-  
-        function setFullscreenOptionFontSize(value) {
-          applyTypographyState({
-            questionFontSize,
-            optionFontSize,
-            fullscreenQuestionFontSize,
-            fullscreenOptionFontSize: value,
-          });
-          saveState();
-        }
-  
-        function resetTypographyPreferences() {
-          applyTypographyState({
-            questionFontSize: DEFAULT_QUESTION_FONT_SIZE,
-            optionFontSize: DEFAULT_OPTION_FONT_SIZE,
-            fullscreenQuestionFontSize: DEFAULT_FULLSCREEN_QUESTION_FONT_SIZE,
-            fullscreenOptionFontSize: DEFAULT_FULLSCREEN_OPTION_FONT_SIZE,
-          });
-          saveState();
-        }
-  
-        function setAutoAdvance(isEnabled) {
-          autoAdvanceEnabled = Boolean(isEnabled);
-          setScopedStorageItem(
-            AUTO_ADVANCE_KEY,
-            autoAdvanceEnabled ? "1" : "0",
-          );
-          syncAutoAdvanceToggleUI();
-          scheduleRemoteStudyStateSync(buildCurrentStudyStateSnapshot());
-        }
-  
-        function clearAutoAdvanceTimer() {
-          if (autoAdvanceTimeoutId) {
-            clearTimeout(autoAdvanceTimeoutId);
-            autoAdvanceTimeoutId = null;
-          }
-        }
-  
-        function toggleFullscreen() {
-          const questionCard = document.getElementById("question-card");
-          const toggleBtn = document.getElementById("fullscreen-toggle-btn");
-          if (!questionCard || !toggleBtn) return;
-  
-          isFullscreen = !isFullscreen;
-          const fullscreenState = getFullscreenToggleState(isFullscreen);
-  
-          questionCard.classList.toggle("fullscreen-active", isFullscreen);
-          document.body.style.overflow = fullscreenState.bodyOverflow;
-          toggleBtn.textContent = fullscreenState.buttonText;
-          toggleBtn.title = fullscreenState.buttonTitle;
-  
-          updateFullscreenInfo(
-            filteredQuestions.length > 0
-              ? filteredQuestions[questionOrder[currentQuestionIndex]]
-              : null,
-          );
-  
-          if (document.activeElement && document.activeElement.blur) {
-            document.activeElement.blur();
-          }
-        }
-  
-        function startStudy() {
-          if (!authFeature.requireAuth()) {
-            return;
-          }
-          if (hasPendingSyncConflict()) {
-            return;
-          }
-          const loadedSets = getLoadedSets();
-          const selectedSetIds = getSelectedSetIds();
-          if (selectedSetIds.length === 0) return;
-          clearAutoAdvanceTimer();
-  
-          allQuestions = buildStudyQuestions({
-            loadedSets,
-            selectedSetIds,
-            buildQuestionKey,
-          });
-  
-          if (allQuestions.length === 0) {
-            alert("Seçili setlerde soru bulunamadı.");
-            return;
-          }
-  
-          filteredQuestions = [...allQuestions];
-          questionOrder = [...Array(filteredQuestions.length).keys()];
-          currentQuestionIndex = 0;
-  
-          showScreen("study");
-  
-          populateTopicFilter();
-          updateScoreDisplay();
-  
-          const session =
-            readSavedSession(storage, pendingSession, getStorageKeyPrefix()) ||
-            pendingSession ||
-            {};
-          const topicSelect = document.getElementById("topic-select");
-          if (
-            topicSelect &&
-            typeof session.selectedTopic === "string" &&
-            [...topicSelect.options].some(
-              (option) => option.value === session.selectedTopic,
-            )
-          ) {
-            topicSelect.value = session.selectedTopic;
-          }
-  
-          filterByTopic(false, {
-            preferredQuestionKey:
-              session && typeof session.currentQuestionKey === "string"
-                ? session.currentQuestionKey
-                : null,
-            fallbackIndex:
-              session && Number.isInteger(session.currentQuestionIndex)
-                ? session.currentQuestionIndex
-                : null,
-          });
-        }
-  
-        function showSetManager() {
-          if (!authFeature.requireAuth()) {
-            return;
-          }
-          if (
-            !confirmEditorNavigation(
-              "Kaydedilmemis degisiklikler var. Yoneticiye donersen editor kapanacak. Devam etmek istiyor musun?",
-              "Kaydedilmemis degisiklikler korunuyor.",
-            )
-          ) {
-            return false;
-          }
-          clearAutoAdvanceTimer();
-          if (isFullscreen) {
-            toggleFullscreen();
-          }
-          showScreen("manager");
-          renderSetList();
-          desktopUpdateFeature.syncButtonState();
-        }
-  
-        function checkDesktopUpdates() {
-          return desktopUpdateFeature.checkForUpdates("manual");
-        }
-  
-        function filterByTopic(resetIndex = true, options = {}) {
-          const selectedTopic = document.getElementById("topic-select").value;
-          const nextView = createFilteredStudyView({
-            allQuestions,
-            selectedTopic,
-            preferredQuestionKey: resetIndex ? null : options.preferredQuestionKey,
-            fallbackIndex: resetIndex
-              ? 0
-              : Number.isInteger(options.fallbackIndex)
-                ? options.fallbackIndex
-                : null,
-            resolveQuestionKey: cardId,
-          });
-  
-          filteredQuestions = nextView.filteredQuestions;
-          questionOrder = nextView.questionOrder;
-          currentQuestionIndex = nextView.currentQuestionIndex;
-  
-          document
-            .getElementById("jump-input")
-            .setAttribute("max", filteredQuestions.length);
-  
-          if (filteredQuestions.length > 0) {
-            displayQuestion();
-            return;
-          }
-  
-          document.getElementById("question-text").innerHTML =
-            "Bu filtrede gösterilecek soru bulunamadı.";
-          document.getElementById("question-counter").textContent = "Soru 0 / 0";
-          document.getElementById("subject-badge").textContent = selectedTopic;
-          document.getElementById("solution-content").innerHTML = "";
-          document.getElementById("options-container").innerHTML = "";
-          document.getElementById("solution").classList.remove("visible");
-          document.getElementById("show-solution-btn").textContent = "Çözümü Göster";
-          document.getElementById("prev-btn").disabled = true;
-          document.getElementById("next-btn").disabled = true;
-          updateFullscreenInfo(null);
-          saveState();
-        }
-  
-        function displayQuestion() {
-          const q = filteredQuestions[questionOrder[currentQuestionIndex]];
-          const cid = cardId(q);
-          const chromeState = createStudyChromeState({
-            currentQuestionIndex,
-            totalQuestions: filteredQuestions.length,
-            subject: q.subject,
-          });
-  
-          document.getElementById("question-text").innerHTML = sanitizeHtml(q.q);
-          document.getElementById("question-counter").textContent =
-            chromeState.counterText;
-          document.getElementById("subject-badge").textContent =
-            chromeState.subjectText;
-          document.getElementById("solution-content").innerHTML =
-            sanitizeHtml(getExplanationHtml(q));
-  
-          const optionsContainer = document.getElementById("options-container");
-          optionsContainer.innerHTML = "";
-  
-          q.options.forEach((option, index) => {
-            const optionDiv = document.createElement("div");
-            optionDiv.className = "option";
-            optionDiv.innerHTML = sanitizeHtml(
-              `<span class="option-label">${String.fromCharCode(65 + index)}</span><span>${option}</span>`,
-            );
-  
-            if (
-              selectedAnswers[cid] !== undefined &&
-              selectedAnswers[cid] !== null
-            ) {
-              if (index === q.correct) {
-                optionDiv.classList.add("correct");
-              } else if (index === selectedAnswers[cid]) {
-                optionDiv.classList.add("wrong");
-              }
-            } else if (selectedAnswers[cid] === index) {
-              optionDiv.classList.add("selected");
-            }
-  
-            optionDiv.onclick = () => selectOption(index);
-            optionsContainer.appendChild(optionDiv);
-          });
-  
-          const solution = document.getElementById("solution");
-          if (solutionVisible[cid]) {
-            solution.classList.add("visible");
-            document.getElementById("show-solution-btn").textContent =
-              "Çözümü Gizle";
-          } else {
-            solution.classList.remove("visible");
-            document.getElementById("show-solution-btn").textContent =
-              "Çözümü Göster";
-          }
-  
-          document.getElementById("prev-btn").disabled = chromeState.disablePrev;
-          document.getElementById("next-btn").disabled = chromeState.disableNext;
-          updateFullscreenInfo(q);
-          saveState();
-        }
-  
-        function selectOption(index) {
-          const q = filteredQuestions[questionOrder[currentQuestionIndex]];
-          const questionKey = q ? cardId(q) : "";
-          const previousAnswer =
-            questionKey && selectedAnswers[questionKey] !== undefined
-              ? selectedAnswers[questionKey]
-              : undefined;
-          const answerSelection = selectStudyAnswer({
-            question: q,
-            selectedAnswers,
-            answerIndex: index,
-            answerLockEnabled,
-            resolveQuestionKey: cardId,
-          });
-  
-          if (answerSelection.blocked) {
-            return;
-          }
-
-          selectedAnswers = answerSelection.selectedAnswers;
-          recordAnswerSelectionActivity(
-            q,
-            previousAnswer,
-            questionKey ? selectedAnswers[questionKey] : undefined,
-          );
-
-          displayQuestion();
-          updateScoreDisplay();
-  
-          if (autoAdvanceEnabled && answerSelection.answeredNow) {
-            clearAutoAdvanceTimer();
-            autoAdvanceTimeoutId = setTimeout(() => {
-              autoAdvanceTimeoutId = null;
-              if (currentQuestionIndex < filteredQuestions.length - 1) {
-                nextQuestion();
-              }
-            }, 400);
-          }
-        }
-  
-        function toggleSolution() {
-          const q = filteredQuestions[questionOrder[currentQuestionIndex]];
-          const toggled = toggleStudySolution({
-            question: q,
-            solutionVisible,
-            resolveQuestionKey: cardId,
-          });
-          solutionVisible = toggled.solutionVisible;
-  
-          const solution = document.getElementById("solution");
-          const btn = document.getElementById("show-solution-btn");
-  
-          if (toggled.isVisible) {
-            solution.classList.add("visible");
-            btn.textContent = "Çözümü Gizle";
-          } else {
-            solution.classList.remove("visible");
-            btn.textContent = "Çözümü Göster";
-          }
-          saveState();
-        }
-  
-        function previousQuestion() {
-          clearAutoAdvanceTimer();
-          const nextIndex = getAdjacentQuestionIndex(
-            currentQuestionIndex,
-            filteredQuestions.length,
-            -1,
-          );
-          if (nextIndex !== currentQuestionIndex) {
-            currentQuestionIndex = nextIndex;
-            runWithQuestionInstantReset(() => displayQuestion());
-          }
-        }
-  
-        function nextQuestion() {
-          clearAutoAdvanceTimer();
-          const nextIndex = getAdjacentQuestionIndex(
-            currentQuestionIndex,
-            filteredQuestions.length,
-            1,
-          );
-          if (nextIndex !== currentQuestionIndex) {
-            currentQuestionIndex = nextIndex;
-            runWithQuestionInstantReset(() => displayQuestion());
-          }
-        }
-  
-        function jumpToQuestion() {
-          clearAutoAdvanceTimer();
-          const input = document.getElementById("jump-input");
-          const questionNum = parseInt(input.value);
-  
-          if (questionNum >= 1 && questionNum <= filteredQuestions.length) {
-            currentQuestionIndex = getBoundedQuestionIndex(
-              questionNum - 1,
-              filteredQuestions.length,
-            );
-            runWithQuestionInstantReset(() => displayQuestion());
-            input.value = "";
-          } else {
-            alert(
-              `Lütfen 1 ile ${filteredQuestions.length} arasında bir sayı girin.`,
-            );
-          }
-        }
-  
-        document
-          .getElementById("jump-input")
-          .addEventListener("keypress", function (e) {
-            if (e.key === "Enter") {
-              jumpToQuestion();
-            }
-          });
-  
-        document
-          .getElementById("jump-input")
-          .setAttribute("max", filteredQuestions.length);
-  
-        function syncThemeControlsUI() {
-          const themeName = ThemeManager.getCurrentTheme();
-          THEME_CONTROL_IDS.forEach((controlId) => {
-            const control = document.getElementById(controlId);
-            if (control) {
-              control.value = themeName;
-            }
-          });
-        }
-
-        function setTheme(themeName) {
-          ThemeManager.setTheme({
-            themeName,
-            controlIds: THEME_CONTROL_IDS,
-            storageApi: storage,
-            storageKey: THEME_KEY,
-          });
-          syncThemeControlsUI();
-        }
-
-        function syncManagerSettingsPanelState() {
-          const toggleButton = document.getElementById("manager-settings-toggle-btn");
-          const panel = document.getElementById("manager-settings-panel");
-          if (!toggleButton || !panel) {
-            return;
-          }
-
-          const isOpen = !panel.hidden;
-          toggleButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
-          toggleButton.classList.toggle("is-active", isOpen);
-          toggleButton.title = isOpen
-            ? "Yazi boyutu ayarlarini kapat"
-            : "Yazi boyutu ayarlarini ac";
-        }
-
-        function toggleManagerSettingsPanel(forceState = null) {
-          const panel = document.getElementById("manager-settings-panel");
-          if (!panel) {
-            return false;
-          }
-
-          const nextOpen =
-            typeof forceState === "boolean" ? forceState : panel.hidden;
-          panel.hidden = !nextOpen;
-          syncManagerSettingsPanelState();
-          return nextOpen;
-        }
-  
-        function shuffleQuestions() {
-          if (filteredQuestions.length === 0) return;
-          const shuffled = shuffleQuestionOrder({ questionOrder });
-          questionOrder = shuffled.questionOrder;
-          currentQuestionIndex = shuffled.currentQuestionIndex;
-          displayQuestion();
-        }
-  
-        function exportPrintable() {
-          const printWindow = window.open("", "_blank");
-          const html = buildPrintableStudyHtml({
-            title: "Çoktan Seçmeli Test",
-            questions: allQuestions,
-            getExplanationHtml,
-          });
-          printWindow.document.write(html);
-          printWindow.document.close();
-          printWindow.print();
-        }
-  
-        function retryWrongAnswers() {
-          const previousSelectedAnswers = selectedAnswers;
-          const retriedState = createRetryWrongAnswersState({
-            allQuestions,
-            selectedAnswers,
-            solutionVisible,
-            resolveQuestionKey: cardId,
-          });
-  
-          if (!retriedState.hasWrongQuestions) {
-            alert("Yanlış cevaplanan soru bulunamadı. Önce soruları cevaplayın.");
-            return;
-          }
-
-          filteredQuestions = retriedState.filteredQuestions;
-          selectedAnswers = retriedState.selectedAnswers;
-          solutionVisible = retriedState.solutionVisible;
-          const clearedAnswerCount = countRemovedAnswers(
-            previousSelectedAnswers,
-            selectedAnswers,
-          );
-          if (clearedAnswerCount > 0) {
-            appendStudyActivity({ cleared: clearedAnswerCount });
-          }
-          questionOrder = retriedState.questionOrder;
-          currentQuestionIndex = retriedState.currentQuestionIndex;
-          document.getElementById("topic-select").value = "hepsi";
-          document
-            .getElementById("jump-input")
-            .setAttribute("max", filteredQuestions.length);
-          saveState();
-          updateScoreDisplay();
-          displayQuestion();
-        }
-  
-        function resetQuiz() {
-          if (
-            !confirm(
-              "Seçili/aktif setlerdeki cevaplarınız ve ilerlemeniz sıfırlanacak. Emin misiniz?",
-            )
-          )
-            return;
-          const previousSelectedAnswers = selectedAnswers;
-          const resetState = createResetStudyState({
-            allQuestions,
-            selectedAnswers,
-            solutionVisible,
-            resolveQuestionKey: cardId,
-          });
-
-          selectedAnswers = resetState.selectedAnswers;
-          solutionVisible = resetState.solutionVisible;
-          const clearedAnswerCount = countRemovedAnswers(
-            previousSelectedAnswers,
-            selectedAnswers,
-          );
-          if (clearedAnswerCount > 0) {
-            appendStudyActivity({ cleared: clearedAnswerCount });
-          }
-          currentQuestionIndex = resetState.currentQuestionIndex;
-          filteredQuestions = resetState.filteredQuestions;
-          questionOrder = resetState.questionOrder;
-          document.getElementById("topic-select").value = "hepsi";
-  
-          const jumpInput = document.getElementById("jump-input");
-          if (jumpInput) jumpInput.setAttribute("max", filteredQuestions.length);
-  
-          saveState();
-          updateScoreDisplay();
-          displayQuestion();
-        }
-  
-        function updateScoreDisplay() {
-          const scoreHtml = formatScoreSummaryHtml(
-            buildScoreSummary({
-              allQuestions,
-              selectedAnswers,
-              resolveQuestionKey: cardId,
-            }),
-          );
-          ["score-display", "fullscreen-score-display"].forEach((elementId) => {
-            const scoreEl = document.getElementById(elementId);
-            if (scoreEl) {
-              scoreEl.innerHTML = scoreHtml;
-            }
-          });
-        }
-  
-        function saveState() {
-          try {
-            const activeQuestion =
-              filteredQuestions.length > 0
-                ? filteredQuestions[questionOrder[currentQuestionIndex]]
-                : null;
-            const topicSelect = document.getElementById("topic-select");
-            const sessionState = persistStudyState({
-              storage,
-              activeQuestion,
-              currentQuestionIndex,
-              selectedTopic: topicSelect ? topicSelect.value : "hepsi",
-              selectedAnswers,
-              solutionVisible,
-              activityByDay,
-              isAnalyticsVisible: analyticsUiState.analyticsPanelState.isVisible,
-              storageKeyPrefix: getStorageKeyPrefix(),
-            });
-            persistStudyTypographyPreferences({
-              storage,
-              questionFontSize,
-              optionFontSize,
-              fullscreenQuestionFontSize,
-              fullscreenOptionFontSize,
-              storageKeyPrefix: getStorageKeyPrefix(),
-            });
-            pendingSession = sessionState;
-            scheduleRemoteStudyStateSync(buildCurrentStudyStateSnapshot());
-          } catch (e) {
-            console.error("State saving error", e);
-          }
-        }
-  
-        function loadState(storageKeyPrefix = null) {
-          try {
-            ThemeManager.initThemeFromStorage({
-              controlIds: THEME_CONTROL_IDS,
-              storageApi: storage,
-              storageKey: THEME_KEY,
-            });
-            syncThemeControlsUI();
-
-            const storedAnswerLock = storage.getItem(ANSWER_LOCK_KEY);
-            if (storedAnswerLock === "0" || storedAnswerLock === "1") {
-              answerLockEnabled = storedAnswerLock === "1";
-            }
-            const storedTopicSource = storage.getItem(TOPIC_SOURCE_KEY);
-            if (storedTopicSource === "0" || storedTopicSource === "1") {
-              topicSourceVisible = storedTopicSource === "1";
-            }
-            const storedAutoAdvance = getScopedStorageItem(
-              AUTO_ADVANCE_KEY,
-              storageKeyPrefix,
-            );
-            if (storedAutoAdvance === "0" || storedAutoAdvance === "1") {
-              autoAdvanceEnabled = storedAutoAdvance === "1";
-            }
-  
-            const loadedState = loadPersistedStudyState({
-              storage,
-              loadedSets: getLoadedSets(),
-              fallbackSession: null,
-              fallbackTypography: getStudyTypographyState(),
-              storageKeyPrefix:
-                typeof storageKeyPrefix === "string"
-                  ? storageKeyPrefix
-                  : getStorageKeyPrefix(),
-            });
-            selectedAnswers = loadedState.selectedAnswers;
-            solutionVisible = loadedState.solutionVisible;
-            activityByDay = loadedState.activityByDay || {};
-            pendingSession = loadedState.pendingSession;
-            analyticsUiState.analyticsPanelState.isVisible =
-              loadedState.isAnalyticsVisible === true;
-            applyTypographyState(loadedState);
-          } catch (e) {
-            console.error("State loading error", e);
-          }
-          syncAnswerLockToggleUI();
-          syncAutoAdvanceToggleUI();
-          syncTopicSourceToggleUI();
-          syncTypographyControls();
-          syncManagerSettingsPanelState();
-        }
-  
-        function populateTopicFilter() {
-          const select = document.getElementById("topic-select");
-          if (!select) return;
-          const subjects = collectStudySubjects(allQuestions);
-          select.innerHTML = '<option value="hepsi">Tüm Başlıklar</option>';
-          subjects.forEach((subject) => {
-            const option = document.createElement("option");
-            option.value = subject;
-            option.textContent = subject;
-            select.appendChild(option);
-          });
-        }
-
-        function bindStaticEvents() {
-          THEME_CONTROL_IDS.forEach((controlId) => {
-            bindEvent(document.getElementById(controlId), "change", (event) => {
-              setTheme(event.currentTarget?.value || "light");
-            });
-          });
-
-          bindEvent(document.getElementById("auth-signin-btn"), "click", () => {
-            void signInAuth();
-          });
-          bindEvent(document.getElementById("auth-signup-btn"), "click", () => {
-            void signUpAuth();
-          });
-          bindEvent(document.getElementById("demo-auth-btn"), "click", () => {
-            continueAsDemoAuth();
-          });
-          bindEvent(document.getElementById("sync-retry-btn"), "click", () => {
-            void retryCloudSync();
-          });
-          bindEvent(document.getElementById("check-updates-btn"), "click", () => {
-            void checkDesktopUpdates();
-          });
-          bindEvent(document.getElementById("auth-logout-btn"), "click", () => {
-            void signOutAuth();
-          });
-          bindEvent(document.getElementById("sync-conflict-use-cloud-btn"), "click", () => {
-            void useCloudConflictResolution();
-          });
-          bindEvent(document.getElementById("sync-conflict-use-local-btn"), "click", () => {
-            void useLocalConflictResolution();
-          });
-
-          bindEvent(document.getElementById("delete-mode-btn"), "click", () => {
-            toggleDeleteMode();
-          });
-          bindEvent(document.getElementById("select-all-btn"), "click", () => {
-            selectAllSets();
-          });
-          bindEvent(document.getElementById("clear-selection-btn"), "click", () => {
-            clearSetSelection();
-          });
-          bindEvent(document.getElementById("remove-selected-btn"), "click", () => {
-            void removeSelectedSets();
-          });
-          bindEvent(document.getElementById("drive-upload-btn"), "click", () => {
-            void authGoogleDrive();
-          });
-          bindEvent(document.getElementById("import-set-btn"), "click", () => {
-            openSetImport();
-          });
-          bindEvent(document.getElementById("new-set-btn"), "click", () => {
-            openNewSetEditor();
-          });
-          bindEvent(document.getElementById("analytics-toggle-btn"), "click", () => {
-            toggleAnalyticsPanel();
-          });
-          bindEvent(document.getElementById("file-picker"), "change", (event) => {
-            void handleFileSelect(event);
-          });
-          bindEvent(document.getElementById("edit-btn"), "click", () => {
-            openSelectedSetEditor();
-          });
-          bindEvent(document.getElementById("start-btn"), "click", () => {
-            startStudy();
-          });
-          bindEvent(document.getElementById("analytics-close-btn"), "click", () => {
-            closeAnalyticsPanel();
-          });
-
-          bindEvent(document.getElementById("manager-settings-toggle-btn"), "click", () => {
-            toggleManagerSettingsPanel();
-          });
-          bindEvent(document.getElementById("question-font-size"), "change", (event) => {
-            setQuestionFontSize(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("option-font-size"), "change", (event) => {
-            setOptionFontSize(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("fullscreen-question-font-size"), "change", (event) => {
-            setFullscreenQuestionFontSize(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("fullscreen-option-font-size"), "change", (event) => {
-            setFullscreenOptionFontSize(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("reset-typography-btn"), "click", () => {
-            resetTypographyPreferences();
-          });
-          bindEvent(document.getElementById("answer-lock-toggle-manager"), "change", (event) => {
-            setAnswerLock(event.currentTarget?.checked);
-          });
-          bindEvent(document.getElementById("auto-advance-toggle-manager"), "change", (event) => {
-            setAutoAdvance(event.currentTarget?.checked);
-          });
-          bindEvent(document.getElementById("topic-source-visibility-toggle"), "change", (event) => {
-            setTopicSourceVisibility(event.currentTarget?.checked);
-          });
-
-          const setList = document.getElementById("set-list");
-          bindEvent(setList, "click", (event) => {
-            const deleteButton = event.target.closest("[data-set-delete-id]");
-            if (deleteButton) {
-              event.preventDefault();
-              event.stopPropagation();
-              void deleteSet(deleteButton.dataset.setDeleteId);
-              return;
-            }
-
-            const checkbox = event.target.closest("[data-set-checkbox-id]");
-            if (checkbox) {
-              event.stopPropagation();
-              toggleSetCheck(checkbox.dataset.setCheckboxId);
-              return;
-            }
-
-            const toggleTarget = event.target.closest("[data-set-toggle-id]");
-            if (toggleTarget) {
-              toggleSetCheck(toggleTarget.dataset.setToggleId);
-            }
-          });
-          bindEvent(setList, "keydown", (event) => {
-            if (event.key !== "Enter" && event.key !== " ") {
-              return;
-            }
-
-            const toggleTarget = event.target.closest("[data-set-toggle-id]");
-            if (!toggleTarget) {
-              return;
-            }
-
-            event.preventDefault();
-            toggleSetCheck(toggleTarget.dataset.setToggleId);
-          });
-
-          bindEvent(document.getElementById("editor-back-btn"), "click", () => {
-            closeEditor();
-          });
-          bindEvent(document.getElementById("editor-export-source-btn"), "click", () => {
-            exportEditorSource();
-          });
-          bindEvent(document.getElementById("editor-json-btn"), "click", () => {
-            exportEditorJson();
-          });
-          bindEvent(document.getElementById("editor-save-btn"), "click", () => {
-            void saveEditor();
-          });
-          bindEvent(document.getElementById("editor-set-name"), "input", (event) => {
-            updateEditorSetName(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("editor-set-name"), "change", (event) => {
-            updateEditorSetName(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("editor-add-question-btn"), "click", () => {
-            addEditorQuestion();
-          });
-          bindEvent(document.getElementById("editor-move-question-up-btn"), "click", () => {
-            moveCurrentEditorQuestion(-1);
-          });
-          bindEvent(document.getElementById("editor-move-question-down-btn"), "click", () => {
-            moveCurrentEditorQuestion(1);
-          });
-          bindEvent(document.getElementById("editor-duplicate-question-btn"), "click", () => {
-            duplicateCurrentEditorQuestion();
-          });
-          bindEvent(document.getElementById("editor-remove-question-btn"), "click", () => {
-            removeCurrentEditorQuestion();
-          });
-          bindEvent(document.getElementById("editor-visual-tab-btn"), "click", () => {
-            showEditorVisual();
-          });
-          bindEvent(document.getElementById("editor-raw-tab-btn"), "click", () => {
-            showEditorRaw();
-          });
-          bindEvent(document.getElementById("editor-question-text"), "input", (event) => {
-            updateEditorQuestionText(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("editor-question-text"), "change", (event) => {
-            updateEditorQuestionText(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("editor-subject"), "input", (event) => {
-            updateEditorQuestionSubject(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("editor-subject"), "change", (event) => {
-            updateEditorQuestionSubject(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("editor-add-option-btn"), "click", () => {
-            addEditorOption();
-          });
-          bindEvent(document.getElementById("editor-correct"), "change", (event) => {
-            updateEditorCorrectIndex(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("editor-explanation"), "input", (event) => {
-            updateEditorQuestionExplanation(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("editor-explanation"), "change", (event) => {
-            updateEditorQuestionExplanation(event.currentTarget?.value);
-          });
-          bindEvent(document.getElementById("apply-editor-raw-btn"), "click", () => {
-            applyEditorRaw();
-          });
-          bindEvent(document.getElementById("undo-toast-btn"), "click", () => {
-            void undoLastRemoval();
-          });
-
-          bindEvent(document.getElementById("editor-question-list"), "click", (event) => {
-            const target = event.target.closest("[data-editor-question-index]");
-            if (!target) {
-              return;
-            }
-
-            selectEditorQuestion(Number(target.dataset.editorQuestionIndex));
-          });
-          bindEvent(document.getElementById("editor-validation-summary"), "click", (event) => {
-            const target = event.target.closest("[data-editor-jump-question-index]");
-            if (!target) {
-              return;
-            }
-
-            selectEditorQuestion(Number(target.dataset.editorJumpQuestionIndex));
-          });
-          bindEvent(document.getElementById("editor-options"), "change", (event) => {
-            const target = event.target.closest("[data-editor-option-index]");
-            if (!target) {
-              return;
-            }
-
-            updateEditorOption(Number(target.dataset.editorOptionIndex), target.value);
-          });
-          bindEvent(document.getElementById("editor-options"), "click", (event) => {
-            const target = event.target.closest("[data-editor-remove-option-index]");
-            if (!target) {
-              return;
-            }
-
-            removeEditorOption(Number(target.dataset.editorRemoveOptionIndex));
-          });
-
-          bindEvent(document.getElementById("topic-select"), "change", () => {
-            filterByTopic();
-          });
-          bindEvent(document.getElementById("jump-btn"), "click", () => {
-            jumpToQuestion();
-          });
-          bindEvent(document.getElementById("show-set-manager-btn"), "click", () => {
-            showSetManager();
-          });
-          bindEvent(document.getElementById("shuffle-btn"), "click", () => {
-            shuffleQuestions();
-          });
-          bindEvent(document.getElementById("retry-wrong-btn"), "click", () => {
-            retryWrongAnswers();
-          });
-          bindEvent(document.getElementById("export-printable-btn"), "click", () => {
-            exportPrintable();
-          });
-          bindEvent(document.getElementById("reset-quiz-btn"), "click", () => {
-            resetQuiz();
-          });
-          bindEvent(document.getElementById("prev-btn"), "click", () => {
-            previousQuestion();
-          });
-          bindEvent(document.getElementById("next-btn"), "click", () => {
-            nextQuestion();
-          });
-          bindEvent(document.getElementById("fullscreen-toggle-btn"), "click", (event) => {
-            event.stopPropagation();
-            toggleFullscreen();
-          });
-          bindEvent(document.getElementById("show-solution-btn"), "click", () => {
-            toggleSolution();
-          });
-          bindEvent(document.getElementById("fullscreen-prev-btn"), "click", () => {
-            previousQuestion();
-          });
-          bindEvent(document.getElementById("fullscreen-next-btn"), "click", () => {
-            nextQuestion();
-          });
-        }
-
-        // -- BAŞLATMA MANTIĞI --
-        document.addEventListener("keydown", function (e) {
-          if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")
-            return;
-  
-          const isMainAppVisible =
-            document.getElementById("main-app").style.display !== "none";
-  
-          if ((e.key === "f" || e.key === "F") && isMainAppVisible) {
-            e.preventDefault();
-            toggleFullscreen();
-            return;
-          }
-  
-          if (e.key === "Escape" && isFullscreen) {
-            e.preventDefault();
-            toggleFullscreen();
-            return;
-          }
-  
-          // Yalnızca main-app görünürse tuşlara izin ver
-          if (!isMainAppVisible)
-            return;
-  
-          if (e.key === "ArrowLeft") {
-            previousQuestion();
-          } else if (e.key === "ArrowRight") {
-            nextQuestion();
-          } else if (e.key === "s" || e.key === "S") {
-            toggleSolution();
-          } else if (e.key >= "a" && e.key <= "e") {
-            selectOption(e.key.charCodeAt(0) - 97);
-          } else if (e.key >= "A" && e.key <= "E") {
-            selectOption(e.key.charCodeAt(0) - 65);
-          }
-        });
-  
-        window.addEventListener("beforeunload", function (event) {
-          if (!editorFeature.shouldPreventUnload()) {
-            return;
-          }
-  
-          event.preventDefault();
-          event.returnValue = "";
-        });
-  
-        // İlk yüklendiğinde set listesini localStorage'dan getir
-        async function initApp() {
-          ThemeManager.renderThemeOptions(THEME_CONTROL_IDS);
-          syncManagerSettingsPanelState();
-          bindStaticEvents();
-          setManager.loadStoredSets("");
-          loadState("");
-          const fallbackWorkspace = captureWorkspaceSeed();
-          const fallbackStudySnapshot = buildCurrentStudyStateSnapshot();
-          await authFeature.loadAuthSession();
-          if (isRemoteWorkspaceActive()) {
-            await loadSyncedWorkspace({
-              fallbackWorkspace,
-              fallbackStudySnapshot,
-            });
-          } else {
-            clearSyncConflictState();
-            renderSyncStatus(syncStatus.reset());
-          }
-          authFeature.syncAuthUi();
-          showScreen(authFeature.resolveInitialScreen());
-          renderSetList();
-          desktopUpdateFeature.syncButtonState();
-          desktopUpdateFeature.scheduleStartupCheck();
-          googleDrive.syncDriveButtonState();
-          initGoogleDrive();
-        }
-  
-        window.AppSyncConflict = Object.freeze({
-          detectSyncConflict,
-        });
-  
-        window.__MCQ_TEST_HOOKS__ = syncOrch.testHooks;
-  
-        
-  
   return initApp();
 }
-
