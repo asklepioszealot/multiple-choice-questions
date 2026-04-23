@@ -202,9 +202,7 @@ describe("study-state helpers", () => {
       "2026-04-20": { correct: 1, wrong: 2, cleared: 0 },
     });
 
-    expect(buildActivityDayKey(new Date("2026-04-20T22:30:00.000Z"))).toBe(
-      "2026-04-21",
-    );
+    expect(buildActivityDayKey(new Date(2026, 3, 21, 1, 30, 0, 0))).toBe("2026-04-21");
     expect(
       recordStudyActivity(
         { "2026-04-21": { correct: 1, wrong: 0, cleared: 0 } },
