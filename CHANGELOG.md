@@ -26,6 +26,9 @@ Bu dosya [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) formatina gore
 - Supabase `mcq_sets` setup dokumani artik `source_path` kolonunu da ekleyip mevcut kurulumlar icin migration fallback'i tarif eder.
 - MCQ repo'suna ozel updater key release plan helper'i ve `release:dry-run` komutu.
 - Manager icinde sifirdan set acmak icin markdown-first `Yeni set` akisi.
+- Local dosyadan ve Google Drive binary yolundan `.apkg` import destegi.
+- APKG media hydration ile guvenli image/audio icerigin study ve editor roundtrip'lerinde korunmasi.
+- Editor icin hafif image/audio token dugmeleri ile `Kalin` / `Kritik` / `Uyari` authoring yardimcilari.
 - Editor vNext capability paketi: moduler editor foundation, zengin toolbar aksiyonlari, field-level undo/redo history ve soru listesi durum korumasi.
 - Analytics snapshot/dashboard vNext: saf snapshot helper katmani, `activityByDay` aggregate persistence'i, sonuc dagilimi, 7 gunluk aktivite trendi ve deterministic odak onerisi.
 
@@ -45,5 +48,10 @@ Bu dosya [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) formatina gore
 - Analytics yuzeyi study ekranindan uzak tutulup set manager icinde varsayilan olarak gizli, flashcards-app benzeri panel davranisina cekildi.
 - Editor artik yeni set olusturma akisinda bos markdown draft aciyor; kaydedilen yeni setler mevcut local/sync hattina normal kayit gibi dusuyor.
 - Sync conflict paneli artik blocking setler icin hangi tarafin daha yeni oldugu, son degisim zamani ve soru/cevap farkini set-bazli gosteriyor.
+- Sync conflict paneli artik study-state farklari icin konu filtresi, aktivite sayisi ve analytics panel gorunurlugunu da iki tarafli olarak gosteriyor.
 - Manager analytics paneli artik gorunurlugunu study-state ile sakliyor, konu bazli satirlardan ve odak aksiyonundan study filtresine geri baglanabiliyor.
 - Study-state/remote snapshot modeli artik analytics aktivite aggregate verisini de tasiyor; dashboard lokal ve remote akislarda ayni kontrati koruyor.
+
+### Fixed
+- `tests/unit/release-plan.test.js` path beklentileri host-separator bagimsiz hale getirildi; Linux/Windows CI uyumu geri geldi.
+- `tests/unit/study-state.test.js` activity day key beklentisi timezone-guvenli hale getirildi; main CI artik host timezone farkindan kirilmiyor.

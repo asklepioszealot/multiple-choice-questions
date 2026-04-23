@@ -5,16 +5,16 @@ Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzer
 ## Özellikler
 
 1. **Dinamik Soru Seti Yukleme (`Set Yonetimi`)**:
-   - Dışarıdan indirdiğiniz veya kendiniz hazırladığınız `.json`, `.md` ve `.txt` uzantılı soru setlerini tek tıkla uygulamaya yükleyebilirsiniz.
+   - Dışarıdan indirdiğiniz veya kendiniz hazırladığınız `.json`, `.md`, `.txt` ve desteklenen `.apkg` uzantılı soru setlerini tek tıkla uygulamaya yükleyebilirsiniz.
    - Manager ekranindan `Yeni set` ile sifirdan, markdown-first bir taslak acip yeni bir soru seti de olusturabilirsiniz.
-   - Web sürümünde Google Drive Picker ile Drive'dan doğrudan soru dosyası seçebilirsiniz. Tauri/masaüstü sürümünde ise bu sınır net bir uyarıyla belirtilir.
+   - Web sürümünde Google Drive Picker ile Drive'dan doğrudan soru dosyası seçebilirsiniz; desteklenen `.apkg` dosyalari da binary yolundan ice alinir. Tauri/masaüstü sürümünde ise bu sınır net bir uyarıyla belirtilir.
    - Birden fazla seti aynı anda seçip harmanlayarak veya ayrı ayrı filtreleyerek çözme imkanı sağlar.
 2. **Auth, Senkronizasyon ve Catismayi Guvenli Cozme**:
    - Demo auth ile hizli baslangic yapabilir veya Supabase runtime config verilince email/sifre ile giris yapabilirsiniz.
    - Yuklu setler ve study-state cloud'a senkronize olabilir; sync durumu manager ustunde gorunur.
    - Sync reconciliation ayni kaynagi `sourcePath -> fileName -> record id` sirasi ile eslestirir; yalnizca ayni sette iki taraf da degismisse conflict acilir.
    - Disjoint setler, local-only eklemeler, remote-only eklemeler ve tek-taraf-guncel ayni setler guvenli sekilde otomatik birlestirilir; gerekiyorsa eski remote `id` temizlenir.
-   - Manual panel iki aksiyonlu kalir (`Bulutu kullan`, `Yereli buluta yaz`) ve artik set adi, hangi tarafin daha yeni oldugu, son degisim zamani ile soru/cevap farkini gosterir.
+   - Manual panel iki aksiyonlu kalir (`Bulutu kullan`, `Yereli buluta yaz`) ve artik set adi, hangi tarafin daha yeni oldugu, son degisim zamani ile soru/cevap farkinin yaninda konu filtresi, aktivite sayisi ve analytics panel gorunurlugunu da gosterir.
 3. **Kişiselleştirilmiş Öğrenme ve İlerleme Takibi**:
    - Girdiğiniz cevaplar (doğru, yanlış, seçilmemiş) tarayıcı önbelleğinde veya kullaniciya bagli storage alaninda tutulur.
    - Soru setini silseniz dahi, aynı seti tekrar yüklediğinizde uygulamadaki ilerlemeniz kaldığı yerden devam eder (soru kimliği set-bazlı tutulur; aynı soru farklı setlerde birbirini ezmez).
@@ -27,6 +27,8 @@ Bu proje, doktorlar ve tıp öğrencileri için (başta TUS ve USMLE olmak üzer
    - `editor-screen` ile tek secili seti gorsel form veya raw kaynak gorunumu uzerinden duzenleyebilirsiniz.
    - Yeni set olusturma akisi varsayilan olarak `Markdown/TXT` kaynak formatiyla baslar; kaydedince normal set listesine ve sync hattina baglanir.
    - Editor artik capability bazli parcali yapi, zengin toolbar aksiyonlari, question/explanation undo-redo history, soru listesi durumunu koruma, sorunlu soruya atlama, save gating, soru kopyalama/tasima ve daha genis dirty-state korumalari ile authoring kapanisina hazirdir.
+   - APKG'den gelen guvenli image/audio medya, study ve gorsel editor save/export roundtrip'lerinde korunur; duz metne dusmez.
+   - Soru ve aciklama alanlari hafif image/audio token dugmeleri ile `Kalin`, `Kritik` ve `Uyari` yardimcilari sunar.
    - Markdown/JSON kaynaklar roundtrip-safe codec uzerinden korunur; kaynak formatta disa aktar desteklenir.
    - Manager ustundeki analytics paneli artik yalnizca ozet sayaç gostermekle kalmaz; sonuc dagilimi, 7 gunluk aktivite trendi, konu bazli performans, panel gorunurluk persistence'i ve secili havuz icin deterministic odak onerisi sunar.
    - Analytics odak aksiyonu, onerilen konuyu tek tikla study ekraninda filtreleyip ilgili soruya gecisi hizlandirir.
