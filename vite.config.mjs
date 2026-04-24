@@ -243,6 +243,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: "./",
+    server: {
+      port: 1420,
+      strictPort: true,
+    },
     build: {
       outDir: "dist",
       emptyOutDir: true,
