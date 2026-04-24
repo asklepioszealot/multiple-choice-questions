@@ -602,7 +602,7 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
         const row = mapRecordToRow(normalizedRecord, user.id);
         const { data, error } = await client
           .from("mcq_sets")
-          .upsert(row, { onConflict: "id" })
+          .upsert(row, { onConflict: "user_id,id" })
           .select("*")
           .single();
 

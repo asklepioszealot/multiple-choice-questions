@@ -5,7 +5,7 @@
 -- This table stores MCQ set records per authenticated user.
 
 create table if not exists public.mcq_sets (
-  id text primary key,
+  id text not null,
   user_id uuid not null references auth.users (id) on delete cascade,
   slug text not null,
   set_name text not null,
@@ -14,11 +14,37 @@ create table if not exists public.mcq_sets (
   source_path text not null default '',
   raw_source text not null default '',
   questions_json jsonb not null default '[]'::jsonb,
-  updated_at timestamptz not null default timezone('utc', now())
+  updated_at timestamptz not null default timezone('utc', now()),
+  primary key (user_id, id)
 );
 
 alter table public.mcq_sets
   add column if not exists source_path text not null default '';
+
+-- Existing projects created before 2026-04-24 may still have a global
+-- id-only primary key. That blocks two different users from importing the
+-- same filename-derived set id under RLS, so migrate the key to user scope.
+do $$
+begin
+  if exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.mcq_sets'::regclass
+      and conname = 'mcq_sets_pkey'
+  ) then
+    alter table public.mcq_sets drop constraint mcq_sets_pkey;
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.mcq_sets'::regclass
+      and conname = 'mcq_sets_pkey'
+  ) then
+    alter table public.mcq_sets
+      add constraint mcq_sets_pkey primary key (user_id, id);
+  end if;
+end $$;
 
 create index if not exists mcq_sets_user_updated_idx
   on public.mcq_sets (user_id, updated_at desc);

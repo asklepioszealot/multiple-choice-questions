@@ -157,7 +157,7 @@ function readEnvValue(env, keys) {
   return "";
 }
 
-function makeRuntimeConfig(env = process.env) {
+export function makeRuntimeConfig(env = process.env) {
   if (env.FORCE_MOCK_AUTH === "1") {
     return {
       supabaseUrl: "",
@@ -172,11 +172,15 @@ function makeRuntimeConfig(env = process.env) {
 
   const localRuntimeConfig = readLocalRuntimeConfig();
   const supabaseUrl =
-    readEnvValue(env, ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"])
+    readEnvValue(env, ["SUPABASE_URL", "VITE_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"])
     || localRuntimeConfig.supabaseUrl
     || "";
   const supabaseAnonKey =
-    readEnvValue(env, ["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"])
+    readEnvValue(env, [
+      "SUPABASE_ANON_KEY",
+      "VITE_SUPABASE_ANON_KEY",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    ])
     || localRuntimeConfig.supabaseAnonKey
     || "";
   const enableDemoAuth =

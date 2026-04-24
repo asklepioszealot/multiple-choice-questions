@@ -128,6 +128,7 @@ describe("platform adapter", () => {
 
   it("loads and saves synced sets and user state through the Supabase adapter", async () => {
     let lastSavedSetRow = null;
+    let lastSavedSetOptions = null;
     const from = vi.fn((tableName) => {
       if (tableName === "mcq_sets") {
         return {
@@ -161,8 +162,9 @@ describe("platform adapter", () => {
               })),
             })),
           })),
-          upsert: vi.fn((row) => {
+          upsert: vi.fn((row, options) => {
             lastSavedSetRow = row;
+            lastSavedSetOptions = options;
             return {
               select: vi.fn(() => ({
                 single: vi.fn(async () => ({
@@ -334,6 +336,7 @@ describe("platform adapter", () => {
     expect(lastSavedSetRow).toMatchObject({
       source_path: "C:\\sets\\remote-demo.json",
     });
+    expect(lastSavedSetOptions).toEqual({ onConflict: "user_id,id" });
     expect(savedRecord.sourcePath).toBe("C:\\sets\\remote-demo.json");
 
     const savedState = await platformAdapter.saveUserState({

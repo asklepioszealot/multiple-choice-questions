@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { transformLegacyIndexHtml } from "../../vite.config.mjs";
+import { makeRuntimeConfig, transformLegacyIndexHtml } from "../../vite.config.mjs";
 
 describe("vite runtime config bridge", () => {
   it("injects window.APP_CONFIG into transformed HTML", () => {
@@ -23,5 +23,18 @@ describe("vite runtime config bridge", () => {
     expect(transformed).toContain('"supabaseUrl":"https://example.supabase.co"');
     expect(transformed).toContain('"supabaseAnonKey":"anon-key"');
     expect(transformed).toContain('./src/app/vite-entry.js');
+  });
+
+  it("reads documented Vite Supabase env keys", () => {
+    const config = makeRuntimeConfig({
+      VITE_SUPABASE_URL: "https://vite-env.supabase.co",
+      VITE_SUPABASE_ANON_KEY: "vite-anon-key",
+    });
+
+    expect(config).toMatchObject({
+      supabaseUrl: "https://vite-env.supabase.co",
+      supabaseAnonKey: "vite-anon-key",
+      authMode: "supabase",
+    });
   });
 });
