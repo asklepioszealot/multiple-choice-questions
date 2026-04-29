@@ -10,6 +10,16 @@ function appUrl() {
   return `http://127.0.0.1:${appPort}/`;
 }
 
+async function getBrowserDayKey(page) {
+  return page.evaluate(() => {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  });
+}
+
 function resolveSqlWasmPath() {
   return path.resolve(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm");
 }
@@ -739,6 +749,8 @@ test.describe("MCQ smoke", () => {
   test("analytics dashboard persists visibility and focus action opens the recommended subject", async ({
     page,
   }) => {
+    const activityDayKey = await getBrowserDayKey(page);
+
     await seedLocalSets(page, {
       sets: {
         analytics: {
@@ -781,7 +793,7 @@ test.describe("MCQ smoke", () => {
         },
         solutionVisible: {},
         activityByDay: {
-          "2026-04-22": { correct: 1, wrong: 1, cleared: 1 },
+          [activityDayKey]: { correct: 1, wrong: 1, cleared: 1 },
         },
       },
     });
