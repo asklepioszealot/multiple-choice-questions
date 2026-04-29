@@ -222,6 +222,28 @@ function preserveLegacyRuntimeLayout() {
   };
 }
 
+function emitStaticArtifacts() {
+  return {
+    name: "mcq-static-artifacts",
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: ".nojekyll",
+        source: "",
+      });
+
+      const cnamePath = path.join(repoRoot, "CNAME");
+      if (fs.existsSync(cnamePath)) {
+        this.emitFile({
+          type: "asset",
+          fileName: "CNAME",
+          source: fs.readFileSync(cnamePath, "utf8"),
+        });
+      }
+    },
+  };
+}
+
 function useViteModuleEntry(runtimeConfig) {
   return {
     name: "mcq-vite-module-entry",
@@ -255,6 +277,10 @@ export default defineConfig(({ mode }) => {
       __BUILD_INFO__: JSON.stringify(makeBuildInfo()),
       __APP_CONFIG__: JSON.stringify(runtimeConfig),
     },
-    plugins: [useViteModuleEntry(runtimeConfig), preserveLegacyRuntimeLayout()],
+    plugins: [
+      useViteModuleEntry(runtimeConfig),
+      preserveLegacyRuntimeLayout(),
+      emitStaticArtifacts(),
+    ],
   };
 });
