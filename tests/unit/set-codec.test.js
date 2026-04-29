@@ -35,6 +35,53 @@ describe("set-codec", () => {
     expect(parsed.questions).toHaveLength(1);
   });
 
+  it("parses heading subjects, heading questions, and inline correct option markers", () => {
+    const parsed = parseSetText(
+      [
+        "# Klinik Set",
+        "",
+        "## Kardiyoloji",
+        "### Mitral stenozda en tipik bulgu nedir?",
+        "A) Sistolik ufurum",
+        "B+) Diyastolik rulman",
+        "C) Hipertansiyon",
+        "Açıklama: Diyastolik rulman klasik bulgudur.",
+        "",
+        "## Noroloji",
+        "###",
+        "Optik sinir hangisidir?",
+        "A) II",
+        "B+) VIII",
+        "Açıklama: Optik sinir ikinci kraniyal sinirdir.",
+      ].join("\n"),
+      "klinik.md",
+    );
+
+    expect(parsed.setName).toBe("Klinik Set");
+    expect(parsed.questions).toHaveLength(2);
+    expect(parsed.questions[0]).toMatchObject({
+      q: "Mitral stenozda en tipik bulgu nedir?",
+      options: ["Sistolik ufurum", "Diyastolik rulman", "Hipertansiyon"],
+      correct: 1,
+      subject: "Kardiyoloji",
+      explanation: "Diyastolik rulman klasik bulgudur.",
+    });
+    expect(parsed.questions[1]).toMatchObject({
+      q: "Optik sinir hangisidir?",
+      options: ["II", "VIII"],
+      correct: 1,
+      subject: "Noroloji",
+    });
+
+    const serialized = serializeSetRecord(parsed, "markdown");
+    expect(serialized).toContain("Soru 1: Mitral stenozda en tipik bulgu nedir?");
+    expect(serialized).toContain("Konu: Kardiyoloji");
+    expect(serialized).toContain("B) Diyastolik rulman");
+    expect(serialized).toContain("Doğru Cevap: B");
+    expect(serialized).not.toContain("###");
+    expect(serialized).not.toContain("B+)");
+  });
+
   it("roundtrips markdown source through parse and serialize", () => {
     const source = [
       "# Kardiyoloji",

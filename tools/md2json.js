@@ -104,6 +104,7 @@ try {
     const h2Match = line.match(/^##\s+(.+)$/);
     if (h2Match) {
       finalizeCurrentCard();
+      canonicalSubject = h2Match[1].trim() || canonicalSubject;
       continue;
     }
 
@@ -114,7 +115,7 @@ try {
     }
 
     // Question (### / Soru:)
-    const h3Match = line.match(/^###\s+(.+)$/);
+    const h3Match = line.match(/^###(?:\s+(.+))?$/);
     const soruInlineMatch = normalized.match(/^Soru:\s*(.+)$/i);
     const soruNumberedMatch = normalized.match(/^Soru\s+\d+[.)]?\s*(?::\s*(.*))?$/i);
 
@@ -122,7 +123,7 @@ try {
       finalizeCurrentCard();
       const qText = (
         h3Match
-          ? h3Match[1]
+          ? h3Match[1] || ""
           : soruInlineMatch
             ? soruInlineMatch[1]
             : soruNumberedMatch[1] || ""
@@ -147,9 +148,12 @@ try {
       continue;
     }
 
-    const optionMatch = normalized.match(/^([A-Ea-e])[).]\s+(.+)$/);
+    const optionMatch = normalized.match(/^([A-Ea-e])(\+)?[).]\s+(.+)$/);
     if (optionMatch && currentCard && !collectingExplanation) {
-      currentCard.options.push(optionMatch[2].trim());
+      currentCard.options.push(optionMatch[3].trim());
+      if (optionMatch[2]) {
+        currentCard.correctChar = optionMatch[1].toUpperCase();
+      }
       continue;
     }
 

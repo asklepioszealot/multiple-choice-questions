@@ -401,6 +401,25 @@ function toSafeArray(value) {
 
       const h2Match = normalizedLine.match(/^##\s+(.+)$/);
       if (h2Match) {
+        const finalizedQuestion = finalizeMarkdownQuestion(
+          currentQuestion,
+          explanationLines,
+        );
+        if (finalizedQuestion) {
+          result.questions.push(
+            normalizeQuestion(
+              finalizedQuestion,
+              previousQuestions,
+              currentQuestionIndex,
+            ),
+          );
+        }
+
+        currentQuestion = null;
+        capturingExplanation = false;
+        explanationLines = [];
+        awaitingQuestionText = false;
+        canonicalSubject = h2Match[1].trim() || canonicalSubject;
         continue;
       }
 
@@ -414,11 +433,12 @@ function toSafeArray(value) {
         continue;
       }
 
+      const h3QuestionMatch = normalizedLine.match(/^###(?:\s+(.+))?$/);
       const soruInlineMatch = normalizedLine.match(/^Soru:\s*(.+)$/i);
       const soruNumberedMatch = normalizedLine.match(
         /^Soru\s+\d+[.)]?\s*(?::\s*(.*))?$/i,
       );
-      if (soruInlineMatch || soruNumberedMatch) {
+      if (h3QuestionMatch || soruInlineMatch || soruNumberedMatch) {
         const finalizedQuestion = finalizeMarkdownQuestion(
           currentQuestion,
           explanationLines,
@@ -435,7 +455,11 @@ function toSafeArray(value) {
 
         currentQuestionIndex += 1;
         const qText = (
-          soruInlineMatch ? soruInlineMatch[1] : soruNumberedMatch[1] || ""
+          h3QuestionMatch
+            ? h3QuestionMatch[1] || ""
+            : soruInlineMatch
+              ? soruInlineMatch[1]
+              : soruNumberedMatch[1] || ""
         ).trim();
         currentQuestion = {
           q: processFormatting(qText),
@@ -457,9 +481,12 @@ function toSafeArray(value) {
         continue;
       }
 
-      const optionMatch = normalizedLine.match(/^([A-Ea-e])[).]\s+(.+)$/);
+      const optionMatch = normalizedLine.match(/^([A-Ea-e])(\+)?[).]\s+(.+)$/);
       if (optionMatch && currentQuestion && !capturingExplanation) {
-        currentQuestion.options.push(processFormatting(optionMatch[2].trim()));
+        currentQuestion.options.push(processFormatting(optionMatch[3].trim()));
+        if (optionMatch[2]) {
+          currentQuestion.correct = optionMatch[1].toUpperCase().charCodeAt(0) - 65;
+        }
         continue;
       }
 
