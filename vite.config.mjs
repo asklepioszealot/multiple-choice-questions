@@ -5,18 +5,20 @@ import { defineConfig, loadEnv } from "vite";
 
 const repoRoot = path.dirname(fileURLToPath(import.meta.url));
 const LOCAL_SOURCE_SCRIPT_PATTERN = /\s*<script(?:\s+type="module")?\s+src="\.\/src\/[^"]+"><\/script>\s*/g;
+const RUNTIME_CONFIG_FILENAME = "runtime-config.js";
+const RUNTIME_CONFIG_BRIDGE_TAG = `    <script src="./${RUNTIME_CONFIG_FILENAME}"></script>\n`;
 
-function buildRuntimeConfigBridgeScript(runtimeConfig = {}) {
+export function buildRuntimeConfigFileContent(runtimeConfig = {}) {
   const serializedConfig = JSON.stringify(runtimeConfig).replace(/</g, "\\u003c");
-  return `    <script>window.APP_CONFIG = Object.freeze(${serializedConfig});</script>\n`;
+  return `window.APP_CONFIG = Object.freeze(${serializedConfig});\n`;
 }
 
-export function transformLegacyIndexHtml(html, runtimeConfig = {}) {
+export function transformLegacyIndexHtml(html) {
   const viteEntryTag = '    <script type="module" src="./src/app/vite-entry.js"></script>\n';
   const withoutLocalScripts = String(html ?? "").replace(LOCAL_SOURCE_SCRIPT_PATTERN, "\n");
-  const runtimeConfigTag = withoutLocalScripts.includes("window.APP_CONFIG")
+  const runtimeConfigTag = withoutLocalScripts.includes(`src="./${RUNTIME_CONFIG_FILENAME}"`)
     ? ""
-    : buildRuntimeConfigBridgeScript(runtimeConfig);
+    : RUNTIME_CONFIG_BRIDGE_TAG;
 
   if (withoutLocalScripts.includes('./src/app/vite-entry.js')) {
     if (!runtimeConfigTag) {
@@ -245,13 +247,35 @@ function emitStaticArtifacts() {
 }
 
 function useViteModuleEntry(runtimeConfig) {
+  const runtimeConfigContent = buildRuntimeConfigFileContent(runtimeConfig);
+  const runtimeConfigUrl = `/${RUNTIME_CONFIG_FILENAME}`;
+
   return {
     name: "mcq-vite-module-entry",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url ? req.url.split("?")[0] : "";
+        if (url === runtimeConfigUrl) {
+          res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+          res.setHeader("Cache-Control", "no-store");
+          res.end(runtimeConfigContent);
+          return;
+        }
+        next();
+      });
+    },
     transformIndexHtml: {
       order: "pre",
       handler(html) {
-        return transformLegacyIndexHtml(html, runtimeConfig);
+        return transformLegacyIndexHtml(html);
       },
+    },
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: RUNTIME_CONFIG_FILENAME,
+        source: runtimeConfigContent,
+      });
     },
   };
 }
