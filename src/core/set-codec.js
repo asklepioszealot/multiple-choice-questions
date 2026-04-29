@@ -434,11 +434,12 @@ function toSafeArray(value) {
       }
 
       const h3QuestionMatch = normalizedLine.match(/^###(?:\s+(.+))?$/);
+      const bracketNumberMatch = normalizedLine.match(/^\[(\d+)\]\s*(.*)$/);
       const soruInlineMatch = normalizedLine.match(/^Soru:\s*(.+)$/i);
       const soruNumberedMatch = normalizedLine.match(
         /^Soru\s+\d+[.)]?\s*(?::\s*(.*))?$/i,
       );
-      if (h3QuestionMatch || soruInlineMatch || soruNumberedMatch) {
+      if (h3QuestionMatch || bracketNumberMatch || soruInlineMatch || soruNumberedMatch) {
         const finalizedQuestion = finalizeMarkdownQuestion(
           currentQuestion,
           explanationLines,
@@ -457,9 +458,11 @@ function toSafeArray(value) {
         const qText = (
           h3QuestionMatch
             ? h3QuestionMatch[1] || ""
-            : soruInlineMatch
-              ? soruInlineMatch[1]
-              : soruNumberedMatch[1] || ""
+            : bracketNumberMatch
+              ? bracketNumberMatch[2] || ""
+              : soruInlineMatch
+                ? soruInlineMatch[1]
+                : soruNumberedMatch[1] || ""
         ).trim();
         currentQuestion = {
           q: processFormatting(qText),

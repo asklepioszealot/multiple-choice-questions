@@ -116,17 +116,20 @@ try {
 
     // Question (### / Soru:)
     const h3Match = line.match(/^###(?:\s+(.+))?$/);
+    const bracketNumberMatch = normalized.match(/^\[(\d+)\]\s*(.*)$/);
     const soruInlineMatch = normalized.match(/^Soru:\s*(.+)$/i);
     const soruNumberedMatch = normalized.match(/^Soru\s+\d+[.)]?\s*(?::\s*(.*))?$/i);
 
-    if (h3Match || soruInlineMatch || soruNumberedMatch) {
+    if (h3Match || bracketNumberMatch || soruInlineMatch || soruNumberedMatch) {
       finalizeCurrentCard();
       const qText = (
         h3Match
           ? h3Match[1] || ""
-          : soruInlineMatch
-            ? soruInlineMatch[1]
-            : soruNumberedMatch[1] || ""
+          : bracketNumberMatch
+            ? bracketNumberMatch[2] || ""
+            : soruInlineMatch
+              ? soruInlineMatch[1]
+              : soruNumberedMatch[1] || ""
       ).trim();
       currentCard = {
         q: qText,

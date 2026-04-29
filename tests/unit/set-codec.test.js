@@ -48,7 +48,7 @@ describe("set-codec", () => {
         "Açıklama: Diyastolik rulman klasik bulgudur.",
         "",
         "## Noroloji",
-        "###",
+        "[2]",
         "Optik sinir hangisidir?",
         "A) II",
         "B+) VIII",
@@ -79,6 +79,7 @@ describe("set-codec", () => {
     expect(serialized).toContain("B) Diyastolik rulman");
     expect(serialized).toContain("Doğru Cevap: B");
     expect(serialized).not.toContain("###");
+    expect(serialized).not.toContain("[2]");
     expect(serialized).not.toContain("B+)");
   });
 
