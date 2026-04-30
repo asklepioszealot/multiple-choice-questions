@@ -16,7 +16,7 @@ function listControlIds(options = {}) {
 }
 
 export function getThemeLabel(themeName) {
-  return getThemePreset(themeName).label || String(themeName || "light");
+  return (getThemePreset(themeName).label || String(themeName || "light")).toUpperCase();
 }
 
 export function renderThemeOptions(controlIds) {

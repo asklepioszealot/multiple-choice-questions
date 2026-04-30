@@ -84,6 +84,8 @@ const IMAGE_DATA_URI_PATTERN =
 const AUDIO_DATA_URI_PATTERN =
   /^data:audio\/(?:mpeg|mp3|ogg|wav|webm|aac|mp4);base64,[a-z0-9+/]+=*$/i;
 const WEB_URI_PATTERN = /^https?:\/\//i;
+const IMAGE_RELATIVE_EXTENSION_PATTERN = /\.(?:png|gif|jpe?g|webp|avif)(?:[?#].*)?$/i;
+const AUDIO_RELATIVE_EXTENSION_PATTERN = /\.(?:mp3|mpeg|ogg|wav|webm|aac|m4a|mp4)(?:[?#].*)?$/i;
 
 function decodeAttributeValue(value) {
   return String(value ?? "")
@@ -123,6 +125,19 @@ export function sanitizeMediaSource(source, mediaType = "image") {
   }
   if (mediaType === "audio" && AUDIO_DATA_URI_PATTERN.test(normalizedSource)) {
     return normalizedSource;
+  }
+  if (
+    !/^[a-z][a-z0-9+.-]*:/i.test(normalizedSource) &&
+    !normalizedSource.startsWith("//") &&
+    !normalizedSource.includes("..") &&
+    !/[<>"'\u0000-\u001F\u007F]/.test(normalizedSource)
+  ) {
+    if (mediaType === "image" && IMAGE_RELATIVE_EXTENSION_PATTERN.test(normalizedSource)) {
+      return encodeURI(normalizedSource);
+    }
+    if (mediaType === "audio" && AUDIO_RELATIVE_EXTENSION_PATTERN.test(normalizedSource)) {
+      return encodeURI(normalizedSource);
+    }
   }
   return "";
 }

@@ -135,13 +135,39 @@ describe("set-codec", () => {
 
     expect(parsed.questions).toHaveLength(2);
     expect(parsed.questions[0].explanation).toContain("Direncli hipertansiyon tanimi");
-    expect(parsed.questions[0].explanation).toContain("|ABPM|Yuksek|");
+    expect(parsed.questions[0].explanation).toContain("<td>ABPM</td><td>Yuksek</td>");
     expect(parsed.questions[0].explanation).not.toContain("Sonraki soru nedir?");
     expect(parsed.questions[1]).toMatchObject({
       q: "Sonraki soru nedir?",
       correct: 2,
       explanation: "",
     });
+  });
+
+  it("renders markdown tables and lists inside captured explanations", () => {
+    const parsed = parseSetText(
+      [
+        "[1] Klinik karar nedir?",
+        "a) Ilk",
+        '<mark style="background:rgba(240, 200, 0, 0.2)">b) Ikinci</mark>',
+        "c) Ucuncu",
+        "d) Dorduncu",
+        "e) Besinci",
+        "|Parametre|Deger|Yorum|",
+        "|---|---|---|",
+        "|ABPM|138/88|**Esigin uzerinde**|",
+        "* direncli hipertansiyon",
+        "* sinirda dusuk potasyum",
+      ].join("\n"),
+      "final.md",
+    );
+
+    expect(parsed.questions[0].explanation).toContain("<table>");
+    expect(parsed.questions[0].explanation).toContain("<th>Parametre</th>");
+    expect(parsed.questions[0].explanation).toContain("<td><strong>Esigin uzerinde</strong></td>");
+    expect(parsed.questions[0].explanation).toContain("<ul>");
+    expect(parsed.questions[0].explanation).toContain("<li>direncli hipertansiyon</li>");
+    expect(parsed.questions[0].explanation).not.toContain("|Parametre|Deger|Yorum|");
   });
 
   it("roundtrips markdown source through parse and serialize", () => {
@@ -188,6 +214,28 @@ describe("set-codec", () => {
     expect(parsed.questions[0].explanation).toContain("data:audio/mpeg;base64,SUQz");
     expect(serialized).toContain("![Beyin sapi](data:image/png;base64,QUJD)");
     expect(serialized).toContain("![audio: Ses kaydi](data:audio/mpeg;base64,SUQz)");
+  });
+
+  it("adds Obsidian image links before options to the question text", () => {
+    const parsed = parseSetText(
+      [
+        "[11] Bu PA akciger grafisinde hangi bulgu mevcuttur?",
+        "![[plörezi.webp]]",
+        "a) Abse",
+        "b) Pnomoni",
+        '<mark style="background:rgba(240, 200, 0, 0.2)">c) Plorezi</mark>',
+        "d) Pnomotoraks",
+        "e) Normal PA grafi",
+      ].join("\n"),
+      "final.md",
+    );
+
+    expect(parsed.questions[0].q).toContain("Bu PA akciger grafisinde");
+    expect(parsed.questions[0].q).toContain("<img");
+    expect(parsed.questions[0].q).toContain("pl%C3%B6rezi.webp");
+    expect(parsed.questions[0].q).toContain('alt="plörezi"');
+    expect(parsed.questions[0].options).toHaveLength(5);
+    expect(parsed.questions[0].correct).toBe(2);
   });
 
   it("drops unsafe media tokens from markdown parse and export surfaces", () => {

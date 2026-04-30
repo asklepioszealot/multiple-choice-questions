@@ -3,6 +3,7 @@
 import { sanitizeMediaSource } from "./security.js";
 
 const EDITABLE_MEDIA_PATTERN = /!\[([^\]]*)\]\(([^)]+)\)/g;
+const OBSIDIAN_MEDIA_PATTERN = /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 const AUDIO_MEDIA_LABEL_PATTERN = /^(audio|ses)\s*:\s*/i;
 
 function toSafeArray(value) {
@@ -76,6 +77,19 @@ function toSafeArray(value) {
 
     const altLabel = normalizeEditableMediaLabel(normalizedAltText);
     return `<img src="${escapeHtmlAttribute(safeSource)}" alt="${escapeHtmlAttribute(altLabel)}" loading="lazy" />`;
+  }
+
+  function normalizeObsidianMediaLabel(rawSource, rawLabel = "") {
+    const explicitLabel = normalizeEditableMediaLabel(rawLabel);
+    if (explicitLabel) {
+      return explicitLabel;
+    }
+
+    const fileName = decodeHtmlEntities(rawSource)
+      .split(/[\\/]/)
+      .pop()
+      .replace(/\.[^.]+$/, "");
+    return normalizeEditableMediaLabel(fileName, "Gorsel");
   }
 
   function readAudioElementSource(audioElement) {
@@ -165,6 +179,23 @@ function toSafeArray(value) {
       },
     );
 
+    rendered = rendered.replace(
+      OBSIDIAN_MEDIA_PATTERN,
+      (_, rawSource, rawLabel) => {
+        const mediaToken = renderEditableMediaToken(
+          normalizeObsidianMediaLabel(rawSource, rawLabel),
+          rawSource,
+        );
+        if (!mediaToken) {
+          return "";
+        }
+
+        const placeholder = `__MEDIA_TOKEN_${mediaTokens.length}__`;
+        mediaTokens.push(mediaToken);
+        return placeholder;
+      },
+    );
+
     rendered = rendered
       .replace(/==([^=]+)==/g, '<strong class="highlight-critical">$1</strong>')
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
@@ -176,6 +207,108 @@ function toSafeArray(value) {
     });
 
     return rendered;
+  }
+
+  function parseMarkdownTableCells(line) {
+    return String(line ?? "")
+      .trim()
+      .replace(/^\|/, "")
+      .replace(/\|$/, "")
+      .split("|")
+      .map((cell) => cell.trim());
+  }
+
+  function isMarkdownTableSeparator(line) {
+    return /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/.test(
+      String(line ?? ""),
+    );
+  }
+
+  function renderMarkdownTable(lines) {
+    const headerCells = parseMarkdownTableCells(lines[0]);
+    const bodyRows = lines
+      .slice(2)
+      .map(parseMarkdownTableCells)
+      .filter((row) => row.some((cell) => cell.length > 0));
+
+    const headerHtml = headerCells
+      .map((cell) => `<th>${processFormatting(cell)}</th>`)
+      .join("");
+    const bodyHtml = bodyRows
+      .map(
+        (row) =>
+          `<tr>${row
+            .map((cell) => `<td>${processFormatting(cell)}</td>`)
+            .join("")}</tr>`,
+      )
+      .join("");
+
+    return `<div class="markdown-table-wrap"><table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`;
+  }
+
+  function renderMarkdownList(lines, ordered = false) {
+    const itemPattern = ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*+]\s+/;
+    const items = lines
+      .map((line) => line.replace(itemPattern, ""))
+      .map((line) => `<li>${processFormatting(line.trim())}</li>`)
+      .join("");
+    return ordered ? `<ol>${items}</ol>` : `<ul>${items}</ul>`;
+  }
+
+  function renderMarkdownLines(lines) {
+    const rendered = [];
+    const sourceLines = toSafeArray(lines).map((line) => String(line ?? "").trim());
+
+    for (let index = 0; index < sourceLines.length; index += 1) {
+      const line = sourceLines[index];
+      if (!line) continue;
+
+      if (
+        index + 1 < sourceLines.length &&
+        line.includes("|") &&
+        isMarkdownTableSeparator(sourceLines[index + 1])
+      ) {
+        const tableLines = [line, sourceLines[index + 1]];
+        index += 2;
+        while (index < sourceLines.length && sourceLines[index].includes("|")) {
+          tableLines.push(sourceLines[index]);
+          index += 1;
+        }
+        index -= 1;
+        rendered.push(renderMarkdownTable(tableLines));
+        continue;
+      }
+
+      if (/^\s*[-*+]\s+/.test(line)) {
+        const listLines = [line];
+        while (
+          index + 1 < sourceLines.length &&
+          /^\s*[-*+]\s+/.test(sourceLines[index + 1])
+        ) {
+          index += 1;
+          listLines.push(sourceLines[index]);
+        }
+        rendered.push(renderMarkdownList(listLines));
+        continue;
+      }
+
+      if (/^\s*\d+[.)]\s+/.test(line)) {
+        const listLines = [line];
+        while (
+          index + 1 < sourceLines.length &&
+          /^\s*\d+[.)]\s+/.test(sourceLines[index + 1])
+        ) {
+          index += 1;
+          listLines.push(sourceLines[index]);
+        }
+        rendered.push(renderMarkdownList(listLines, true));
+        continue;
+      }
+
+      rendered.push(processFormatting(line));
+    }
+
+    return rendered.join("<br>");
   }
 
   function unwrapMarkedLine(value) {
@@ -371,10 +504,25 @@ function toSafeArray(value) {
     }
 
     if (explanationLines.length > 0) {
-      currentQuestion.explanation = explanationLines.join("<br>").trim();
+      currentQuestion.explanation = renderMarkdownLines(explanationLines).trim();
     }
 
     return currentQuestion;
+  }
+
+  function appendMarkdownQuestionLine(currentQuestion, line) {
+    if (!currentQuestion) {
+      return;
+    }
+
+    const renderedLine = processFormatting(line);
+    if (!renderedLine) {
+      return;
+    }
+
+    currentQuestion.q = currentQuestion.q
+      ? `${currentQuestion.q}<br>${renderedLine}`
+      : renderedLine;
   }
 
   function parseMarkdownToJSON(content, fileName, options = {}) {
@@ -530,6 +678,8 @@ function toSafeArray(value) {
 
       if (capturingExplanation) {
         explanationLines.push(processFormatting(normalizedLine));
+      } else if (currentQuestion && currentQuestion.options.length === 0) {
+        appendMarkdownQuestionLine(currentQuestion, normalizedLine);
       } else if (currentQuestion && currentQuestion.options.length > 0) {
         capturingExplanation = true;
         explanationLines.push(processFormatting(normalizedLine));

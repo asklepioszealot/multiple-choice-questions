@@ -14,11 +14,11 @@ describe("theme manager", () => {
 
   it("registers the flashcards-style preset collection", () => {
     expect(AVAILABLE_THEMES).toHaveLength(14);
-    expect(getThemeLabel("light")).toBe("Aydınlık");
-    expect(getThemeLabel("midnight")).toBe("Karanlık");
-    expect(getThemeLabel("ember")).toBe("Amber");
-    expect(getThemeLabel("dark")).toBe("Mavi");
-    expect(getThemeLabel("midnight-galaxy")).toBe("Midnight Galaxy");
+    expect(getThemeLabel("light")).toBe("AYDINLIK");
+    expect(getThemeLabel("midnight")).toBe("KARANLIK");
+    expect(getThemeLabel("ember")).toBe("AMBER");
+    expect(getThemeLabel("dark")).toBe("MAVI");
+    expect(getThemeLabel("midnight-galaxy")).toBe("MIDNIGHT GALAXY");
   });
 
   it("syncs select controls and applies preset attributes", () => {

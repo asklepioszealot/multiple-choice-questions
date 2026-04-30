@@ -112,10 +112,10 @@
       .header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         margin-bottom: 30px;
         padding: 20px;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         gap: 20px;
         background: var(--color-header-bg);
         backdrop-filter: blur(12px);
@@ -129,7 +129,7 @@
       }
 
       .header-left {
-        flex: 0 0 auto;
+        flex: 1 1 280px;
         margin-right: 8px;
         min-width: 280px;
       }
@@ -154,17 +154,26 @@
 
       .header-controls {
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        align-items: flex-end;
         justify-content: flex-end;
         gap: 10px;
-        flex-wrap: nowrap;
         margin-left: auto;
-        flex: 1 1 auto;
+        flex: 1 1 540px;
         min-width: 0;
       }
 
       .header-controls > * {
         flex-shrink: 0;
+      }
+
+      .header-control-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
       }
 
       select,
@@ -502,6 +511,18 @@
         color: var(--color-text-primary);
       }
 
+      .question-text img,
+      .solution-content img {
+        display: block;
+        max-width: 100%;
+        max-height: 520px;
+        width: auto;
+        height: auto;
+        margin: 16px auto;
+        border-radius: 8px;
+        object-fit: contain;
+      }
+
       .options {
         display: flex;
         flex-direction: column;
@@ -606,6 +627,42 @@
         color: var(--color-text-primary);
       }
 
+      .solution-content .markdown-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        margin: 14px 0;
+      }
+
+      .solution-content table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 16px;
+        line-height: 1.45;
+      }
+
+      .solution-content th,
+      .solution-content td {
+        border: 1px solid var(--color-border);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .solution-content th {
+        background: var(--color-bg-secondary);
+        font-weight: 700;
+      }
+
+      .solution-content ul,
+      .solution-content ol {
+        margin: 10px 0 10px 24px;
+        padding: 0;
+      }
+
+      .solution-content li {
+        margin: 4px 0;
+      }
+
       .solution-content strong {
         color: var(--color-emphasis-strong);
         font-weight: 700;
@@ -652,7 +709,6 @@
 
         .header-controls {
           gap: 8px;
-          flex-wrap: wrap;
         }
 
         .header-controls select {
@@ -680,9 +736,13 @@
 
         .header-controls {
           width: 100%;
-          flex-wrap: wrap;
+          align-items: stretch;
           justify-content: flex-start;
           gap: 10px;
+        }
+
+        .header-control-row {
+          justify-content: flex-start;
         }
 
         .header-controls select {
@@ -2156,45 +2216,49 @@
           <p>Dr. Ahmet Kara 🩺</p>
         </div>
         <div class="header-controls">
-          <select id="topic-select">
-            <option value="hepsi">Tüm Başlıklar</option>
-          </select>
+          <div class="header-control-row">
+            <select id="topic-select">
+              <option value="hepsi">Tüm Başlıklar</option>
+            </select>
 
-          <input
-            type="number"
-            id="jump-input"
-            min="1"
-            max="20"
-            placeholder="Soru No"
-          />
-          <button class="btn btn-small" id="jump-btn" type="button">Git</button>
+            <div class="theme-control">
+              <label for="theme-select-study">Tema</label>
+              <select id="theme-select-study"></select>
+            </div>
 
-          <div class="theme-control">
-            <label for="theme-select-study">Tema</label>
-            <select id="theme-select-study"></select>
+            <input
+              type="number"
+              id="jump-input"
+              min="1"
+              max="20"
+              placeholder="Soru"
+            />
+            <button class="btn btn-small" id="jump-btn" type="button">Git</button>
           </div>
 
-          <button class="btn btn-small btn-secondary" id="show-set-manager-btn" type="button">
-            ← Setlere Dön
-          </button>
+          <div class="header-control-row">
+            <button class="btn btn-small btn-secondary" id="show-set-manager-btn" type="button">
+              ← Setlere Dön
+            </button>
 
-          <button class="btn-secondary btn btn-small" id="shuffle-btn" type="button">
-            🔀 Karıştır
-          </button>
-          <button class="btn-secondary btn btn-small" id="retry-wrong-btn" type="button">
-            🔁 Yanlışları Çöz
-          </button>
-          <button class="btn-secondary btn btn-small" id="export-printable-btn" type="button">
-            🖨️ Yazdır
-          </button>
-          <button
-            class="btn-secondary btn btn-small"
-            id="reset-quiz-btn"
-            type="button"
-            style="border-color: #dc2626; color: #dc2626"
-          >
-            🗑️ Sıfırla
-          </button>
+            <button class="btn-secondary btn btn-small" id="shuffle-btn" type="button">
+              🔀 Karıştır
+            </button>
+            <button class="btn-secondary btn btn-small" id="retry-wrong-btn" type="button">
+              🔁 Yanlışları Çöz
+            </button>
+            <button class="btn-secondary btn btn-small" id="export-printable-btn" type="button">
+              🖨️ Yazdır
+            </button>
+            <button
+              class="btn-secondary btn btn-small"
+              id="reset-quiz-btn"
+              type="button"
+              style="border-color: #dc2626; color: #dc2626"
+            >
+              🗑️ Sıfırla
+            </button>
+          </div>
         </div>
       </div>
 
