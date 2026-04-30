@@ -49,14 +49,14 @@ export function renderValidationSummary({
   }
 
   if (validationIssues.length === 0) {
-    summaryEl.textContent = "Kaydetmeye hazir.";
+    summaryEl.textContent = "Kaydetmeye hazır.";
     summaryEl.className = "auth-status success editor-validation-summary";
     return;
   }
 
   summaryEl.className = "auth-status error editor-validation-summary";
   summaryEl.innerHTML = [
-    `<strong>${validationIssues.length} sorun cozulmeli.</strong>`,
+    `<strong>${validationIssues.length} sorun çözülmeli.</strong>`,
     '<ul class="editor-validation-list">',
     ...validationIssues.map((issue) => {
       const jumpTarget =

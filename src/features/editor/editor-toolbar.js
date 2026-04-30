@@ -2,19 +2,19 @@ import { escapeMarkup } from "../../shared/utils.js";
 
 const TOOLBAR_ACTIONS = Object.freeze([
   { id: "undo", label: "Geri al" },
-  { id: "redo", label: "Ileri al" },
+  { id: "redo", label: "İleri al" },
   { id: "bold", label: "B" },
   { id: "italic", label: "I" },
   { id: "critical", label: "!!" },
-  { id: "warning", label: "Uyari" },
-  { id: "quote", label: "Alinti" },
+  { id: "warning", label: "Uyarı" },
+  { id: "quote", label: "Alıntı" },
   { id: "bulletList", label: "Liste" },
   { id: "numberList", label: "1. Liste" },
   { id: "link", label: "Link" },
   { id: "code", label: "Kod" },
-  { id: "divider", label: "Ayrac" },
+  { id: "divider", label: "Ayraç" },
   { id: "table", label: "Tablo" },
-  { id: "attachment-image", label: "Gorsel" },
+  { id: "attachment-image", label: "Görsel" },
   { id: "attachment-audio", label: "Ses" },
 ]);
 
@@ -61,7 +61,7 @@ function insertTextAtSelection(textValue, replacement, options = {}) {
 
 function buildMediaTokenTemplate(action = "attachment-image") {
   if (action === "attachment-audio") {
-    const token = "![audio: Ses kaydi](https://example.com/ses.mp3)";
+    const token = "![audio: Ses kaydı](https://example.com/ses.mp3)";
     const urlStart = token.indexOf("https://");
     return {
       token,
@@ -70,7 +70,7 @@ function buildMediaTokenTemplate(action = "attachment-image") {
     };
   }
 
-  const token = "![Gorsel aciklamasi](https://example.com/gorsel.png)";
+  const token = "![Görsel açıklaması](https://example.com/gorsel.png)";
   const urlStart = token.indexOf("https://");
   return {
     token,
@@ -113,7 +113,7 @@ function buildFormattingTokenTemplate(action = "bold", selectedText = "") {
   }
 
   if (action === "quote") {
-    const innerText = normalizedSelection || "Alinti veya not";
+    const innerText = normalizedSelection || "Alıntı veya not";
     const token = `> ${innerText}`;
     return {
       token,
@@ -217,8 +217,8 @@ export function renderEditorToolbarMarkup({
   const fieldName = field === "explanation" ? "explanation" : "question";
   const ariaLabel =
     fieldName === "explanation"
-      ? "Aciklama bicimlendirme araclari"
-      : "Soru bicimlendirme araclari";
+      ? "Açıklama biçimlendirme araçları"
+      : "Soru biçimlendirme araçları";
   const disabledIds = new Set(
     Array.isArray(disabledActionIds) ? disabledActionIds : [],
   );

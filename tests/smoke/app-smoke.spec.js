@@ -486,7 +486,7 @@ test.describe("MCQ smoke", () => {
       '#editor-question-toolbar [data-editor-toolbar-action="attachment-image"]',
     );
     await expect(page.locator("#editor-question-text")).toHaveValue(
-      /!\[Gorsel aciklamasi\]\(https:\/\/example\.com\/gorsel\.png\)/,
+      /!\[Görsel açıklaması\]\(https:\/\/example\.com\/gorsel\.png\)/,
     );
 
     await page.fill("#editor-explanation", "Aciklama");
@@ -495,7 +495,7 @@ test.describe("MCQ smoke", () => {
       '#editor-explanation-toolbar [data-editor-toolbar-action="attachment-audio"]',
     );
     await expect(page.locator("#editor-explanation")).toHaveValue(
-      /!\[audio: Ses kaydi\]\(https:\/\/example\.com\/ses\.mp3\)/,
+      /!\[audio: Ses kaydı\]\(https:\/\/example\.com\/ses\.mp3\)/,
     );
 
     await page.evaluate(() => {
@@ -515,10 +515,10 @@ test.describe("MCQ smoke", () => {
     await page.locator("#editor-correct").selectOption("0");
     await page.click("#editor-raw-tab-btn");
     await expect(page.locator("#editor-raw-input")).toHaveValue(
-      /!\[Gorsel aciklamasi\]\(https:\/\/example\.com\/gorsel\.png\)/,
+      /!\[Görsel açıklaması\]\(https:\/\/example\.com\/gorsel\.png\)/,
     );
     await expect(page.locator("#editor-raw-input")).toHaveValue(
-      /!\[audio: Ses kaydi\]\(https:\/\/example\.com\/ses\.mp3\)/,
+      /!\[audio: Ses kaydı\]\(https:\/\/example\.com\/ses\.mp3\)/,
     );
   });
 

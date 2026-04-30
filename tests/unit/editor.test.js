@@ -124,7 +124,7 @@ describe("editor helpers", () => {
 
     expect(draft.questions[0].q).toContain("![Beyin sapi](data:image/png;base64,QUJD)");
     expect(draft.questions[0].explanation).toContain(
-      "![audio: Ses kaydi](data:audio/mpeg;base64,SUQz)",
+      "![audio: Ses kaydı](data:audio/mpeg;base64,SUQz)",
     );
 
     const savedRecord = serializeEditorDraft(draft, {
@@ -168,7 +168,7 @@ describe("editor helpers", () => {
       feature.updateCurrentOption(1, "B");
       feature.updateCurrentQuestionField(
         "explanation",
-        "Guvenli ses ![audio: Ses kaydi](data:audio/mpeg;base64,SUQz) guvensiz ses ![audio: Kotu](file:///tmp/evil.mp3)",
+        "Guvenli ses ![audio: Ses kaydı](data:audio/mpeg;base64,SUQz) guvensiz ses ![audio: Kotu](file:///tmp/evil.mp3)",
       );
 
       const jsonPayload = feature.exportJson();
@@ -182,7 +182,7 @@ describe("editor helpers", () => {
       expect(jsonPayload).not.toContain("file:///");
 
       expect(markdownPayload).toContain("![Beyin sapi](data:image/png;base64,QUJD)");
-      expect(markdownPayload).toContain("![audio: Ses kaydi](data:audio/mpeg;base64,SUQz)");
+      expect(markdownPayload).toContain("![audio: Ses kaydı](data:audio/mpeg;base64,SUQz)");
       expect(markdownPayload).not.toContain("javascript:");
       expect(markdownPayload).not.toContain("file:///");
 
@@ -211,24 +211,24 @@ describe("editor helpers", () => {
     questionInput.setSelectionRange(questionInput.value.length, questionInput.value.length);
 
     const nextQuestionValue = feature.insertMediaToken("question", "image");
-    expect(nextQuestionValue).toContain("![Gorsel aciklamasi](https://example.com/gorsel.png)");
+    expect(nextQuestionValue).toContain("![Görsel açıklaması](https://example.com/gorsel.png)");
     expect(feature.getDraft().questions[0].q).toContain(
-      "![Gorsel aciklamasi](https://example.com/gorsel.png)",
+      "![Görsel açıklaması](https://example.com/gorsel.png)",
     );
     expect(document.getElementById("editor-question-text").value).toContain(
-      "![Gorsel aciklamasi](https://example.com/gorsel.png)",
+      "![Görsel açıklaması](https://example.com/gorsel.png)",
     );
 
     explanationInput.value = "Aciklama";
     explanationInput.setSelectionRange(explanationInput.value.length, explanationInput.value.length);
 
     const nextExplanationValue = feature.insertMediaToken("explanation", "audio");
-    expect(nextExplanationValue).toContain("![audio: Ses kaydi](https://example.com/ses.mp3)");
+    expect(nextExplanationValue).toContain("![audio: Ses kaydı](https://example.com/ses.mp3)");
     expect(feature.getDraft().questions[0].explanation).toContain(
-      "![audio: Ses kaydi](https://example.com/ses.mp3)",
+      "![audio: Ses kaydı](https://example.com/ses.mp3)",
     );
     expect(document.getElementById("editor-explanation").value).toContain(
-      "![audio: Ses kaydi](https://example.com/ses.mp3)",
+      "![audio: Ses kaydı](https://example.com/ses.mp3)",
     );
   });
 
@@ -302,7 +302,7 @@ describe("editor helpers", () => {
       .dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
 
     expect(document.getElementById("editor-explanation").value).toContain(
-      "![audio: Ses kaydi](https://example.com/ses.mp3)",
+      "![audio: Ses kaydı](https://example.com/ses.mp3)",
     );
   });
 
@@ -493,7 +493,7 @@ describe("editor helpers", () => {
           },
         ],
       }),
-    ).toBe("Soru 1: En az iki dolu secenek gerekli.");
+    ).toBe("Soru 1: En az iki dolu seçenek gerekli.");
   });
 
   it("collects question-specific validation issues for authoring polish", () => {
@@ -519,11 +519,11 @@ describe("editor helpers", () => {
       }),
       expect.objectContaining({
         questionIndex: 0,
-        message: "Soru 1: En az iki dolu secenek gerekli.",
+        message: "Soru 1: En az iki dolu seçenek gerekli.",
       }),
       expect.objectContaining({
         questionIndex: 0,
-        message: "Soru 1: Dogru cevap gecerli bir secenegi gostermeli.",
+        message: "Soru 1: Doğru cevap geçerli bir seçeneği göstermeli.",
       }),
     ]);
   });
@@ -552,7 +552,7 @@ describe("editor helpers", () => {
 
     expect(document.getElementById("editor-save-btn").disabled).toBe(false);
     expect(document.getElementById("editor-validation-summary").textContent).toContain(
-      "Kaydetmeye hazir",
+      "Kaydetmeye hazır",
     );
   });
 

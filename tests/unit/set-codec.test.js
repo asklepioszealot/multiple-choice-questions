@@ -170,6 +170,29 @@ describe("set-codec", () => {
     expect(parsed.questions[0].explanation).not.toContain("|Parametre|Deger|Yorum|");
   });
 
+  it("renders markdown blocks after an explicit explanation label", () => {
+    const parsed = parseSetText(
+      [
+        "Soru 1: Klinik karar nedir?",
+        "A) Ilk",
+        "B) Ikinci",
+        "Doğru Cevap: B",
+        "Açıklama: **Baslik**",
+        "|Parametre|Deger|",
+        "|---|---|",
+        "|ABPM|**Yuksek**|",
+        "* direncli hipertansiyon",
+      ].join("\n"),
+      "explicit.md",
+    );
+
+    expect(parsed.questions[0].explanation).toContain("<strong>Baslik</strong>");
+    expect(parsed.questions[0].explanation).toContain("<table>");
+    expect(parsed.questions[0].explanation).toContain("<td><strong>Yuksek</strong></td>");
+    expect(parsed.questions[0].explanation).toContain("<li>direncli hipertansiyon</li>");
+    expect(parsed.questions[0].explanation).not.toContain("|Parametre|Deger|");
+  });
+
   it("roundtrips markdown source through parse and serialize", () => {
     const source = [
       "# Kardiyoloji",
@@ -202,7 +225,7 @@ describe("set-codec", () => {
       "A) Omurilik",
       "B) Beyin sapi",
       "Doğru Cevap: B",
-      "Açıklama: ![audio: Ses kaydi](data:audio/mpeg;base64,SUQz)",
+      "Açıklama: ![audio: Ses kaydı](data:audio/mpeg;base64,SUQz)",
     ].join("\n");
 
     const parsed = parseSetText(source, "media.md");
@@ -213,7 +236,7 @@ describe("set-codec", () => {
     expect(parsed.questions[0].explanation).toContain("<audio");
     expect(parsed.questions[0].explanation).toContain("data:audio/mpeg;base64,SUQz");
     expect(serialized).toContain("![Beyin sapi](data:image/png;base64,QUJD)");
-    expect(serialized).toContain("![audio: Ses kaydi](data:audio/mpeg;base64,SUQz)");
+    expect(serialized).toContain("![audio: Ses kaydı](data:audio/mpeg;base64,SUQz)");
   });
 
   it("adds Obsidian image links before options to the question text", () => {

@@ -40,7 +40,7 @@ function toSafeArray(value) {
       return "";
     }
 
-    const nextLabel = normalizeEditableMediaLabel(label, "Gorsel");
+    const nextLabel = normalizeEditableMediaLabel(label, "Görsel");
     return `![${nextLabel}](${safeSource})`;
   }
 
@@ -50,7 +50,7 @@ function toSafeArray(value) {
       return "";
     }
 
-    const nextLabel = normalizeEditableMediaLabel(label, "Ses kaydi");
+    const nextLabel = normalizeEditableMediaLabel(label, "Ses kaydı");
     return `![audio: ${nextLabel}](${safeSource})`;
   }
 
@@ -66,7 +66,7 @@ function toSafeArray(value) {
         return "";
       }
 
-      const ariaLabel = normalizeEditableMediaLabel(mediaLabel, "Ses kaydi");
+      const ariaLabel = normalizeEditableMediaLabel(mediaLabel, "Ses kaydı");
       return `<audio controls preload="metadata" src="${escapeHtmlAttribute(safeSource)}" aria-label="${escapeHtmlAttribute(ariaLabel)}"></audio>`;
     }
 
@@ -89,7 +89,7 @@ function toSafeArray(value) {
       .split(/[\\/]/)
       .pop()
       .replace(/\.[^.]+$/, "");
-    return normalizeEditableMediaLabel(fileName, "Gorsel");
+    return normalizeEditableMediaLabel(fileName, "Görsel");
   }
 
   function readAudioElementSource(audioElement) {
@@ -665,24 +665,24 @@ function toSafeArray(value) {
       );
       if (explanationStartMatch) {
         capturingExplanation = true;
-        explanationLines.push(processFormatting(explanationStartMatch[1].trim()));
+        explanationLines.push(explanationStartMatch[1].trim());
         continue;
       }
 
       const blockquoteMatch = line.match(/^>\s?(.*)$/);
       if (blockquoteMatch && currentQuestion) {
         capturingExplanation = true;
-        explanationLines.push(processFormatting(blockquoteMatch[1].trim()));
+        explanationLines.push(blockquoteMatch[1].trim());
         continue;
       }
 
       if (capturingExplanation) {
-        explanationLines.push(processFormatting(normalizedLine));
+        explanationLines.push(normalizedLine);
       } else if (currentQuestion && currentQuestion.options.length === 0) {
         appendMarkdownQuestionLine(currentQuestion, normalizedLine);
       } else if (currentQuestion && currentQuestion.options.length > 0) {
         capturingExplanation = true;
-        explanationLines.push(processFormatting(normalizedLine));
+        explanationLines.push(normalizedLine);
       }
     }
 

@@ -30,6 +30,8 @@ describe("editor-toolbar", () => {
       "attachment-image",
       "attachment-audio",
     ]);
+    expect(actions.find((action) => action.id === "redo")?.label).toBe("İleri al");
+    expect(actions.find((action) => action.id === "attachment-image")?.label).toBe("Görsel");
     expect(bold.value).toContain("**Kalin** soru");
     expect(table.value).toContain("| Başlık | Değer |");
   });

@@ -47,7 +47,7 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       return [
         {
           code: "editor-not-ready",
-          message: "Editor hazir degil.",
+          message: "Editör hazır değil.",
           questionIndex: -1,
         },
       ];
@@ -86,14 +86,14 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       if (filledOptions.length < 2) {
         issues.push({
           code: "underfilled-options",
-          message: `Soru ${index + 1}: En az iki dolu secenek gerekli.`,
+          message: `Soru ${index + 1}: En az iki dolu seçenek gerekli.`,
           questionIndex: index,
         });
       }
       if (filledOptions.length >= 2 && optionValues.some((option) => !option)) {
         issues.push({
           code: "blank-option",
-          message: `Soru ${index + 1}: Bos secenekleri doldur veya sil.`,
+          message: `Soru ${index + 1}: Boş seçenekleri doldur veya sil.`,
           questionIndex: index,
         });
       }
@@ -106,7 +106,7 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       ) {
         issues.push({
           code: "invalid-correct-answer",
-          message: `Soru ${index + 1}: Dogru cevap gecerli bir secenegi gostermeli.`,
+          message: `Soru ${index + 1}: Doğru cevap geçerli bir seçeneği göstermeli.`,
           questionIndex: index,
         });
       }
@@ -555,8 +555,8 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
     }
 
     function confirmNavigateAway(
-      message = "Kaydedilmemis degisiklikler var. Editorden cikmak istedigine emin misin?",
-      blockedMessage = "Kaydedilmemis degisiklikler korunuyor.",
+      message = "Kaydedilmemiş değişiklikler var. Editörden çıkmak istediğine emin misin?",
+      blockedMessage = "Kaydedilmemiş değişiklikler korunuyor.",
     ) {
       if (!isDirty()) {
         return true;
