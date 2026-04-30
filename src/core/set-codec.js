@@ -178,6 +178,15 @@ function toSafeArray(value) {
     return rendered;
   }
 
+  function unwrapMarkedLine(value) {
+    const rawValue = String(value ?? "").trim();
+    const markMatch = rawValue.match(/^<mark\b[^>]*>([\s\S]*?)<\/mark>$/i);
+    return {
+      text: markMatch ? markMatch[1].trim() : rawValue,
+      isMarked: Boolean(markMatch),
+    };
+  }
+
   function formatEditableText(value) {
     const normalized = normalizeEditableText(value);
     if (!normalized) {
@@ -484,10 +493,11 @@ function toSafeArray(value) {
         continue;
       }
 
-      const optionMatch = normalizedLine.match(/^([A-Ea-e])(\+)?[).]\s+(.+)$/);
+      const optionLine = unwrapMarkedLine(normalizedLine);
+      const optionMatch = optionLine.text.match(/^([A-Ea-e])(\+)?[).]\s+(.+)$/);
       if (optionMatch && currentQuestion && !capturingExplanation) {
         currentQuestion.options.push(processFormatting(optionMatch[3].trim()));
-        if (optionMatch[2]) {
+        if (optionMatch[2] || optionLine.isMarked) {
           currentQuestion.correct = optionMatch[1].toUpperCase().charCodeAt(0) - 65;
         }
         continue;
@@ -519,6 +529,9 @@ function toSafeArray(value) {
       }
 
       if (capturingExplanation) {
+        explanationLines.push(processFormatting(normalizedLine));
+      } else if (currentQuestion && currentQuestion.options.length > 0) {
+        capturingExplanation = true;
         explanationLines.push(processFormatting(normalizedLine));
       }
     }

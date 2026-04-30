@@ -83,6 +83,67 @@ describe("set-codec", () => {
     expect(serialized).not.toContain("B+)");
   });
 
+  it("parses highlighted Obsidian mark options as the correct answer", () => {
+    const parsed = parseSetText(
+      [
+        "[1] En uygun sonraki adim nedir?",
+        "",
+        "a) Beta bloker eklenmesi",
+        '<mark style="background:rgba(240, 200, 0, 0.2)">b) Aldosteron/renin orani ile tarama</mark>',
+        "c) Spironolakton baslanmasi",
+        "d) Renal denervasyon",
+        "e) Mevcut tedavi",
+      ].join("\n"),
+      "final.md",
+    );
+
+    expect(parsed.questions).toHaveLength(1);
+    expect(parsed.questions[0]).toMatchObject({
+      options: [
+        "Beta bloker eklenmesi",
+        "Aldosteron/renin orani ile tarama",
+        "Spironolakton baslanmasi",
+        "Renal denervasyon",
+        "Mevcut tedavi",
+      ],
+      correct: 1,
+    });
+  });
+
+  it("captures freeform explanation after the final option until the next question", () => {
+    const parsed = parseSetText(
+      [
+        "[1] En uygun sonraki adim nedir?",
+        "a) Beta bloker eklenmesi",
+        '<mark style="background:rgba(240, 200, 0, 0.2)">b) Aldosteron/renin orani ile tarama</mark>',
+        "c) Spironolakton baslanmasi",
+        "d) Renal denervasyon",
+        "e) Mevcut tedavi",
+        "",
+        "**Direncli hipertansiyon tanimi**",
+        "|Parametre|Deger|",
+        "|---|---|",
+        "|ABPM|Yuksek|",
+        "---",
+        "[2] Sonraki soru nedir?",
+        "a) Ilk secenek",
+        "b) Ikinci secenek",
+        '<mark style="background:rgba(240, 200, 0, 0.2)">c) Ucuncu secenek</mark>',
+      ].join("\n"),
+      "final.md",
+    );
+
+    expect(parsed.questions).toHaveLength(2);
+    expect(parsed.questions[0].explanation).toContain("Direncli hipertansiyon tanimi");
+    expect(parsed.questions[0].explanation).toContain("|ABPM|Yuksek|");
+    expect(parsed.questions[0].explanation).not.toContain("Sonraki soru nedir?");
+    expect(parsed.questions[1]).toMatchObject({
+      q: "Sonraki soru nedir?",
+      correct: 2,
+      explanation: "",
+    });
+  });
+
   it("roundtrips markdown source through parse and serialize", () => {
     const source = [
       "# Kardiyoloji",
