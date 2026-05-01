@@ -1288,31 +1288,87 @@
         flex-wrap: wrap;
       }
       .editor-screen {
-        width: min(100%, 1480px);
+        width: min(100%, 1820px);
         margin: 0 auto 48px;
-        padding: 0 22px;
-      }
-      .editor-workspace {
-        display: grid;
-        grid-template-columns: minmax(260px, 350px) minmax(0, 1fr);
-        gap: 22px;
-        align-items: start;
+        padding: 0 20px 36px;
       }
       .editor-shell {
-        background: var(--color-bg-secondary);
-        border: 1px solid var(--color-border);
-        border-radius: 18px;
-        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+        background: color-mix(in srgb, var(--color-bg-secondary) 88%, var(--color-accent) 4%);
+        border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--color-accent) 18%);
+        border-radius: 24px;
+        box-shadow: 0 24px 46px rgba(15, 23, 42, 0.12);
         padding: 24px;
         min-width: 0;
+        margin-bottom: 30px;
       }
       .editor-topbar {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        gap: 12px;
+        align-items: flex-start;
+        gap: 24px;
         flex-wrap: wrap;
+        margin-bottom: 22px;
+      }
+      .editor-title-block {
+        display: grid;
+        gap: 8px;
+        min-width: min(100%, 420px);
+      }
+      .editor-title-block h2 {
+        margin: 0;
+        font-size: clamp(28px, 3vw, 42px);
+        line-height: 1;
+      }
+      .editor-title-block p {
+        margin: 0;
+        color: var(--color-text-secondary);
+        font-size: 16px;
+      }
+      .editor-top-actions {
+        justify-content: flex-end;
+        gap: 12px;
+      }
+      .editor-top-actions .btn {
+        min-height: 52px;
+        padding-inline: 22px;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .editor-set-row {
+        display: grid;
+        gap: 8px;
         margin-bottom: 18px;
+      }
+      .editor-set-row label {
+        color: var(--color-text-secondary);
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .editor-pill-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--color-accent) 32%, var(--color-border));
+        background: color-mix(in srgb, var(--color-accent-soft) 74%, var(--color-bg-secondary));
+        color: var(--color-text-primary);
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .editor-workspace {
+        display: grid;
+        grid-template-columns: minmax(320px, 472px) minmax(0, 1fr);
+        gap: 22px;
+        align-items: start;
       }
       .editor-validation-summary {
         margin-bottom: 18px;
@@ -1333,70 +1389,223 @@
       .editor-layout {
         display: block;
       }
-      .editor-sidebar,
-      .editor-main {
-        background: rgba(15, 23, 42, 0.03);
-        border: 1px solid var(--color-border);
-        border-radius: 16px;
-        padding: 18px;
-      }
       .editor-sidebar {
         position: sticky;
-        top: 18px;
-        max-height: calc(100vh - 36px);
-        overflow: auto;
-        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-      }
-      .editor-list-head {
-        display: grid;
-        gap: 10px;
-        margin-top: 14px;
-      }
-      .editor-list-title-row,
-      .editor-question-actions {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .editor-question-actions {
-        justify-content: flex-start;
-      }
-      .editor-question-actions .btn {
-        min-width: 42px;
-        padding: 8px 10px;
-        font-size: 13px;
-      }
-      .editor-question-actions .editor-action-primary {
+        top: 14px;
         min-width: 0;
-        padding-inline: 12px;
+        overflow: hidden;
+        padding: 16px;
+        border-radius: 24px;
+        border: 1px solid color-mix(in srgb, var(--color-border) 80%, var(--color-accent) 12%);
+        background: color-mix(in srgb, var(--color-bg-secondary) 90%, var(--color-accent) 3%);
+        box-shadow: 0 24px 44px rgba(15, 23, 42, 0.14);
       }
-      .editor-question-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        max-height: min(54vh, 520px);
-        overflow-y: auto;
-        margin: 12px 0 0;
-      }
-      .editor-question-item {
+      .editor-list-handle {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: flex-start;
         width: 100%;
+        margin-bottom: 12px;
+        padding: 12px 14px;
+        border-radius: 16px;
         border: 1px solid var(--color-border);
         background: var(--color-bg-secondary);
         color: var(--color-text-primary);
-        border-radius: 12px;
-        padding: 10px 12px;
-        text-align: left;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
         cursor: pointer;
       }
+      .editor-list-panel {
+        display: grid;
+        gap: 14px;
+        padding: 20px;
+        border-radius: 22px;
+        border: 1px solid var(--color-border);
+        background: color-mix(in srgb, var(--color-bg-primary) 84%, var(--color-bg-secondary));
+      }
+      .editor-list-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .editor-list-title {
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        color: var(--color-text-primary);
+      }
+      .editor-list-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .editor-list-actions .btn {
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .editor-question-list {
+        display: grid;
+        gap: 10px;
+        max-height: 68vh;
+        overflow: auto;
+      }
+      .editor-question-item {
+        display: grid;
+        gap: 5px;
+        width: 100%;
+        border: 1px solid color-mix(in srgb, var(--color-border) 88%, var(--color-accent) 8%);
+        background: var(--color-bg-secondary);
+        color: var(--color-text-primary);
+        border-radius: 14px;
+        padding: 12px 14px;
+        text-align: left;
+        cursor: pointer;
+        transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+      }
+      .editor-question-item:hover {
+        border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+        background: color-mix(in srgb, var(--color-accent-soft) 22%, var(--color-bg-secondary));
+        transform: translateY(-1px);
+      }
       .editor-question-item.active {
-        border-color: var(--color-accent);
-        background: var(--color-accent-soft);
+        border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+        background: color-mix(in srgb, var(--color-accent-soft) 48%, var(--color-bg-secondary));
+        box-shadow: 0 16px 28px rgba(15, 23, 42, 0.12);
+      }
+      .editor-list-index {
+        color: var(--color-text-secondary);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .editor-list-question {
+        color: var(--color-text-primary);
+        font-weight: 800;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .editor-detail-panel {
+        min-width: 0;
+        padding: 24px;
+        border-radius: 28px;
+        border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--color-accent) 10%);
+        background: color-mix(in srgb, var(--color-bg-secondary) 88%, var(--color-accent) 3%);
+        box-shadow: 0 28px 48px rgba(15, 23, 42, 0.14);
+      }
+      .editor-main {
+        min-width: 0;
+      }
+      .editor-card {
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: 18px;
+        overflow: hidden;
+      }
+      .editor-card.is-open {
+        box-shadow: 0 20px 36px rgba(15, 23, 42, 0.12);
+      }
+      .editor-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 18px;
+        border-bottom: 1px solid var(--color-border);
+        background: color-mix(in srgb, var(--color-bg-primary) 82%, var(--color-bg-secondary));
+      }
+      .editor-card-title {
+        color: var(--color-text-secondary);
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .editor-subject-shell {
+        flex: 0 1 360px;
+        min-width: min(100%, 260px);
+      }
+      .editor-subject-prefix {
+        color: var(--color-text-secondary);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .editor-subject-input {
+        flex: 1;
+        min-width: 90px;
+        border: 0;
+        background: transparent;
+        color: var(--color-text-primary);
+        font: inherit;
+        font-weight: 800;
+        outline: none;
+      }
+      .editor-subject-preview {
+        display: none;
+      }
+      .editor-card-body {
+        display: grid;
+        gap: 18px;
+        padding: 18px;
+      }
+      .editor-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      .editor-format-toolbar-row {
+        display: flex;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .editor-format-toolbar {
+        flex: 1;
+        display: grid;
+        gap: 10px;
+        padding: 18px;
+        border-radius: 16px;
+        border: 1px solid var(--color-border);
+        background: var(--color-bg-primary);
+      }
+      .editor-format-toolbar-head strong {
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .editor-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .editor-toolbar .btn {
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .editor-card-nav {
+        display: grid;
+        gap: 10px;
+        min-width: 64px;
+      }
+      .editor-card-nav .btn {
+        min-width: 48px;
+        padding-inline: 12px;
       }
       .editor-form-grid {
         display: grid;
-        gap: 14px;
+        gap: 18px;
       }
       .editor-field label {
         display: block;
@@ -1439,17 +1648,64 @@
         resize: none;
         overflow: auto;
       }
+      .editor-input-question {
+        min-height: 170px;
+        font-size: 16px;
+        line-height: 1.65;
+      }
+      .editor-input-answer {
+        min-height: 240px;
+        line-height: 1.65;
+      }
+      .editor-options-field {
+        padding-top: 2px;
+      }
       .editor-option-row {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 10px;
         margin-bottom: 10px;
       }
-      .editor-tabs {
+      .editor-markdown-head,
+      .editor-preview-head {
         display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 10px;
-        margin-bottom: 14px;
-        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .editor-split {
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) minmax(280px, 0.82fr);
+        gap: 18px;
+        align-items: start;
+      }
+      .editor-split-pane {
+        min-width: 0;
+      }
+      .editor-preview {
+        min-height: 240px;
+        max-height: 520px;
+        background: var(--color-bg-primary);
+        border: 1px dashed var(--color-border);
+        border-radius: 14px;
+        padding: 14px;
+        color: var(--color-text-primary);
+        line-height: 1.8;
+        overflow: auto;
+        overflow-wrap: anywhere;
+      }
+      .editor-preview:empty::before {
+        content: "Önizleme burada görünecek.";
+        color: var(--color-text-secondary);
+      }
+      .editor-raw {
+        min-height: 220px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        resize: none;
+      }
+      .editor-toolbar-shell--compact .editor-toolbar {
+        justify-content: flex-start;
       }
       @media (max-width: 900px) {
         .sync-conflict-columns,
@@ -1462,6 +1718,16 @@
         .editor-sidebar {
           position: static;
           max-height: none;
+        }
+        .editor-split {
+          grid-template-columns: 1fr;
+        }
+        .editor-format-toolbar-row {
+          flex-direction: column;
+        }
+        .editor-card-nav {
+          display: flex;
+          flex-wrap: wrap;
         }
         .analytics-summary {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2112,152 +2378,137 @@
       </div>
     </div>
     <div id="editor-screen" class="editor-screen" style="display: none">
+      <div class="editor-shell">
+        <div class="editor-topbar">
+          <div class="editor-title-block">
+            <h2>Soruları Düzenle</h2>
+            <p>Seçili seti markdown formu veya raw code olarak düzenle.</p>
+          </div>
+          <div class="set-actions editor-top-actions">
+            <div class="theme-control theme-control--compact">
+              <label for="theme-select-editor">Tema</label>
+              <select id="theme-select-editor"></select>
+            </div>
+            <button class="btn btn-secondary" id="editor-back-btn" type="button">← Geri Dön</button>
+            <button class="btn btn-secondary" id="editor-raw-tab-btn" type="button">Raw Code</button>
+            <button class="btn btn-secondary" id="editor-export-source-btn" type="button">
+              Dışa Aktar
+            </button>
+            <button class="btn btn-secondary" id="editor-json-btn" type="button">JSON</button>
+            <button class="btn" id="editor-save-btn" type="button">Kaydet</button>
+            <input id="editor-media-file-input" type="file" hidden />
+          </div>
+        </div>
+        <div class="editor-set-row">
+          <label for="editor-set-name">Düzenlenen Set</label>
+          <input id="editor-set-name" class="editor-input" />
+        </div>
+        <div class="editor-pill-row">
+          <span class="status-pill" id="editor-active-set-pill">Set: -</span>
+          <span class="status-pill" id="editor-dirty-pill">Durum: Kaydedildi</span>
+          <span class="status-pill" id="editor-format-pill">Format: -</span>
+          <span class="auth-meta" id="editor-source-format-label">Kaynak format: Markdown/TXT</span>
+        </div>
+        <div id="editor-status" class="auth-status"></div>
+        <div id="editor-validation-summary" class="auth-status editor-validation-summary"></div>
+      </div>
+
       <div class="editor-workspace">
         <aside class="editor-sidebar">
-            <div class="editor-field">
-              <label for="editor-set-name">Set adı</label>
-              <input
-                id="editor-set-name"
-                class="editor-input"
-              />
-            </div>
-            <div class="editor-list-head">
-              <div class="editor-list-title-row">
-                <span>Sorular</span>
-              <button
-                class="btn btn-secondary btn-small"
-                id="editor-question-list-toggle-btn"
-                type="button"
-              >
-                Listeyi daralt
-              </button>
-              </div>
-              <div class="editor-question-actions" aria-label="Soru araçları">
-              <button class="btn btn-secondary editor-action-primary" id="editor-add-question-btn" type="button">+ Soru</button>
-              <button
-                class="btn btn-secondary"
-                id="editor-move-question-up-btn"
-                type="button"
-                title="Yukarı taşı"
-                aria-label="Yukarı taşı"
-              >
-                ↑
-              </button>
-              <button
-                class="btn btn-secondary"
-                id="editor-move-question-down-btn"
-                type="button"
-                title="Aşağı taşı"
-                aria-label="Aşağı taşı"
-              >
-                ↓
-              </button>
-              <button
-                class="btn btn-secondary"
-                id="editor-duplicate-question-btn"
-                type="button"
-                title="Soruyu kopyala"
-              >
-                Kopyala
-              </button>
-              <button
-                class="btn btn-secondary"
-                id="editor-remove-question-btn"
-                type="button"
-                title="Soru sil"
-              >
-                Sil
-              </button>
+          <button class="editor-list-handle" id="editor-question-list-toggle-btn" type="button">
+            <span aria-hidden="true">‹</span>
+            <span>Listeyi Daralt</span>
+          </button>
+          <div class="editor-list-panel">
+            <div class="editor-list-header">
+              <div class="editor-list-title">SORULAR</div>
+              <div class="editor-list-actions">
+                <button class="btn btn-small" id="editor-add-question-btn" type="button">Soru Ekle</button>
+                <button class="btn btn-small btn-secondary" id="editor-remove-question-btn" type="button">Soru Sil</button>
               </div>
             </div>
             <div id="editor-question-list" class="editor-question-list"></div>
-        </aside>
-        <div class="editor-shell">
-          <div class="editor-topbar">
-            <button class="btn btn-secondary" id="editor-back-btn" type="button">Yöneticiye dön</button>
-            <div>
-              <h2>MCQ Editor</h2>
-              <div class="auth-meta" id="editor-source-format-label">
-                Normalize edilen soru modeli üzerinde çalışır.
-              </div>
-              <div class="auth-meta" id="editor-dirty-pill">Durum: Kaydedildi</div>
-            </div>
-            <div class="set-actions">
-              <div class="theme-control theme-control--compact">
-                <label for="theme-select-editor">Tema</label>
-                <select id="theme-select-editor"></select>
-              </div>
-              <button
-                class="btn btn-secondary"
-                id="editor-export-source-btn"
-                type="button"
-              >
-                Kaynak formatta dışa aktar
-              </button>
-              <button class="btn btn-secondary" id="editor-json-btn" type="button">JSON dışa aktar</button>
-              <button class="btn" id="editor-save-btn" type="button">Kaydet</button>
-              <input id="editor-media-file-input" type="file" hidden />
-            </div>
           </div>
-          <div id="editor-status" class="auth-status"></div>
-          <div id="editor-validation-summary" class="auth-status editor-validation-summary"></div>
+        </aside>
+
+        <div class="editor-detail-panel">
           <div class="editor-layout">
-          <div class="editor-main">
-            <div class="editor-tabs">
-              <button class="btn btn-secondary" id="editor-visual-tab-btn" type="button">Form</button>
-              <button
-                class="btn btn-secondary"
-                id="editor-raw-tab-btn"
-                type="button"
-              >
-                Raw JSON
-              </button>
-            </div>
-            <div id="editor-visual-panel">
-              <div class="editor-form-grid">
-                <div class="editor-field">
-                  <div class="editor-field-head">
-                    <label for="editor-question-text">Soru metni</label>
-                    <div id="editor-question-toolbar" class="editor-toolbar-shell"></div>
-                  </div>
-                  <textarea
-                    id="editor-question-text"
-                    class="editor-textarea"
-                  ></textarea>
-                </div>
-                <div class="editor-field">
-                  <label for="editor-subject">Konu</label>
-                  <input id="editor-subject" class="editor-input" />
-                </div>
-                <div class="editor-field">
-                  <label>Seçenekler</label>
-                  <div id="editor-options"></div>
-                  <button class="btn btn-secondary" id="editor-add-option-btn" type="button">+ Seçenek ekle</button>
-                </div>
-                <div class="editor-field">
-                  <label for="editor-correct">Doğru cevap</label>
-                  <select id="editor-correct" class="editor-select"></select>
-                </div>
-                <div class="editor-field">
-                  <div class="editor-field-head">
-                    <label for="editor-explanation">Açıklama</label>
-                    <div id="editor-explanation-toolbar" class="editor-toolbar-shell"></div>
-                  </div>
-                  <textarea id="editor-explanation" class="editor-textarea"></textarea>
-                </div>
+            <div class="editor-main">
+              <div class="editor-tabs">
+                <button class="btn btn-secondary" id="editor-visual-tab-btn" type="button">Form Görünümü</button>
               </div>
-            </div>
-            <div id="editor-raw-panel" style="display: none">
-              <div class="editor-field">
-                <label for="editor-raw-input" id="editor-raw-label">Raw JSON</label>
-                <textarea id="editor-raw-input" class="editor-textarea"></textarea>
-              </div>
-              <button class="btn btn-secondary" id="apply-editor-raw-btn" type="button">Raw kaynağı uygula</button>
+              <section class="editor-card is-open is-active">
+                <div class="editor-card-head">
+                  <div class="editor-card-title" id="editor-question-title">Soru No 1</div>
+                  <label class="status-pill editor-subject-shell" for="editor-subject">
+                    <span class="editor-subject-prefix">Konu</span>
+                    <input id="editor-subject" class="editor-subject-input" placeholder="Genel" />
+                    <span id="editor-question-subject-pill" class="editor-subject-preview">Genel</span>
+                  </label>
+                </div>
+                <div class="editor-card-body">
+                  <div class="editor-format-toolbar-row">
+                    <div class="editor-format-toolbar">
+                      <div class="editor-format-toolbar-head">
+                        <strong>Biçimlendirme</strong>
+                      </div>
+                      <div id="editor-question-toolbar" class="editor-toolbar-shell"></div>
+                    </div>
+                    <div class="editor-card-nav" aria-label="Soru gezinme araçları">
+                      <button class="btn btn-secondary" id="editor-move-question-up-btn" type="button" title="Yukarı taşı" aria-label="Yukarı taşı">‹</button>
+                      <button class="btn btn-secondary" id="editor-move-question-down-btn" type="button" title="Aşağı taşı" aria-label="Aşağı taşı">›</button>
+                      <button class="btn btn-secondary" id="editor-duplicate-question-btn" type="button">Kopyala</button>
+                    </div>
+                  </div>
+                  <div id="editor-visual-panel">
+                    <div class="editor-form-grid">
+                      <div class="editor-field">
+                        <label for="editor-question-text">Soru</label>
+                        <textarea id="editor-question-text" class="editor-textarea editor-input-question"></textarea>
+                      </div>
+                      <div class="editor-field editor-options-field">
+                        <label>Seçenekler</label>
+                        <div id="editor-options"></div>
+                        <button class="btn btn-secondary" id="editor-add-option-btn" type="button">+ Seçenek ekle</button>
+                      </div>
+                      <div class="editor-field editor-correct-field">
+                        <label for="editor-correct">Doğru cevap</label>
+                        <select id="editor-correct" class="editor-select"></select>
+                      </div>
+                      <div class="editor-split">
+                        <div class="editor-split-pane">
+                          <div class="editor-field">
+                            <div class="editor-markdown-head">
+                              <label for="editor-explanation">Açıklama (Markdown)</label>
+                              <div id="editor-explanation-toolbar" class="editor-toolbar-shell editor-toolbar-shell--compact"></div>
+                            </div>
+                            <textarea id="editor-explanation" class="editor-textarea editor-input-answer"></textarea>
+                          </div>
+                        </div>
+                        <div class="editor-split-pane">
+                          <div class="editor-field">
+                            <div class="editor-preview-head">
+                              <label>Canlı Önizleme</label>
+                            </div>
+                            <div id="editor-explanation-preview" class="editor-preview editor-preview-answer"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="editor-raw-panel" style="display: none">
+                    <div class="editor-field">
+                      <label for="editor-raw-input" id="editor-raw-label">Raw JSON</label>
+                      <textarea id="editor-raw-input" class="editor-textarea editor-raw"></textarea>
+                    </div>
+                    <button class="btn btn-secondary" id="apply-editor-raw-btn" type="button">Raw kaynağı uygula</button>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
     <div id="undo-toast" class="undo-toast">
       <span id="undo-message">Set kaldırıldı.</span>

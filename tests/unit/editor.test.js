@@ -369,8 +369,8 @@ describe("editor helpers", () => {
     document.getElementById("editor-question-list-toggle-btn").click();
     expect(document.getElementById("editor-question-list").style.display).toBe("");
     expect(document.querySelectorAll("#editor-question-list .active")).toHaveLength(1);
-    expect(document.querySelector("#editor-question-list .active").textContent).toBe(
-      "Soru 2",
+    expect(document.querySelector("#editor-question-list .active").textContent).toContain(
+      "Ikinci soru guncel?",
     );
     expect(document.getElementById("editor-question-list").scrollTop).toBe(48);
   });

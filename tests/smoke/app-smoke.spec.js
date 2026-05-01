@@ -642,7 +642,7 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#editor-dirty-pill")).toHaveText("Durum: Kaydedilmedi");
 
     page.once("dialog", (dialog) => dialog.dismiss());
-    await page.click('button:has-text("Yöneticiye dön")');
+    await page.click('button:has-text("Geri Dön")');
     await expect(page.locator("#editor-screen")).toBeVisible();
     await expect(page.locator("#editor-question-text")).toHaveValue("Kirli soru?");
 

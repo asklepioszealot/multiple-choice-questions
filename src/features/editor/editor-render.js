@@ -25,9 +25,13 @@ export function renderQuestionList({
         index === draft.activeQuestionIndex
           ? " editor-question-item active"
           : " editor-question-item";
-      const label = `Soru ${index + 1}`;
+      const label = question.q.trim() || "Yeni soru";
       const issueMarker = issueIndexes.has(index) ? " ! " : "";
-      return `<button class="${activeClass.trim()}" type="button" data-editor-question-index="${index}">${escapeMarkup(issueMarker + label)}</button>`;
+      return `
+        <button class="${activeClass.trim()}" type="button" data-editor-question-index="${index}">
+          <span class="editor-list-index">${escapeMarkup(issueMarker)}Soru ${index + 1}</span>
+          <span class="editor-list-question">${escapeMarkup(label)}</span>
+        </button>`;
     })
     .join("");
 }

@@ -27,6 +27,7 @@ import {
   renderValidationSummary,
   syncRawEditorHeight,
 } from "./editor-render.js";
+import { sanitizeHtml } from "../../core/security.js";
 import {
   createDownload,
   parseRawEditorDraft,
@@ -569,6 +570,11 @@ function buildEditorMediaSnippet(kind, dataUrl, fileName) {
       );
       const saveBtn = documentRef?.getElementById("editor-save-btn");
       const dirtyPill = documentRef?.getElementById("editor-dirty-pill");
+      const activeSetPill = documentRef?.getElementById("editor-active-set-pill");
+      const formatPill = documentRef?.getElementById("editor-format-pill");
+      const questionTitleEl = documentRef?.getElementById("editor-question-title");
+      const questionSubjectPill = documentRef?.getElementById("editor-question-subject-pill");
+      const explanationPreviewEl = documentRef?.getElementById("editor-explanation-preview");
 
       if (!screenEl || !draft) {
         return;
@@ -599,6 +605,11 @@ function buildEditorMediaSnippet(kind, dataUrl, fileName) {
       }
       if (explanationEl) {
         explanationEl.value = currentQuestion.explanation;
+      }
+      if (explanationPreviewEl) {
+        explanationPreviewEl.innerHTML = sanitizeHtml(
+          codecHelpers.formatEditableText(currentQuestion.explanation),
+        );
       }
       if (explanationToolbarEl) {
         explanationToolbarEl.innerHTML = renderEditorToolbarMarkup({
@@ -667,6 +678,19 @@ function buildEditorMediaSnippet(kind, dataUrl, fileName) {
       }
       if (dirtyPill) {
         dirtyPill.textContent = `Durum: ${isDirty() ? "Kaydedilmedi" : "Kaydedildi"}`;
+      }
+      if (activeSetPill) {
+        activeSetPill.textContent = `Set: ${draft.meta.setName || "-"}`;
+      }
+      if (formatPill) {
+        formatPill.textContent = `Format: ${formatLabel === "Markdown/TXT" ? "Markdown" : "JSON"}`;
+      }
+      if (questionTitleEl) {
+        questionTitleEl.textContent =
+          draft.activeQuestionIndex >= 0 ? `Soru No ${draft.activeQuestionIndex + 1}` : "Soru No -";
+      }
+      if (questionSubjectPill) {
+        questionSubjectPill.textContent = currentQuestion.subject || "Genel";
       }
 
       renderQuestionList({
