@@ -137,9 +137,9 @@ function buildFocusRecommendation({
       title: `${remainingSubject.subject} ile devam et`,
       message:
         remainingSubject.solvedQuestions === 0
-          ? `${remainingSubject.subject} tarafinda ${remainingSubject.remaining} soru seni bekliyor.`
-          : `${remainingSubject.subject} tarafinda ${remainingSubject.remaining} soru kaldi. Mevcut dogruluk %${remainingSubject.accuracy}.`,
-      actionLabel: `${remainingSubject.subject} odagina gec`,
+          ? `${remainingSubject.subject} tarafında ${remainingSubject.remaining} soru seni bekliyor.`
+          : `${remainingSubject.subject} tarafında ${remainingSubject.remaining} soru kaldı. Mevcut doğruluk %${remainingSubject.accuracy}.`,
+      actionLabel: `${remainingSubject.subject} odağına geç`,
       subject: remainingSubject.subject,
     };
   }
@@ -148,9 +148,9 @@ function buildFocusRecommendation({
   if (weakestSolvedSubject) {
     return {
       kind: "subject",
-      title: `${weakestSolvedSubject.subject} tarafini toparla`,
-      message: `${weakestSolvedSubject.subject} icinde ${weakestSolvedSubject.wrong} yanlis cevap var. Kisa bir tekrar iyi sonraki adim olur.`,
-      actionLabel: `${weakestSolvedSubject.subject} sorularina don`,
+      title: `${weakestSolvedSubject.subject} tarafını toparla`,
+      message: `${weakestSolvedSubject.subject} içinde ${weakestSolvedSubject.wrong} yanlış cevap var. Kısa bir tekrar iyi sonraki adım olur.`,
+      actionLabel: `${weakestSolvedSubject.subject} sorularına dön`,
       subject: weakestSolvedSubject.subject,
     };
   }
@@ -158,7 +158,7 @@ function buildFocusRecommendation({
   if (solvedQuestions < totalQuestions) {
     return {
       kind: "progress",
-      title: "Mevcut seti bitirmeye yakinsin",
+      title: "Mevcut seti bitirmeye yakınsın",
       message: `${totalQuestions - solvedQuestions} soru daha çözüldüğünde seçili havuz tamamlanmış olacak.`,
       actionLabel: "",
       subject: null,
@@ -168,7 +168,7 @@ function buildFocusRecommendation({
   return {
     kind: "complete",
     title: "Tüm seçili sorular çözüldü",
-    message: "Yeni bir set secerek veya mevcut setleri sifirlayarak yeni oturum baslatabilirsin.",
+    message: "Yeni bir set seçerek veya mevcut setleri sıfırlayarak yeni oturum başlatabilirsin.",
     actionLabel: "",
     subject: null,
   };

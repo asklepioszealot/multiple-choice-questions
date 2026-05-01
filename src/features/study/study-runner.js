@@ -525,8 +525,8 @@ export function createStudyRunner({
     toggleButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
     toggleButton.classList.toggle("is-active", isOpen);
     toggleButton.title = isOpen
-      ? "Yazi boyutu ayarlarini kapat"
-      : "Yazi boyutu ayarlarini ac";
+      ? "Yazı boyutu ayarlarını kapat"
+      : "Yazı boyutu ayarlarını aç";
   }
 
   function toggleManagerSettingsPanel(forceState = null) {

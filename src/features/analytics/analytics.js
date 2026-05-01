@@ -92,7 +92,7 @@ function syncAnalyticsToggleUi(toggleButton, visible) {
   toggleButton.setAttribute("aria-expanded", visible ? "true" : "false");
   toggleButton.setAttribute(
     "title",
-    visible ? "Istatistikler panelini gizle" : "Istatistikler panelini goster",
+    visible ? "İstatistikler panelini gizle" : "İstatistikler panelini göster",
   );
   toggleButton.classList.toggle("is-active", visible);
 }
@@ -139,7 +139,7 @@ function renderResultDistribution(distribution = {}) {
   );
 
   return `
-    <div class="analytics-stacked-bar" role="img" aria-label="Sonuc dagilimi">
+    <div class="analytics-stacked-bar" role="img" aria-label="Sonuç dağılımı">
       ${segments
         .map(
           (segment) =>
@@ -263,7 +263,7 @@ function normalizeRenderSnapshot(summary = {}) {
             kind: "subject",
             title: `${subjectBreakdown[0].subject} ile devam et`,
             message: `${subjectBreakdown[0].remaining} soru bu konuda seni bekliyor.`,
-            actionLabel: `${subjectBreakdown[0].subject} odagina gec`,
+            actionLabel: `${subjectBreakdown[0].subject} odağına geç`,
             subject: subjectBreakdown[0].subject,
           }
         : {
@@ -296,7 +296,7 @@ function renderSubjectBreakdownTable({
 
     cell.colSpan = 4;
     cell.className = "analytics-subject-breakdown-empty";
-    cell.textContent = "Konu bazli veri yok";
+    cell.textContent = "Konu bazlı veri yok";
     row.appendChild(cell);
     body.appendChild(row);
     return;

@@ -183,7 +183,7 @@ describe("analytics summary", () => {
         kind: "subject",
         title: "Matematik ile devam et",
         message: "1 soru bu konuda seni bekliyor.",
-        actionLabel: "Matematik odagina gec",
+        actionLabel: "Matematik odağına geç",
         subject: "Matematik",
       },
       subjectBreakdown: [
@@ -282,7 +282,7 @@ describe("analytics summary", () => {
         kind: "subject",
         title: "Noroloji ile devam et",
         message: "1 soru bu konuda seni bekliyor.",
-        actionLabel: "Noroloji odagina gec",
+        actionLabel: "Noroloji odağına geç",
         subject: "Noroloji",
       },
     });
