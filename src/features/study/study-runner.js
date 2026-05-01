@@ -331,8 +331,8 @@ export function createStudyRunner({
     }
     if (
       !confirmEditorNavigation(
-        "Kaydedilmemis degisiklikler var. Yoneticiye donersen editor kapanacak. Devam etmek istiyor musun?",
-        "Kaydedilmemis degisiklikler korunuyor.",
+        "Kaydedilmemiş değişiklikler var. Yöneticiye dönersen editör kapanacak. Devam etmek istiyor musun?",
+        "Kaydedilmemiş değişiklikler korunuyor.",
       )
     ) {
       return false;

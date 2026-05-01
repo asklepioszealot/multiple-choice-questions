@@ -54,6 +54,7 @@ describe("editor helpers", () => {
       <div id="editor-options"></div>
       <select id="editor-correct"></select>
       <button id="editor-save-btn" type="button"></button>
+      <input id="editor-media-file-input" type="file" hidden />
     `;
   }
 
@@ -268,7 +269,7 @@ describe("editor helpers", () => {
     );
   });
 
-  it("applies rendered toolbar button clicks to the active editor fields", () => {
+  it("applies rendered toolbar button clicks and file picker media to the active editor fields", async () => {
     mountEditorDom();
 
     const feature = createEditorFeature({
@@ -301,9 +302,19 @@ describe("editor helpers", () => {
       )
       .dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
 
-    expect(document.getElementById("editor-explanation").value).toContain(
-      "![audio: Ses kaydı](https://example.com/ses.mp3)",
-    );
+    const fileInput = document.getElementById("editor-media-file-input");
+    const audioFile = new File(["ID3"], "ses-kaydi.mp3", { type: "audio/mpeg" });
+    Object.defineProperty(fileInput, "files", {
+      configurable: true,
+      value: [audioFile],
+    });
+    fileInput.dispatchEvent(new Event("change"));
+
+    await vi.waitFor(() => {
+      expect(document.getElementById("editor-explanation").value).toContain(
+        "![audio: ses-kaydi](data:audio/mpeg;base64",
+      );
+    });
   });
 
   it("supports undo redo history and preserves question list UI state", () => {
@@ -358,8 +369,8 @@ describe("editor helpers", () => {
     document.getElementById("editor-question-list-toggle-btn").click();
     expect(document.getElementById("editor-question-list").style.display).toBe("");
     expect(document.querySelectorAll("#editor-question-list .active")).toHaveLength(1);
-    expect(document.querySelector("#editor-question-list .active").textContent).toContain(
-      "Ikinci soru guncel?",
+    expect(document.querySelector("#editor-question-list .active").textContent).toBe(
+      "Soru 2",
     );
     expect(document.getElementById("editor-question-list").scrollTop).toBe(48);
   });
@@ -476,7 +487,7 @@ describe("editor helpers", () => {
         },
         questions: [],
       }),
-    ).toBe("Set adi bos olamaz.");
+    ).toBe("Set adı boş olamaz.");
 
     expect(
       validateEditorDraft({
@@ -541,7 +552,7 @@ describe("editor helpers", () => {
 
     expect(document.getElementById("editor-save-btn").disabled).toBe(true);
     expect(document.getElementById("editor-validation-summary").textContent).toContain(
-      "Set adi bos olamaz.",
+      "Set adı boş olamaz.",
     );
 
     feature.updateMetaField("setName", "Demo");

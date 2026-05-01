@@ -13,7 +13,7 @@ describe("sync status controller", () => {
       detail: "workspace",
       retryLabel: "",
       isRetrying: false,
-      message: "Bulut ile esitlendi.",
+      message: "Bulut ile eşitlendi.",
       canRetry: false,
       visible: true,
     });
@@ -28,7 +28,7 @@ describe("sync status controller", () => {
       detail: "Network",
       retryLabel: "",
       isRetrying: false,
-      message: "Sync hatasi: Network",
+      message: "Sync hatası: Network",
       canRetry: true,
       visible: true,
     });
@@ -57,7 +57,7 @@ describe("sync status controller", () => {
       detail: "Network",
       retryLabel: "Setler",
       isRetrying: false,
-      message: "Sync hatasi: Network",
+      message: "Sync hatası: Network",
       canRetry: true,
       visible: true,
     });

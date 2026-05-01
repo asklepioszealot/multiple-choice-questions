@@ -444,8 +444,8 @@ export async function startApp() {
 
     if (
       !confirmEditorNavigation(
-        "Kaydedilmemis degisiklikler var. Baska bir sete gecersen editor kapanacak. Devam etmek istiyor musun?",
-        "Kaydedilmemis degisiklikler korunuyor.",
+        "Kaydedilmemiş değişiklikler var. Başka bir sete geçersen editör kapanacak. Devam etmek istiyor musun?",
+        "Kaydedilmemiş değişiklikler korunuyor.",
       )
     ) {
       return false;
@@ -482,7 +482,7 @@ export async function startApp() {
       } catch (error) {
         window.console.error("Native set import error", error);
         window.alert?.(
-          error?.message || "Yerel dosya secilirken bir hata olustu.",
+          error?.message || "Yerel dosya seçilirken bir hata oluştu.",
         );
         return null;
       }

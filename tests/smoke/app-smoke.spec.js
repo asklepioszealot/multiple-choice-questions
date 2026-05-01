@@ -472,7 +472,7 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#editor-source-format-label")).toContainText("Markdown/TXT");
   });
 
-  test("editor media token buttons insert lightweight image and audio snippets", async ({
+  test("editor media buttons insert selected image and audio files", async ({
     page,
   }) => {
     await openSeededEditor(page, {
@@ -485,8 +485,13 @@ test.describe("MCQ smoke", () => {
     await page.click(
       '#editor-question-toolbar [data-editor-toolbar-action="attachment-image"]',
     );
+    await page.setInputFiles("#editor-media-file-input", {
+      name: "gorsel.png",
+      mimeType: "image/png",
+      buffer: Buffer.from([137, 80, 78, 71]),
+    });
     await expect(page.locator("#editor-question-text")).toHaveValue(
-      /!\[Görsel açıklaması\]\(https:\/\/example\.com\/gorsel\.png\)/,
+      /!\[gorsel\]\(data:image\/png;base64,/,
     );
 
     await page.fill("#editor-explanation", "Aciklama");
@@ -494,8 +499,13 @@ test.describe("MCQ smoke", () => {
     await page.click(
       '#editor-explanation-toolbar [data-editor-toolbar-action="attachment-audio"]',
     );
+    await page.setInputFiles("#editor-media-file-input", {
+      name: "ses.mp3",
+      mimeType: "audio/mpeg",
+      buffer: Buffer.from([73, 68, 51]),
+    });
     await expect(page.locator("#editor-explanation")).toHaveValue(
-      /!\[audio: Ses kaydı\]\(https:\/\/example\.com\/ses\.mp3\)/,
+      /!\[audio: ses\]\(data:audio\/mpeg;base64,/,
     );
 
     await page.evaluate(() => {
@@ -515,10 +525,10 @@ test.describe("MCQ smoke", () => {
     await page.locator("#editor-correct").selectOption("0");
     await page.click("#editor-raw-tab-btn");
     await expect(page.locator("#editor-raw-input")).toHaveValue(
-      /!\[Görsel açıklaması\]\(https:\/\/example\.com\/gorsel\.png\)/,
+      /!\[gorsel\]\(data:image\/png;base64,/,
     );
     await expect(page.locator("#editor-raw-input")).toHaveValue(
-      /!\[audio: Ses kaydı\]\(https:\/\/example\.com\/ses\.mp3\)/,
+      /!\[audio: ses\]\(data:audio\/mpeg;base64,/,
     );
   });
 
@@ -632,7 +642,7 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#editor-dirty-pill")).toHaveText("Durum: Kaydedilmedi");
 
     page.once("dialog", (dialog) => dialog.dismiss());
-    await page.click('button:has-text("Yoneticiye don")');
+    await page.click('button:has-text("Yöneticiye dön")');
     await expect(page.locator("#editor-screen")).toBeVisible();
     await expect(page.locator("#editor-question-text")).toHaveValue("Kirli soru?");
 
@@ -802,7 +812,7 @@ test.describe("MCQ smoke", () => {
     await page.locator("#analytics-toggle-btn").click();
     await expect(page.locator("#analytics-dashboard-manager")).toBeVisible();
     await expect(page.locator("#analytics-distribution-meta")).toContainText(
-      "Dogru 1",
+      "Doğru 1",
     );
     await expect(page.locator("#analytics-activity-meta")).toContainText(
       "3 hareket",
@@ -965,24 +975,24 @@ test.describe("MCQ smoke", () => {
     await page.evaluate(() => {
       window.__MCQ_SYNC_RETRY_RUNS__ = 0;
       window.__MCQ_TEST_HOOKS__.setSyncRetryPreview({
-        detail: "Baglanti koptu",
-        label: "Calisma alani",
+        detail: "Bağlantı koptu",
+        label: "Çalışma alanı",
         delayMs: 120,
       });
     });
 
     await expect(page.locator("#sync-status")).toContainText(
-      "Sync hatasi: Baglanti koptu",
+      "Sync hatası: Bağlantı koptu",
     );
     await expect(page.locator("#sync-retry-btn")).toBeVisible();
     await expect(page.locator("#sync-retry-btn")).toContainText(
-      "Calisma alani tekrar dene",
+      "Çalışma alanı tekrar dene",
     );
 
     await page.locator("#sync-retry-btn").click();
 
     await expect(page.locator("#sync-status")).toContainText(
-      "Calisma alani yeniden deneniyor...",
+      "Çalışma alanı yeniden deneniyor...",
     );
     await expect(page.locator("#sync-retry-btn")).toBeHidden();
 
@@ -1000,7 +1010,7 @@ test.describe("MCQ smoke", () => {
         snapshot: {
           state: "synced",
           isRetrying: false,
-          message: "Bulut ile esitlendi.",
+          message: "Bulut ile eşitlendi.",
         },
       });
   });

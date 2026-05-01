@@ -88,10 +88,10 @@ function buildLastStudyText(pendingSession) {
   );
 
   if (!hasSessionProgress) {
-    return "Son calisma: Henuz baslanmadi";
+    return "Son çalışma: Henüz başlanmadı";
   }
 
-  return `Son calisma: ${
+  return `Son çalışma: ${
     Number.isInteger(session.currentQuestionIndex)
       ? session.currentQuestionIndex + 1
       : 1
@@ -124,7 +124,7 @@ function buildFocusRecommendation({
     return {
       kind: "empty",
       title: "Henüz veri yok",
-      message: "Set yuklendiginde ve sorular cozuldukce odak onerisi burada gorunecek.",
+      message: "Set yüklendiğinde ve sorular çözüldükçe odak önerisi burada görünecek.",
       actionLabel: "",
       subject: null,
     };
@@ -159,7 +159,7 @@ function buildFocusRecommendation({
     return {
       kind: "progress",
       title: "Mevcut seti bitirmeye yakinsin",
-      message: `${totalQuestions - solvedQuestions} soru daha cozuldugunde secili havuz tamamlanmis olacak.`,
+      message: `${totalQuestions - solvedQuestions} soru daha çözüldüğünde seçili havuz tamamlanmış olacak.`,
       actionLabel: "",
       subject: null,
     };
@@ -167,7 +167,7 @@ function buildFocusRecommendation({
 
   return {
     kind: "complete",
-    title: "Tum secili sorular cozuldu",
+    title: "Tüm seçili sorular çözüldü",
     message: "Yeni bir set secerek veya mevcut setleri sifirlayarak yeni oturum baslatabilirsin.",
     actionLabel: "",
     subject: null,

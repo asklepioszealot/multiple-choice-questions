@@ -142,7 +142,7 @@ export function renderSyncConflictPanel(pendingSyncConflict, documentRef = docum
   messageEl.textContent =
     blockingSetCount > 0
       ? `${blockingSetCount} sette iki taraf da degismis. Hangisi esas alinsin?`
-      : "Yerel calisma alani ile bulut verisi farkli. Hangisi esas alinsin?";
+      : "Yerel çalışma alanı ile bulut verisi farklı. Hangisi esas alınsın?";
   localSummaryEl.textContent = formatSyncConflictSummary(
     pendingSyncConflict.conflict.localSummary,
   );

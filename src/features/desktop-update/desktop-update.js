@@ -61,7 +61,7 @@ const DEFAULT_BUTTON_LABEL = "Guncellemeleri Kontrol Et";
     const currentVersion = updateMetadata.currentVersion || "?";
     const notes = getDesktopUpdateNotes(updateMetadata);
     const parts = [
-      `Yeni masaustu surumu hazir: v${version}`,
+      `Yeni masaüstü sürümü hazır: v${version}`,
       `Mevcut surum: v${currentVersion}`,
     ];
 
@@ -143,7 +143,7 @@ const DEFAULT_BUTTON_LABEL = "Guncellemeleri Kontrol Et";
     async function installUpdate(updateMetadata) {
       const core = getTauriCoreApi(windowRef);
       if (!core) {
-        throw new Error("Tauri cekirdegi bulunamadi.");
+        throw new Error("Tauri çekirdeği bulunamadı.");
       }
 
       let downloadedBytes = 0;
@@ -211,7 +211,7 @@ const DEFAULT_BUTTON_LABEL = "Guncellemeleri Kontrol Et";
         })
       ) {
         if (isManualCheck && typeof alertRef === "function") {
-          alertRef("Masaustu guncellemesi yalnizca Windows desktop surumunde kullanilabilir.");
+          alertRef("Masaüstü güncellemesi yalnızca Windows desktop sürümünde kullanılabilir.");
         }
         return false;
       }
@@ -237,7 +237,7 @@ const DEFAULT_BUTTON_LABEL = "Guncellemeleri Kontrol Et";
         const updateMetadata = await core.invoke("plugin:updater|check");
         if (!updateMetadata) {
           if (isManualCheck && typeof alertRef === "function") {
-            alertRef("Yeni bir masaustu surumu bulunamadi.");
+            alertRef("Yeni bir masaüstü sürümü bulunamadı.");
           }
           return false;
         }

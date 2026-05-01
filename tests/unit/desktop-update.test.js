@@ -60,7 +60,7 @@ describe("desktop update feature", () => {
         currentVersion: "1.0.0",
         body: "Yeni desktop updater ve sync iyilestirmeleri.",
       }),
-    ).toContain("Yeni masaustu surumu hazir: v1.0.1");
+    ).toContain("Yeni masaüstü sürümü hazır: v1.0.1");
   });
 
   it("checks for updates manually on supported desktop runtime", async () => {

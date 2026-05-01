@@ -33,7 +33,7 @@ function normalizeSelectionRange(textValue, selectionStart, selectionEnd) {
   };
 }
 
-function insertTextAtSelection(textValue, replacement, options = {}) {
+export function insertEditorTextAtSelection(textValue, replacement, options = {}) {
   const currentText = String(textValue || "");
   const { start, end } = normalizeSelectionRange(
     currentText,
@@ -260,7 +260,7 @@ export function applyEditorToolbarAction(textValue, action, options = {}) {
 
   if (action === "attachment-image" || action === "attachment-audio") {
     const template = buildMediaTokenTemplate(action);
-    return insertTextAtSelection(textValue, template.token, {
+  return insertEditorTextAtSelection(textValue, template.token, {
       ...options,
       selectionOffsetEnd: template.selectionEnd,
       selectionOffsetStart: template.selectionStart,
@@ -276,7 +276,7 @@ export function applyEditorToolbarAction(textValue, action, options = {}) {
   const selectedText = currentText.slice(start, end);
   const template = buildFormattingTokenTemplate(action, selectedText);
 
-  return insertTextAtSelection(currentText, template.token, {
+  return insertEditorTextAtSelection(currentText, template.token, {
     ...options,
     selectionOffsetEnd: template.selectionEnd,
     selectionOffsetStart: template.selectionStart,

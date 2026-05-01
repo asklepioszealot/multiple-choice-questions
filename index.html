@@ -1883,7 +1883,7 @@
             <span class="analytics-card-label">Setler</span>
             <div class="analytics-card-value" id="analytics-sets-value">0 / 0</div>
             <div class="analytics-card-meta" id="analytics-sets-meta">
-              Yuklu / secili set
+              Yüklü / seçili set
             </div>
           </div>
           <div class="analytics-card">
@@ -1894,17 +1894,17 @@
           <div class="analytics-card">
             <span class="analytics-card-label">Sonuc</span>
             <div class="analytics-card-value" id="analytics-results-value">0 / 0</div>
-            <div class="analytics-card-meta">Dogru / yanlis</div>
+            <div class="analytics-card-meta">Doğru / yanlış</div>
           </div>
           <div class="analytics-card">
             <span class="analytics-card-label">Tamamlanma</span>
             <div class="analytics-card-value" id="analytics-completion-value">%0</div>
-            <div class="analytics-card-meta">Secili calisma havuzu</div>
+            <div class="analytics-card-meta">Seçili çalışma havuzu</div>
           </div>
           <div class="analytics-card analytics-last-study">
             <span class="analytics-card-label">Oturum</span>
             <div class="analytics-card-meta" id="analytics-last-study">
-              Son calisma: Henuz baslanmadi
+              Son çalışma: Henüz başlanmadı
             </div>
           </div>
           <div class="analytics-card analytics-distribution-card">
@@ -1912,13 +1912,13 @@
               <div>
                 <span class="analytics-card-label">Sonuc dagilimi</span>
                 <div class="analytics-card-meta" id="analytics-distribution-meta">
-                  Dogru 0 • Yanlis 0 • Bos 0
+                  Doğru 0 • Yanlış 0 • Boş 0
                 </div>
               </div>
             </div>
             <div class="analytics-card-body" id="analytics-result-distribution">
               <div class="analytics-empty-state">
-                Sonuc dagilimi, cevaplar olustukca burada gosterilecek.
+                Sonuç dağılımı, cevaplar oluştukça burada gösterilecek.
               </div>
             </div>
           </div>
@@ -1927,27 +1927,27 @@
               <div>
                 <span class="analytics-card-label">Aktivite trendi</span>
                 <div class="analytics-card-meta" id="analytics-activity-meta">
-                  Son 7 gun • 0 hareket
+                  Son 7 gün • 0 hareket
                 </div>
               </div>
             </div>
             <div class="analytics-card-body" id="analytics-activity-trend">
               <div class="analytics-empty-state">
-                Son 7 gun aktivitesi henuz olusmadi.
+                Son 7 gün aktivitesi henüz oluşmadı.
               </div>
             </div>
           </div>
           <div class="analytics-card analytics-focus-card">
             <div class="analytics-card-head">
               <div>
-                <span class="analytics-card-label">Odak onerisi</span>
+                <span class="analytics-card-label">Odak önerisi</span>
                 <div class="analytics-card-title" id="analytics-focus-title">
-                  Henuz veri yok
+                  Henüz veri yok
                 </div>
               </div>
             </div>
             <div class="analytics-card-meta analytics-focus-copy" id="analytics-focus-copy">
-              Set yuklendiginde ve sorular cozuldukce odak onerisi burada gorunecek.
+              Set yüklendiğinde ve sorular çözüldükçe odak önerisi burada görünecek.
             </div>
             <button
               class="btn btn-secondary analytics-focus-action"
@@ -2069,7 +2069,7 @@
     <div id="editor-screen" class="editor-screen" style="display: none">
       <div class="editor-shell">
         <div class="editor-topbar">
-          <button class="btn btn-secondary" id="editor-back-btn" type="button">Yoneticiye don</button>
+          <button class="btn btn-secondary" id="editor-back-btn" type="button">Yöneticiye dön</button>
           <div>
             <h2>MCQ Editor</h2>
             <div class="auth-meta" id="editor-source-format-label">
@@ -2087,10 +2087,11 @@
               id="editor-export-source-btn"
               type="button"
             >
-              Kaynak formatta disa aktar
+              Kaynak formatta dışa aktar
             </button>
-            <button class="btn btn-secondary" id="editor-json-btn" type="button">JSON disa aktar</button>
+            <button class="btn btn-secondary" id="editor-json-btn" type="button">JSON dışa aktar</button>
             <button class="btn" id="editor-save-btn" type="button">Kaydet</button>
+            <input id="editor-media-file-input" type="file" hidden />
           </div>
         </div>
         <div id="editor-status" class="auth-status"></div>
@@ -2098,7 +2099,7 @@
         <div class="editor-layout">
           <div class="editor-sidebar">
             <div class="editor-field">
-              <label for="editor-set-name">Set adi</label>
+              <label for="editor-set-name">Set adı</label>
               <input
                 id="editor-set-name"
                 class="editor-input"

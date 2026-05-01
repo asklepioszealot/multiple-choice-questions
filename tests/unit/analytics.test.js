@@ -63,7 +63,7 @@ describe("analytics summary", () => {
 
     expect(summary.totalQuestions).toBe(1);
     expect(summary.solvedQuestions).toBe(0);
-    expect(summary.lastStudyText).toBe("Son calisma: Henuz baslanmadi");
+    expect(summary.lastStudyText).toBe("Son çalışma: Henüz başlanmadı");
   });
 
   it("groups solved answers by subject with correct and wrong counts", () => {
@@ -169,7 +169,7 @@ describe("analytics summary", () => {
       correctAnswers: 8,
       wrongAnswers: 3,
       completionRate: 55,
-      lastStudyText: "Son calisma: 4. soru",
+      lastStudyText: "Son çalışma: 4. soru",
       resultDistribution: {
         correct: 8,
         wrong: 3,
@@ -209,17 +209,17 @@ describe("analytics summary", () => {
     });
 
     expect(document.getElementById("analytics-summary-manager").textContent).toContain(
-      "3 yuklu set",
+      "3 yüklü set",
     );
     expect(document.getElementById("analytics-sets-value").textContent).toBe("3 / 2");
     expect(document.getElementById("analytics-questions-value").textContent).toBe("20 / 11");
     expect(document.getElementById("analytics-results-value").textContent).toBe("8 / 3");
     expect(document.getElementById("analytics-completion-value").textContent).toBe("%55");
     expect(document.getElementById("analytics-last-study").textContent).toBe(
-      "Son calisma: 4. soru",
+      "Son çalışma: 4. soru",
     );
     expect(document.getElementById("analytics-distribution-meta").textContent).toContain(
-      "Dogru 8",
+      "Doğru 8",
     );
     expect(document.getElementById("analytics-activity-meta").textContent).toContain(
       "4 hareket",

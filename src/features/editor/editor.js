@@ -35,10 +35,76 @@ import {
 import {
   applyEditorToolbarAction,
   buildEditorToolbarActions,
+  insertEditorTextAtSelection,
   renderEditorToolbarMarkup,
 } from "./editor-toolbar.js";
 
 const globalScope = typeof window !== "undefined" ? window : globalThis;
+const EDITOR_IMAGE_ACCEPT = "image/png,image/jpeg,image/gif,image/webp,image/avif";
+const EDITOR_AUDIO_ACCEPT = "audio/mpeg,audio/mp3,audio/ogg,audio/wav,audio/webm,audio/aac,audio/mp4";
+const EDITOR_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+const EDITOR_AUDIO_MAX_BYTES = 5 * 1024 * 1024;
+
+function stripFileExtension(fileName) {
+  return String(fileName || "")
+    .replace(/\.[^.]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolveMediaKind(file) {
+  const mimeType = String(file?.type || "").toLowerCase();
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("audio/")) return "audio";
+  return "";
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    if (typeof FileReader !== "function") {
+      reject(new Error("Dosya okuyucu bu ortamda kullanılamıyor."));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("Medya dosyası okunamadı."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function validateEditorMediaFile(file, intendedKind) {
+  const kind = resolveMediaKind(file);
+  if (!kind || kind !== intendedKind) {
+    throw new Error(
+      intendedKind === "image"
+        ? "Lütfen yalnızca görsel dosyası seç."
+        : "Lütfen yalnızca ses dosyası seç.",
+    );
+  }
+
+  const sizeBytes = Number(file?.size || 0);
+  if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) {
+    throw new Error("Boş medya dosyası eklenemez.");
+  }
+
+  if (kind === "image" && sizeBytes > EDITOR_IMAGE_MAX_BYTES) {
+    throw new Error("Görseller 2 MB veya daha küçük olmalı.");
+  }
+
+  if (kind === "audio" && sizeBytes > EDITOR_AUDIO_MAX_BYTES) {
+    throw new Error("Ses dosyaları 5 MB veya daha küçük olmalı.");
+  }
+
+  return kind;
+}
+
+function buildEditorMediaSnippet(kind, dataUrl, fileName) {
+  const label = stripFileExtension(fileName) || (kind === "audio" ? "Ses kaydı" : "Görsel");
+  return kind === "audio"
+    ? `![audio: ${label}](${dataUrl})`
+    : `![${label}](${dataUrl})`;
+}
 
   function getEditorValidationIssues(draft) {
     const issues = [];
@@ -54,11 +120,11 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
     }
 
     if (!String(draft?.meta?.setName || "").trim()) {
-      issues.push({
-        code: "missing-set-name",
-        message: "Set adi bos olamaz.",
-        questionIndex: -1,
-      });
+        issues.push({
+          code: "missing-set-name",
+          message: "Set adı boş olamaz.",
+          questionIndex: -1,
+        });
     }
 
     if (toSafeArray(draft.questions).length === 0) {
@@ -261,6 +327,83 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
       statusEl.className = tone ? `auth-status ${tone}` : "auth-status";
     }
 
+    function getMediaFileInput() {
+      const existingInput = documentRef?.getElementById("editor-media-file-input");
+      if (existingInput) {
+        return existingInput;
+      }
+
+      if (!documentRef?.createElement || !documentRef?.body?.appendChild) {
+        return null;
+      }
+
+      const input = documentRef.createElement("input");
+      input.type = "file";
+      input.hidden = true;
+      input.id = "editor-media-file-input";
+      documentRef.body.appendChild(input);
+      return input;
+    }
+
+    function insertMediaSnippet(field, snippet, selection = {}) {
+      const targetField = field === "explanation" ? "explanation" : "q";
+      const currentValue = getCurrentFieldValue(targetField);
+      const insertion = insertEditorTextAtSelection(currentValue, snippet, {
+        selectionEnd: selection.selectionEnd,
+        selectionStart: selection.selectionStart,
+        selectionOffsetEnd: snippet.length,
+        selectionOffsetStart: snippet.length,
+      });
+
+      return applyFieldValue(targetField, insertion.value, {
+        selectionEnd: insertion.selectionEnd,
+        selectionStart: insertion.selectionStart,
+      });
+    }
+
+    function openMediaFilePicker(field, intendedKind = "image") {
+      if (!draft || draft.activeQuestionIndex < 0) {
+        return;
+      }
+
+      const input = getMediaFileInput();
+      if (!input) {
+        setStatus("Medya seçici bu ortamda kullanılamıyor.", "error");
+        return;
+      }
+
+      const targetField = field === "explanation" ? "explanation" : "q";
+      const textareaEl = documentRef?.getElementById(resolveFieldTextareaId(targetField));
+      const selection = {
+        selectionEnd: textareaEl?.selectionEnd,
+        selectionStart: textareaEl?.selectionStart,
+      };
+
+      input.accept = intendedKind === "audio" ? EDITOR_AUDIO_ACCEPT : EDITOR_IMAGE_ACCEPT;
+      input.value = "";
+      input.onchange = async () => {
+        const selectedFile = input.files?.[0];
+        input.value = "";
+        if (!selectedFile) {
+          return;
+        }
+
+        try {
+          setStatus(intendedKind === "audio" ? "Ses ekleniyor..." : "Görsel ekleniyor...");
+          const kind = validateEditorMediaFile(selectedFile, intendedKind);
+          const dataUrl = await readFileAsDataUrl(selectedFile);
+          const snippet = buildEditorMediaSnippet(kind, dataUrl, selectedFile.name);
+          insertMediaSnippet(targetField, snippet, selection);
+          setStatus(kind === "audio" ? "Ses eklendi." : "Görsel eklendi.", "success");
+        } catch (error) {
+          setStatus(error?.message || "Medya eklenemedi.", "error");
+          render();
+        }
+      };
+
+      input.click();
+    }
+
     function syncFieldSelection(field, selectionStart, selectionEnd) {
       const nextTextareaEl = documentRef?.getElementById(resolveFieldTextareaId(field));
       if (
@@ -377,6 +520,14 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
               return;
             }
 
+            if (action === "attachment-image" || action === "attachment-audio") {
+              openMediaFilePicker(
+                field,
+                action === "attachment-audio" ? "audio" : "image",
+              );
+              return;
+            }
+
             applyToolbarAction(field, action);
           };
           buttonEl.onclick = (event) => {
@@ -487,13 +638,13 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
         sourceFormatEl.textContent = `Kaynak format: ${formatLabel}`;
       }
       if (sourceExportBtn) {
-        sourceExportBtn.textContent = `${formatLabel} disa aktar`;
+        sourceExportBtn.textContent = `${formatLabel} dışa aktar`;
       }
       if (questionListToggleBtn) {
         const isExpanded = draft?.ui?.isQuestionListExpanded !== false;
         questionListToggleBtn.textContent = isExpanded
           ? "Listeyi daralt"
-          : "Listeyi ac";
+          : "Listeyi aç";
         questionListToggleBtn.setAttribute("aria-expanded", isExpanded ? "true" : "false");
         questionListToggleBtn.onclick = () => {
           draft = setDraftQuestionListExpanded(draft, !isExpanded);
@@ -746,7 +897,7 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
         render();
       } catch (error) {
         setStatus(
-          error?.message || `Raw ${getActiveFormatLabel()} okunamadi.`,
+          error?.message || `Raw ${getActiveFormatLabel()} okunamadı.`,
           "error",
         );
       }
@@ -778,7 +929,7 @@ const globalScope = typeof window !== "undefined" ? window : globalThis;
           draft = createEditorDraft(persistedRecord, codecHelpers);
           baselineSignature = buildDraftSignature(draft);
           setStatus(
-            error?.message || "Kaynak dosyaya yazilirken hata olustu.",
+            error?.message || "Kaynak dosyaya yazılırken hata oluştu.",
             "error",
           );
           render();

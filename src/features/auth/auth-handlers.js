@@ -58,8 +58,8 @@ export function createAuthHandlers({
   async function signOutAuth() {
     if (
       !confirmEditorNavigation(
-        "Kaydedilmemis degisiklikler var. Cikis yaparsan editor degisiklikleri kaybolacak. Devam etmek istiyor musun?",
-        "Kaydedilmemis degisiklikler korunuyor.",
+        "Kaydedilmemiş değişiklikler var. Çıkış yaparsan editör değişiklikleri kaybolacak. Devam etmek istiyor musun?",
+        "Kaydedilmemiş değişiklikler korunuyor.",
       )
     ) {
       return false;

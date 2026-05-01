@@ -26,7 +26,7 @@ function formatAnalyticsHeadline(summary = {}) {
   const totalQuestions = Number(summary.totalQuestions) || 0;
   const completionRate = Number(summary.completionRate) || 0;
 
-  return `${loadedSetCount} yuklu set • ${selectedSetCount} secili • ${solvedQuestions}/${totalQuestions} soru cozuldu • Tamamlanma %${completionRate}`;
+  return `${loadedSetCount} yüklü set • ${selectedSetCount} seçili • ${solvedQuestions}/${totalQuestions} soru çözüldü • Tamamlanma %${completionRate}`;
 }
 
 function buildAnalyticsSummary(options = {}) {
@@ -118,17 +118,17 @@ function renderEmptyCard(message) {
 function renderResultDistribution(distribution = {}) {
   const segments = [
     {
-      label: "Dogru",
+      label: "Doğru",
       value: Number(distribution.correct) || 0,
       className: "is-correct",
     },
     {
-      label: "Yanlis",
+      label: "Yanlış",
       value: Number(distribution.wrong) || 0,
       className: "is-wrong",
     },
     {
-      label: "Bos",
+      label: "Boş",
       value: Number(distribution.unanswered) || 0,
       className: "is-unanswered",
     },
@@ -161,7 +161,7 @@ function renderResultDistribution(distribution = {}) {
 function renderActivityChart(points = []) {
   const safePoints = toSafeArray(points);
   if (safePoints.length === 0) {
-    return renderEmptyCard("Son 7 gun aktivitesi henuz olusmadi.");
+    return renderEmptyCard("Son 7 gün aktivitesi henüz oluşmadı.");
   }
 
   const width = 280;
@@ -189,7 +189,7 @@ function renderActivityChart(points = []) {
   ].join(" ");
 
   return `
-    <svg viewBox="0 0 ${width} ${height}" class="analytics-chart analytics-chart-line" role="img" aria-label="Son 7 gun aktivite trendi">
+    <svg viewBox="0 0 ${width} ${height}" class="analytics-chart analytics-chart-line" role="img" aria-label="Son 7 gün aktivite trendi">
       <polygon points="${areaPoints}" class="analytics-line-fill"></polygon>
       <polyline points="${linePoints}" class="analytics-line-stroke"></polyline>
       ${coordinates
@@ -206,8 +206,8 @@ function renderActivityChart(points = []) {
         .join("")}
     </svg>
     <div class="analytics-legend analytics-legend-compact">
-      <div class="analytics-legend-item"><span class="analytics-legend-dot is-correct"></span><span>Dogru</span><strong>${safePoints.reduce((sum, point) => sum + (Number(point.correct) || 0), 0)}</strong></div>
-      <div class="analytics-legend-item"><span class="analytics-legend-dot is-wrong"></span><span>Yanlis</span><strong>${safePoints.reduce((sum, point) => sum + (Number(point.wrong) || 0), 0)}</strong></div>
+      <div class="analytics-legend-item"><span class="analytics-legend-dot is-correct"></span><span>Doğru</span><strong>${safePoints.reduce((sum, point) => sum + (Number(point.correct) || 0), 0)}</strong></div>
+      <div class="analytics-legend-item"><span class="analytics-legend-dot is-wrong"></span><span>Yanlış</span><strong>${safePoints.reduce((sum, point) => sum + (Number(point.wrong) || 0), 0)}</strong></div>
       <div class="analytics-legend-item"><span class="analytics-legend-dot is-unanswered"></span><span>Temizlenen</span><strong>${safePoints.reduce((sum, point) => sum + (Number(point.cleared) || 0), 0)}</strong></div>
     </div>
   `;
@@ -248,7 +248,7 @@ function normalizeRenderSnapshot(summary = {}) {
     correctAnswers,
     wrongAnswers,
     completionRate: Number(summary.completionRate) || 0,
-    lastStudyText: summary.lastStudyText || "Son calisma: Henuz baslanmadi",
+    lastStudyText: summary.lastStudyText || "Son çalışma: Henüz başlanmadı",
     resultDistribution: summary.resultDistribution || {
       correct: correctAnswers,
       wrong: wrongAnswers,
@@ -269,7 +269,7 @@ function normalizeRenderSnapshot(summary = {}) {
         : {
             kind: "empty",
             title: "Henüz veri yok",
-            message: "Setlerde ilerleme olustukca odak onerisi burada gorunecek.",
+            message: "Setlerde ilerleme oluştukça odak önerisi burada görünecek.",
             actionLabel: "",
             subject: null,
           }),
@@ -352,7 +352,7 @@ function renderFocusRecommendation({ elements, recommendation, onSubjectSelect }
   }
   if (elements.focusCopy) {
     elements.focusCopy.textContent =
-      recommendation?.message || "Setlerde ilerleme olustukca odak onerisi burada gorunecek.";
+    recommendation?.message || "Setlerde ilerleme oluştukça odak önerisi burada görünecek.";
   }
   if (!elements.focusAction) {
     return;
@@ -432,7 +432,7 @@ function createAnalyticsPanelController({
       elements.setsValue.textContent = `${snapshot.loadedSetCount} / ${snapshot.selectedSetCount}`;
     }
     if (elements.setsMeta) {
-      elements.setsMeta.textContent = "Yuklu / secili set";
+      elements.setsMeta.textContent = "Yüklü / seçili set";
     }
     if (elements.questionsValue) {
       elements.questionsValue.textContent = `${snapshot.totalQuestions} / ${snapshot.solvedQuestions}`;
@@ -447,19 +447,19 @@ function createAnalyticsPanelController({
       elements.lastStudy.textContent = snapshot.lastStudyText;
     }
     if (elements.distributionMeta) {
-      elements.distributionMeta.textContent = `Dogru ${snapshot.resultDistribution.correct} • Yanlis ${snapshot.resultDistribution.wrong} • Bos ${snapshot.resultDistribution.unanswered}`;
+      elements.distributionMeta.textContent = `Doğru ${snapshot.resultDistribution.correct} • Yanlış ${snapshot.resultDistribution.wrong} • Boş ${snapshot.resultDistribution.unanswered}`;
     }
     if (elements.distributionView) {
       elements.distributionView.innerHTML = snapshot.totalQuestions
         ? renderResultDistribution(snapshot.resultDistribution)
-        : renderEmptyCard("Sonuc dagilimi, cevaplar olustukca burada gosterilecek.");
+        : renderEmptyCard("Sonuç dağılımı, cevaplar oluştukça burada gösterilecek.");
     }
     if (elements.activityMeta) {
       const totalActivity = snapshot.activityTrend.reduce(
         (sum, point) => sum + (Number(point.total) || 0),
         0,
       );
-      elements.activityMeta.textContent = `Son 7 gun • ${totalActivity} hareket`;
+      elements.activityMeta.textContent = `Son 7 gün • ${totalActivity} hareket`;
     }
     if (elements.activityTrend) {
       elements.activityTrend.innerHTML = renderActivityChart(snapshot.activityTrend);

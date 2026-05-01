@@ -7,15 +7,15 @@ function buildStatusMessage(state, detail = "", retryLabel = "", isRetrying = fa
     }
 
     if (state === "syncing") {
-      return "Bulut ile esitleniyor...";
+      return "Bulut ile eşitleniyor...";
     }
 
     if (state === "synced") {
-      return "Bulut ile esitlendi.";
+      return "Bulut ile eşitlendi.";
     }
 
     if (state === "error") {
-      return detail ? `Sync hatasi: ${detail}` : "Sync hatasi";
+      return detail ? `Sync hatası: ${detail}` : "Sync hatası";
     }
 
     return "";

@@ -859,7 +859,7 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
     async function getUserOrThrow() {
       const user = await remoteAdapter.getCurrentUser();
       if (!user) {
-        throw new Error("Masaustu senkronizasyonu icin giris gerekli.");
+        throw new Error("Masaüstü senkronizasyonu için giriş gerekli.");
       }
       return user;
     }

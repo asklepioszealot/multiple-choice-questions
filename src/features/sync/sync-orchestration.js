@@ -422,7 +422,7 @@ export function createSyncOrchestration(deps) {
       return;
     }
 
-    markSyncing("calisma alani");
+    markSyncing("çalışma alanı");
 
     const userPrefix = getStorageKeyPrefix();
     const fallbackWorkspace = hasWorkspaceSeed(options.fallbackWorkspace)
@@ -461,7 +461,7 @@ export function createSyncOrchestration(deps) {
       syncLoadFailed = true;
       markSyncError(
         error,
-        createRetryDescriptor("workspace", "Calisma alani", () =>
+        createRetryDescriptor("workspace", "Çalışma alanı", () =>
           loadSyncedWorkspace(options),
         ),
       );
@@ -475,7 +475,7 @@ export function createSyncOrchestration(deps) {
         syncLoadFailed = true;
         markSyncError(
           error,
-          createRetryDescriptor("workspace", "Calisma alani", () =>
+          createRetryDescriptor("workspace", "Çalışma alanı", () =>
             loadSyncedWorkspace(options),
           ),
         );
@@ -494,7 +494,7 @@ export function createSyncOrchestration(deps) {
       syncLoadFailed = true;
       markSyncError(
         error,
-        createRetryDescriptor("workspace", "Calisma alani", () =>
+        createRetryDescriptor("workspace", "Çalışma alanı", () =>
           loadSyncedWorkspace(options),
         ),
       );
@@ -547,7 +547,7 @@ export function createSyncOrchestration(deps) {
           syncLoadFailed = true;
           markSyncError(
             error,
-            createRetryDescriptor("workspace", "Calisma alani", () =>
+            createRetryDescriptor("workspace", "Çalışma alanı", () =>
               loadSyncedWorkspace(options),
             ),
           );
@@ -632,7 +632,7 @@ export function createSyncOrchestration(deps) {
     }
 
     if (!syncLoadFailed) {
-      markSynced("calisma alani");
+      markSynced("çalışma alanı");
     }
   }
 
@@ -643,7 +643,7 @@ export function createSyncOrchestration(deps) {
 
     const conflictState = pendingSyncConflict;
     clearSyncConflictState();
-    markSyncing("calisma alani");
+    markSyncing("çalışma alanı");
 
     const remoteSelectedSetIds = Array.isArray(
       conflictState.remoteSnapshot?.selectedSetIds,
@@ -666,7 +666,7 @@ export function createSyncOrchestration(deps) {
       resetStudyState(conflictState.userPrefix);
     }
 
-    markSynced("calisma alani");
+    markSynced("çalışma alanı");
     return true;
   }
 
@@ -677,7 +677,7 @@ export function createSyncOrchestration(deps) {
 
     const conflictState = pendingSyncConflict;
     clearSyncConflictState();
-    markSyncing("calisma alani");
+    markSyncing("çalışma alanı");
 
     try {
       const remoteIds = conflictState.remoteRecords
@@ -722,7 +722,7 @@ export function createSyncOrchestration(deps) {
         resetStudyState(conflictState.userPrefix);
       }
 
-      markSynced("calisma alani");
+      markSynced("çalışma alanı");
       return true;
     } catch (error) {
       pendingSyncConflict = conflictState;
@@ -730,7 +730,7 @@ export function createSyncOrchestration(deps) {
         error,
         createRetryDescriptor(
           "workspace",
-          "Calisma alani",
+          "Çalışma alanı",
           useLocalConflictResolution,
         ),
       );
@@ -765,7 +765,7 @@ export function createSyncOrchestration(deps) {
               window.__MCQ_SYNC_RETRY_RUNS__ =
                 Number(window.__MCQ_SYNC_RETRY_RUNS__ || 0) + 1;
               await new Promise((resolve) => setTimeoutRef(resolve, delayMs));
-              markSynced("calisma alani");
+              markSynced("çalışma alanı");
               return true;
             };
       lastSyncRetryDescriptor = createRetryDescriptor("workspace", label, retryRun);
