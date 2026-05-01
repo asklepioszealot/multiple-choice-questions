@@ -167,43 +167,42 @@ export async function startApp() {
     return getStudyContext();
   }
 
-  function requestMediaFilesForReferences(references = []) {
-    const unresolvedCount = Array.isArray(references) ? references.length : 0;
+  function openPendingMediaImport() {
     const input = document.getElementById("media-bundle-picker");
-    if (!input || unresolvedCount === 0) {
-      return Promise.resolve([]);
-    }
-
-    const accepted = window.confirm?.(
-      `Bu markdown setinde ${unresolvedCount} yerel görsel/ses bağlantısı var. İlgili medya dosyalarını veya bir .zip paketini seçmek ister misin?`,
-    );
-    if (!accepted) {
-      return Promise.resolve([]);
-    }
-
-    return new Promise((resolve) => {
-      let settled = false;
-      const finish = (files = []) => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        window.clearTimeout(timeoutId);
-        input.removeEventListener("change", handleChange);
-        input.removeEventListener("cancel", handleCancel);
-        resolve(Array.from(files || []));
-      };
-      const handleChange = () => {
-        finish(input.files);
-        input.value = "";
-      };
-      const handleCancel = () => finish([]);
-      const timeoutId = window.setTimeout(() => finish([]), 120000);
-
-      input.addEventListener("change", handleChange, { once: true });
-      input.addEventListener("cancel", handleCancel, { once: true });
+    hidePendingMediaPrompt();
+    if (input) {
       input.click();
-    });
+    }
+  }
+
+  function showPendingMediaPrompt(snapshot = {}) {
+    const modal = document.getElementById("media-prompt-modal");
+    const copy = document.getElementById("media-prompt-copy");
+    const count = Array.isArray(snapshot.references) ? snapshot.references.length : 0;
+    if (!modal || count === 0) {
+      return;
+    }
+
+    if (copy) {
+      copy.textContent =
+        `Bu set ${count} yerel görsel/ses bağlantısı içeriyor. İlgili dosyaları veya bir .zip paketini seçebilirsin.`;
+    }
+    modal.hidden = false;
+  }
+
+  function hidePendingMediaPrompt() {
+    const modal = document.getElementById("media-prompt-modal");
+    if (modal) {
+      modal.hidden = true;
+    }
+  }
+
+  async function handleMediaBundleSelect(event) {
+    const files = Array.from(event?.target?.files || []);
+    if (event?.target) {
+      event.target.value = "";
+    }
+    await setManager.hydratePendingMedia(files);
   }
 
   const setManager = createSetManager({
@@ -222,7 +221,13 @@ export async function startApp() {
     onSetsRemoved: (ids) =>
       syncOrch ? syncOrch.deleteRemoteSetRecords(ids) : null,
     onSelectionChanged: () => syncOrch?.handleSelectionChanged(),
-    requestMediaFiles: requestMediaFilesForReferences,
+    onPendingMediaChange(snapshot) {
+      if (snapshot?.references?.length > 0) {
+        showPendingMediaPrompt(snapshot);
+      } else {
+        hidePendingMediaPrompt();
+      }
+    },
     getTopicSourceVisible() {
       return topicSourceVisible;
     },
@@ -604,11 +609,14 @@ export async function startApp() {
         filterByTopic: (...args) => studyRunner.filterByTopic(...args),
         getIsFullscreen: () => getStudyContext().isFullscreen,
         handleFileSelect: (event) => setManager.handleFileSelect(event),
+        handleMediaBundleSelect,
+        hidePendingMediaPrompt,
         jumpToQuestion: () => studyRunner.jumpToQuestion(),
         moveCurrentEditorQuestion: (direction) =>
           editorFeature.moveQuestion(direction),
         nextQuestion: () => studyRunner.nextQuestion(),
         openSelectedSetEditor,
+        openPendingMediaImport,
         openSetImport,
         previousQuestion: () => studyRunner.previousQuestion(),
         removeCurrentEditorQuestion: () => editorFeature.removeQuestion(),

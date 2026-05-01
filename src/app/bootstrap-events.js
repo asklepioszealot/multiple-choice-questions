@@ -71,6 +71,18 @@ export function bindStaticEvents({
   bindEvent(documentRef.getElementById("file-picker"), "change", (event) => {
     void handlers.handleFileSelect(event);
   });
+  bindEvent(documentRef.getElementById("media-bundle-picker"), "change", (event) => {
+    void handlers.handleMediaBundleSelect(event);
+  });
+  bindEvent(documentRef.getElementById("pending-media-btn"), "click", () => {
+    handlers.openPendingMediaImport();
+  });
+  bindEvent(documentRef.getElementById("media-prompt-choose-btn"), "click", () => {
+    handlers.openPendingMediaImport();
+  });
+  bindEvent(documentRef.getElementById("media-prompt-skip-btn"), "click", () => {
+    handlers.hidePendingMediaPrompt();
+  });
   bindEvent(documentRef.getElementById("edit-btn"), "click", () => {
     handlers.openSelectedSetEditor();
   });

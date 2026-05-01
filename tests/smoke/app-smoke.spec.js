@@ -287,6 +287,44 @@ test.describe("MCQ smoke", () => {
     await expect(mainApp.locator(".kbd-hint")).toHaveCount(0);
   });
 
+  test("markdown wikilink media prompt does not block set import", async ({ page }) => {
+    const markdown = [
+      "[1] Bu grafide ne var?",
+      "![[plevra.webp]]",
+      "A) Abse",
+      "B) Plorezi",
+      "Doğru Cevap: B",
+    ].join("\n");
+
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.setInputFiles("#file-picker", {
+      name: "wikilink-media.md",
+      mimeType: "text/markdown",
+      buffer: Buffer.from(markdown, "utf8"),
+    });
+
+    await expect(page.locator("#set-list .set-name", { hasText: "wikilink-media" })).toBeVisible();
+    await expect(page.locator("#start-btn")).toBeEnabled();
+    await expect(page.locator("#media-prompt-modal")).toBeVisible();
+    await expect(page.locator("#pending-media-btn")).toBeVisible();
+
+    await page.setInputFiles("#media-bundle-picker", {
+      name: "plevra.webp",
+      mimeType: "image/webp",
+      buffer: Buffer.from("ABC"),
+    });
+
+    await expect(page.locator("#media-prompt-modal")).toBeHidden();
+    await page.locator("#start-btn").click();
+    await expect(page.locator("#question-text img")).toHaveAttribute(
+      "src",
+      /data:image\/webp;base64,/,
+    );
+  });
+
   test("set manager imports a supported apkg file and starts study", async ({ page }) => {
     const fixture = await createApkgUpload();
 

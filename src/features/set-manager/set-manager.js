@@ -172,7 +172,7 @@ function toSafeArray(value) {
     onRender,
     onSetsRemoved,
     onSelectionChanged,
-    requestMediaFiles,
+    onPendingMediaChange,
     getTopicSourceVisible,
     documentRef = globalScope.document,
     setTimeoutRef = globalScope.setTimeout?.bind(globalScope),
@@ -228,8 +228,6 @@ function toSafeArray(value) {
         : typeof parseApkgToSetRecordFromModule === "function"
           ? parseApkgToSetRecordFromModule
           : null;
-    const requestMediaFilesRef =
-      typeof requestMediaFiles === "function" ? requestMediaFiles : null;
     const getSelectedAnswersRef =
       typeof getSelectedAnswers === "function"
         ? getSelectedAnswers
@@ -264,6 +262,10 @@ function toSafeArray(value) {
       typeof onSelectionChanged === "function"
         ? onSelectionChanged
         : null;
+    const onPendingMediaChangeRef =
+      typeof onPendingMediaChange === "function"
+        ? onPendingMediaChange
+        : null;
     const setTimer =
       typeof setTimeoutRef === "function"
         ? setTimeoutRef
@@ -286,6 +288,10 @@ function toSafeArray(value) {
     let deleteMode = false;
     let lastRemovedSets = [];
     let undoTimeoutId = null;
+    let pendingMediaHydration = {
+      references: [],
+      setIds: [],
+    };
 
     function resolvePrefix(prefixOverride = null) {
       if (typeof prefixOverride === "string") {
@@ -420,6 +426,7 @@ function toSafeArray(value) {
       const selectAllBtn = documentRef?.getElementById("select-all-btn");
       const clearSelectionBtn = documentRef?.getElementById("clear-selection-btn");
       const modeHint = documentRef?.getElementById("mode-hint");
+      const pendingMediaBtn = documentRef?.getElementById("pending-media-btn");
 
       if (!setListEl) {
         return;
@@ -439,6 +446,9 @@ function toSafeArray(value) {
         }
         if (removeSelectedBtn) {
           removeSelectedBtn.disabled = true;
+        }
+        if (pendingMediaBtn) {
+          pendingMediaBtn.hidden = true;
         }
         onRenderRef();
         return;
@@ -479,6 +489,14 @@ function toSafeArray(value) {
       if (removeSelectedBtn) {
         removeSelectedBtn.disabled = !deleteMode || removeCandidateSets.size === 0;
         removeSelectedBtn.textContent = `Seçilileri Kaldır (${removeCandidateSets.size})`;
+      }
+      if (pendingMediaBtn) {
+        const pendingCount = pendingMediaHydration.references.length;
+        pendingMediaBtn.hidden = pendingCount === 0;
+        pendingMediaBtn.textContent =
+          pendingCount > 0
+            ? `Medya Dosyalarını Ekle (${pendingCount})`
+            : "Medya Dosyalarını Ekle";
       }
 
       setListEl.innerHTML = "";
@@ -540,6 +558,26 @@ function toSafeArray(value) {
       saveSetsList(prefixOverride);
       setStorageValue("mc_set_" + setId, JSON.stringify(normalizedRecord), prefixOverride);
       return setId;
+    }
+
+    function syncPendingMediaHydration(setIds = [], references = []) {
+      pendingMediaHydration = {
+        setIds: [...new Set(toSafeArray(setIds).filter((setId) => loadedSets[setId]))],
+        references: [...new Set(toSafeArray(references).filter(Boolean))],
+      };
+      if (onPendingMediaChangeRef) {
+        onPendingMediaChangeRef({ ...pendingMediaHydration });
+      }
+    }
+
+    function collectPendingMediaForSets(setIds = []) {
+      const references = new Set();
+      toSafeArray(setIds).forEach((setId) => {
+        collectRelativeMediaReferences(loadedSets[setId]).forEach((reference) => {
+          references.add(reference);
+        });
+      });
+      syncPendingMediaHydration(setIds, [...references]);
     }
 
     async function loadSetFromText(text, fileName, importOptions = {}) {
@@ -637,24 +675,9 @@ function toSafeArray(value) {
 
       if (
         unresolvedMediaRefs.size > 0 &&
-        importedSetIds.length > 0 &&
-        typeof requestMediaFilesRef === "function"
+        importedSetIds.length > 0
       ) {
-        try {
-          const mediaFiles = await requestMediaFilesRef([...unresolvedMediaRefs]);
-          const mediaLookup = await buildMediaLookupFromFiles(mediaFiles);
-          if (mediaLookup.size > 0) {
-            importedSetIds.forEach((setId) => {
-              const hydrated = hydrateSetRecordMedia(loadedSets[setId], mediaLookup);
-              if (!hydrated.changed) {
-                return;
-              }
-              persistLoadedRecord(hydrated.record);
-            });
-          }
-        } catch (error) {
-          logger.warn("Medya dosyaları eklenemedi:", error);
-        }
+        syncPendingMediaHydration(importedSetIds, [...unresolvedMediaRefs]);
       }
 
       if (list.length > 0) {
@@ -663,6 +686,44 @@ function toSafeArray(value) {
       }
 
       renderSetList();
+    }
+
+    async function hydratePendingMedia(files = []) {
+      const targetSetIds = pendingMediaHydration.setIds.filter((setId) => loadedSets[setId]);
+      if (targetSetIds.length === 0) {
+        syncPendingMediaHydration([], []);
+        renderSetList();
+        return { changedCount: 0, remainingReferences: [] };
+      }
+
+      const mediaLookup = await buildMediaLookupFromFiles(files);
+      if (mediaLookup.size === 0) {
+        renderSetList();
+        return {
+          changedCount: 0,
+          remainingReferences: pendingMediaHydration.references,
+        };
+      }
+
+      let changedCount = 0;
+      targetSetIds.forEach((setId) => {
+        const hydrated = hydrateSetRecordMedia(loadedSets[setId], mediaLookup);
+        if (!hydrated.changed) {
+          return;
+        }
+        persistLoadedRecord(hydrated.record);
+        changedCount += 1;
+      });
+
+      collectPendingMediaForSets(targetSetIds);
+      saveSetsList();
+      notifySelectionChanged();
+      renderSetList();
+
+      return {
+        changedCount,
+        remainingReferences: pendingMediaHydration.references,
+      };
     }
 
     async function importNativeFiles(files = []) {
@@ -992,6 +1053,7 @@ function toSafeArray(value) {
       clearSetSelection,
       deleteSet,
       getLoadedSets,
+      hydratePendingMedia,
       importNativeFiles,
       getSelectedSetIds,
       handleFileSelect,

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSetManager } from "../../src/features/set-manager/set-manager.js";
+import { parseSetText } from "../../src/core/set-codec.js";
 
 function createMemoryStorage(seed = {}) {
   const store = new Map(Object.entries(seed));
@@ -26,6 +27,7 @@ function renderManagerDom() {
     <button id="delete-mode-btn"></button>
     <button id="select-all-btn"></button>
     <button id="clear-selection-btn"></button>
+    <button id="pending-media-btn" hidden></button>
     <div id="mode-hint"></div>
     <div id="undo-toast" style="display:none"></div>
     <span id="undo-message"></span>
@@ -303,6 +305,71 @@ describe("set-manager controller", () => {
       sourcePath: "C:\\sets\\anki-demo.apkg",
     });
     expect(setManager.getSelectedSetIds()).toEqual(["anki-demo"]);
+  });
+
+  it("loads markdown immediately and exposes pending media hydration", async () => {
+    renderManagerDom();
+    const storage = createMemoryStorage();
+    const pendingSnapshots = [];
+
+    const setManager = createSetManager({
+      storage,
+      normalizeQuestions(data) {
+        return data.questions;
+      },
+      parseSetText,
+      getSelectedAnswers() {
+        return {};
+      },
+      resolveQuestionKey(question, setId, index) {
+        return `${setId}:${index}:${question.q}`;
+      },
+      onPendingMediaChange(snapshot) {
+        pendingSnapshots.push(snapshot);
+      },
+      documentRef: document,
+      setTimeoutRef() {
+        return 1;
+      },
+      clearTimeoutRef() {},
+    });
+
+    await setManager.importNativeFiles([
+      {
+        name: "media-demo.md",
+        path: "C:\\sets\\media-demo.md",
+        contents: [
+          "[1] Görsel soru?",
+          "![[plevra.webp]]",
+          "A) A",
+          "B) B",
+          "Doğru Cevap: A",
+        ].join("\n"),
+      },
+    ]);
+
+    expect(setManager.getSelectedSetIds()).toEqual(["media-demo"]);
+    expect(document.getElementById("start-btn").disabled).toBe(false);
+    expect(document.getElementById("pending-media-btn").hidden).toBe(false);
+    expect(document.getElementById("pending-media-btn").textContent).toContain("(1)");
+    expect(pendingSnapshots.at(-1).references).toEqual(["plevra.webp"]);
+
+    const result = await setManager.hydratePendingMedia([
+      {
+        name: "plevra.webp",
+        type: "image/webp",
+        async arrayBuffer() {
+          return new Uint8Array([65, 66, 67]).buffer;
+        },
+      },
+    ]);
+
+    expect(result.changedCount).toBe(1);
+    expect(result.remainingReferences).toEqual([]);
+    expect(setManager.getLoadedSets()["media-demo"].questions[0].q).toContain(
+      "data:image/webp;base64,QUJD",
+    );
+    expect(document.getElementById("pending-media-btn").hidden).toBe(true);
   });
 
   it("selects a loaded set and persists the selection list", async () => {
