@@ -1288,8 +1288,15 @@
         flex-wrap: wrap;
       }
       .editor-screen {
-        max-width: 1200px;
+        width: min(100%, 1480px);
         margin: 0 auto 48px;
+        padding: 0 22px;
+      }
+      .editor-workspace {
+        display: grid;
+        grid-template-columns: minmax(260px, 350px) minmax(0, 1fr);
+        gap: 22px;
+        align-items: start;
       }
       .editor-shell {
         background: var(--color-bg-secondary);
@@ -1297,6 +1304,7 @@
         border-radius: 18px;
         box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
         padding: 24px;
+        min-width: 0;
       }
       .editor-topbar {
         display: flex;
@@ -1323,9 +1331,7 @@
         flex-wrap: wrap;
       }
       .editor-layout {
-        display: grid;
-        grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-        gap: 20px;
+        display: block;
       }
       .editor-sidebar,
       .editor-main {
@@ -1334,13 +1340,45 @@
         border-radius: 16px;
         padding: 18px;
       }
+      .editor-sidebar {
+        position: sticky;
+        top: 18px;
+        max-height: calc(100vh - 36px);
+        overflow: auto;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      }
+      .editor-list-head {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .editor-list-title-row,
+      .editor-question-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .editor-question-actions {
+        justify-content: flex-start;
+      }
+      .editor-question-actions .btn {
+        min-width: 42px;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+      .editor-question-actions .editor-action-primary {
+        min-width: 0;
+        padding-inline: 12px;
+      }
       .editor-question-list {
         display: flex;
         flex-direction: column;
         gap: 8px;
-        max-height: 420px;
+        max-height: min(54vh, 520px);
         overflow-y: auto;
-        margin: 16px 0;
+        margin: 12px 0 0;
       }
       .editor-question-item {
         width: 100%;
@@ -1415,8 +1453,15 @@
       }
       @media (max-width: 900px) {
         .sync-conflict-columns,
-        .editor-layout {
+        .editor-workspace {
           grid-template-columns: 1fr;
+        }
+        .editor-screen {
+          padding: 0;
+        }
+        .editor-sidebar {
+          position: static;
+          max-height: none;
         }
         .analytics-summary {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2067,37 +2112,8 @@
       </div>
     </div>
     <div id="editor-screen" class="editor-screen" style="display: none">
-      <div class="editor-shell">
-        <div class="editor-topbar">
-          <button class="btn btn-secondary" id="editor-back-btn" type="button">Yöneticiye dön</button>
-          <div>
-            <h2>MCQ Editor</h2>
-            <div class="auth-meta" id="editor-source-format-label">
-              Normalize edilen soru modeli üzerinde çalışır.
-            </div>
-            <div class="auth-meta" id="editor-dirty-pill">Durum: Kaydedildi</div>
-          </div>
-          <div class="set-actions">
-            <div class="theme-control theme-control--compact">
-              <label for="theme-select-editor">Tema</label>
-              <select id="theme-select-editor"></select>
-            </div>
-            <button
-              class="btn btn-secondary"
-              id="editor-export-source-btn"
-              type="button"
-            >
-              Kaynak formatta dışa aktar
-            </button>
-            <button class="btn btn-secondary" id="editor-json-btn" type="button">JSON dışa aktar</button>
-            <button class="btn" id="editor-save-btn" type="button">Kaydet</button>
-            <input id="editor-media-file-input" type="file" hidden />
-          </div>
-        </div>
-        <div id="editor-status" class="auth-status"></div>
-        <div id="editor-validation-summary" class="auth-status editor-validation-summary"></div>
-        <div class="editor-layout">
-          <div class="editor-sidebar">
+      <div class="editor-workspace">
+        <aside class="editor-sidebar">
             <div class="editor-field">
               <label for="editor-set-name">Set adı</label>
               <input
@@ -2105,8 +2121,9 @@
                 class="editor-input"
               />
             </div>
-            <div class="editor-field-head">
-              <span>Sorular</span>
+            <div class="editor-list-head">
+              <div class="editor-list-title-row">
+                <span>Sorular</span>
               <button
                 class="btn btn-secondary btn-small"
                 id="editor-question-list-toggle-btn"
@@ -2114,40 +2131,77 @@
               >
                 Listeyi daralt
               </button>
-            </div>
-            <div id="editor-question-list" class="editor-question-list"></div>
-            <div class="set-actions">
-              <button class="btn btn-secondary" id="editor-add-question-btn" type="button">+ Soru ekle</button>
+              </div>
+              <div class="editor-question-actions" aria-label="Soru araçları">
+              <button class="btn btn-secondary editor-action-primary" id="editor-add-question-btn" type="button">+ Soru</button>
               <button
                 class="btn btn-secondary"
                 id="editor-move-question-up-btn"
                 type="button"
+                title="Yukarı taşı"
+                aria-label="Yukarı taşı"
               >
-                Yukari tas
+                ↑
               </button>
               <button
                 class="btn btn-secondary"
                 id="editor-move-question-down-btn"
                 type="button"
+                title="Aşağı taşı"
+                aria-label="Aşağı taşı"
               >
-                Asagi tas
+                ↓
               </button>
               <button
                 class="btn btn-secondary"
                 id="editor-duplicate-question-btn"
                 type="button"
+                title="Soruyu kopyala"
               >
-                Soruyu kopyala
+                Kopyala
               </button>
               <button
                 class="btn btn-secondary"
                 id="editor-remove-question-btn"
                 type="button"
+                title="Soru sil"
               >
-                Soru sil
+                Sil
               </button>
+              </div>
+            </div>
+            <div id="editor-question-list" class="editor-question-list"></div>
+        </aside>
+        <div class="editor-shell">
+          <div class="editor-topbar">
+            <button class="btn btn-secondary" id="editor-back-btn" type="button">Yöneticiye dön</button>
+            <div>
+              <h2>MCQ Editor</h2>
+              <div class="auth-meta" id="editor-source-format-label">
+                Normalize edilen soru modeli üzerinde çalışır.
+              </div>
+              <div class="auth-meta" id="editor-dirty-pill">Durum: Kaydedildi</div>
+            </div>
+            <div class="set-actions">
+              <div class="theme-control theme-control--compact">
+                <label for="theme-select-editor">Tema</label>
+                <select id="theme-select-editor"></select>
+              </div>
+              <button
+                class="btn btn-secondary"
+                id="editor-export-source-btn"
+                type="button"
+              >
+                Kaynak formatta dışa aktar
+              </button>
+              <button class="btn btn-secondary" id="editor-json-btn" type="button">JSON dışa aktar</button>
+              <button class="btn" id="editor-save-btn" type="button">Kaydet</button>
+              <input id="editor-media-file-input" type="file" hidden />
             </div>
           </div>
+          <div id="editor-status" class="auth-status"></div>
+          <div id="editor-validation-summary" class="auth-status editor-validation-summary"></div>
+          <div class="editor-layout">
           <div class="editor-main">
             <div class="editor-tabs">
               <button class="btn btn-secondary" id="editor-visual-tab-btn" type="button">Form</button>
@@ -2203,6 +2257,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
     <div id="undo-toast" class="undo-toast">
       <span id="undo-message">Set kaldırıldı.</span>
