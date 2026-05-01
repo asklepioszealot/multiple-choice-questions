@@ -167,6 +167,45 @@ export async function startApp() {
     return getStudyContext();
   }
 
+  function requestMediaFilesForReferences(references = []) {
+    const unresolvedCount = Array.isArray(references) ? references.length : 0;
+    const input = document.getElementById("media-bundle-picker");
+    if (!input || unresolvedCount === 0) {
+      return Promise.resolve([]);
+    }
+
+    const accepted = window.confirm?.(
+      `Bu markdown setinde ${unresolvedCount} yerel görsel/ses bağlantısı var. İlgili medya dosyalarını veya bir .zip paketini seçmek ister misin?`,
+    );
+    if (!accepted) {
+      return Promise.resolve([]);
+    }
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (files = []) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeoutId);
+        input.removeEventListener("change", handleChange);
+        input.removeEventListener("cancel", handleCancel);
+        resolve(Array.from(files || []));
+      };
+      const handleChange = () => {
+        finish(input.files);
+        input.value = "";
+      };
+      const handleCancel = () => finish([]);
+      const timeoutId = window.setTimeout(() => finish([]), 120000);
+
+      input.addEventListener("change", handleChange, { once: true });
+      input.addEventListener("cancel", handleCancel, { once: true });
+      input.click();
+    });
+  }
+
   const setManager = createSetManager({
     storage,
     buildSetRecord,
@@ -183,6 +222,7 @@ export async function startApp() {
     onSetsRemoved: (ids) =>
       syncOrch ? syncOrch.deleteRemoteSetRecords(ids) : null,
     onSelectionChanged: () => syncOrch?.handleSelectionChanged(),
+    requestMediaFiles: requestMediaFilesForReferences,
     getTopicSourceVisible() {
       return topicSourceVisible;
     },
@@ -557,7 +597,10 @@ export async function startApp() {
         duplicateCurrentEditorQuestion: () => editorFeature.duplicateQuestion(),
         exportEditorJson: () => editorFeature.exportJson(),
         exportEditorSource: () => editorFeature.exportSource(),
-        exportPrintable: () => studyRunner.exportPrintable(),
+        closeExportModal: () => studyRunner.closeExportModal(),
+        executeExport: () => studyRunner.executeExport(),
+        openExportModal: () => studyRunner.openExportModal(),
+        toggleExportWarning: () => studyRunner.toggleExportWarning(),
         filterByTopic: (...args) => studyRunner.filterByTopic(...args),
         getIsFullscreen: () => getStudyContext().isFullscreen,
         handleFileSelect: (event) => setManager.handleFileSelect(event),

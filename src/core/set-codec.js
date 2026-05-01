@@ -163,6 +163,186 @@ function toSafeArray(value) {
       .trim();
   }
 
+  function normalizeMediaLookupKey(value) {
+    const decoded = (() => {
+      try {
+        return decodeURIComponent(String(value ?? ""));
+      } catch {
+        return String(value ?? "");
+      }
+    })();
+    return decoded
+      .replace(/\\/g, "/")
+      .split("/")
+      .pop()
+      .trim()
+      .toLowerCase();
+  }
+
+  function isRelativeMediaSource(source, mediaType = "image") {
+    const safeSource = sanitizeMediaSource(source, mediaType);
+    return Boolean(
+      safeSource &&
+        !/^(?:https?:|data:|blob:)/i.test(safeSource) &&
+        !safeSource.startsWith("//"),
+    );
+  }
+
+  function getMediaLookupValue(mediaLookup, source) {
+    if (!mediaLookup || !source) {
+      return "";
+    }
+
+    const rawKey = String(source).trim();
+    const normalizedKey = normalizeMediaLookupKey(rawKey);
+    if (typeof mediaLookup.get === "function") {
+      return mediaLookup.get(rawKey) || mediaLookup.get(normalizedKey) || "";
+    }
+
+    if (typeof mediaLookup === "object") {
+      return mediaLookup[rawKey] || mediaLookup[normalizedKey] || "";
+    }
+
+    return "";
+  }
+
+  function collectRelativeMediaReferencesFromHtml(html) {
+    const rawHtml = String(html ?? "");
+    if (!rawHtml.trim() || typeof DOMParser !== "function") {
+      return [];
+    }
+
+    try {
+      const parser = new DOMParser();
+      const documentNode = parser.parseFromString(`<div>${rawHtml}</div>`, "text/html");
+      const root = documentNode.body.firstElementChild;
+      if (!root) {
+        return [];
+      }
+
+      const references = [];
+      root.querySelectorAll("img").forEach((image) => {
+        const source = image.getAttribute("src") || "";
+        if (isRelativeMediaSource(source, "image")) {
+          references.push(source);
+        }
+      });
+      root.querySelectorAll("audio, source").forEach((media) => {
+        const source = media.getAttribute("src") || "";
+        if (isRelativeMediaSource(source, "audio")) {
+          references.push(source);
+        }
+      });
+      return references;
+    } catch {
+      return [];
+    }
+  }
+
+  function hydrateMediaReferencesInHtml(html, mediaLookup) {
+    const rawHtml = String(html ?? "");
+    if (!rawHtml.trim() || typeof DOMParser !== "function") {
+      return { html: rawHtml, changed: false };
+    }
+
+    try {
+      const parser = new DOMParser();
+      const documentNode = parser.parseFromString(`<div>${rawHtml}</div>`, "text/html");
+      const root = documentNode.body.firstElementChild;
+      if (!root) {
+        return { html: rawHtml, changed: false };
+      }
+
+      let changed = false;
+      root.querySelectorAll("img").forEach((image) => {
+        const source = image.getAttribute("src") || "";
+        if (!isRelativeMediaSource(source, "image")) {
+          return;
+        }
+
+        const hydratedSource = sanitizeMediaSource(
+          getMediaLookupValue(mediaLookup, source),
+          "image",
+        );
+        if (!hydratedSource) {
+          return;
+        }
+
+        image.setAttribute("src", hydratedSource);
+        changed = true;
+      });
+      root.querySelectorAll("audio, source").forEach((media) => {
+        const source = media.getAttribute("src") || "";
+        if (!isRelativeMediaSource(source, "audio")) {
+          return;
+        }
+
+        const hydratedSource = sanitizeMediaSource(
+          getMediaLookupValue(mediaLookup, source),
+          "audio",
+        );
+        if (!hydratedSource) {
+          return;
+        }
+
+        media.setAttribute("src", hydratedSource);
+        changed = true;
+      });
+
+      return { html: root.innerHTML, changed };
+    } catch {
+      return { html: rawHtml, changed: false };
+    }
+  }
+
+  function collectRelativeMediaReferences(setRecord = {}) {
+    const references = [];
+    toSafeArray(setRecord.questions).forEach((question) => {
+      references.push(...collectRelativeMediaReferencesFromHtml(question?.q));
+      references.push(...collectRelativeMediaReferencesFromHtml(question?.explanation));
+      toSafeArray(question?.options).forEach((option) => {
+        references.push(...collectRelativeMediaReferencesFromHtml(option));
+      });
+    });
+
+    return [...new Set(references)];
+  }
+
+  function hydrateSetRecordMedia(setRecord = {}, mediaLookup) {
+    let changed = false;
+    const questions = toSafeArray(setRecord.questions).map((question) => {
+      const nextQuestion = { ...question };
+      const questionResult = hydrateMediaReferencesInHtml(nextQuestion.q, mediaLookup);
+      nextQuestion.q = questionResult.html;
+      changed = changed || questionResult.changed;
+
+      const explanationResult = hydrateMediaReferencesInHtml(
+        nextQuestion.explanation,
+        mediaLookup,
+      );
+      nextQuestion.explanation = explanationResult.html;
+      changed = changed || explanationResult.changed;
+
+      nextQuestion.options = toSafeArray(nextQuestion.options).map((option) => {
+        const optionResult = hydrateMediaReferencesInHtml(option, mediaLookup);
+        changed = changed || optionResult.changed;
+        return optionResult.html;
+      });
+      return nextQuestion;
+    });
+
+    return {
+      record: changed
+        ? {
+            ...setRecord,
+            questions,
+            updatedAt: new Date().toISOString(),
+          }
+        : setRecord,
+      changed,
+    };
+  }
+
   function processFormatting(text) {
     const mediaTokens = [];
     let rendered = String(text ?? "").replace(
@@ -825,8 +1005,10 @@ function toSafeArray(value) {
 
   const AppSetCodec = Object.freeze({
     buildSetRecord,
+    collectRelativeMediaReferences,
     detectSourceFormat,
     formatEditableText,
+    hydrateSetRecordMedia,
     htmlToEditableText,
     normalizeQuestions,
     normalizeSetRecord,
@@ -839,8 +1021,10 @@ function toSafeArray(value) {
 
   export {
     buildSetRecord,
+    collectRelativeMediaReferences,
     detectSourceFormat,
     formatEditableText,
+    hydrateSetRecordMedia,
     htmlToEditableText,
     normalizeQuestions,
     normalizeSetRecord,

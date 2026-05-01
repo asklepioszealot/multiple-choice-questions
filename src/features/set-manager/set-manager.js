@@ -1,4 +1,9 @@
 import { escapeMarkup } from "../../shared/utils.js";
+import {
+  collectRelativeMediaReferences,
+  hydrateSetRecordMedia,
+} from "../../core/set-codec.js";
+import { unzipSync } from "fflate";
 import { parseApkgToSetRecord as parseApkgToSetRecordFromModule } from "../importers/apkg-import.js";
 
 const globalScope = typeof window !== "undefined" ? window : globalThis;
@@ -31,6 +36,117 @@ function toSafeArray(value) {
     return /\.apkg$/i.test(String(fileName || ""));
   }
 
+  function isZipFile(fileName) {
+    return /\.zip$/i.test(String(fileName || ""));
+  }
+
+  function normalizeMediaLookupKey(value) {
+    const decoded = (() => {
+      try {
+        return decodeURIComponent(String(value ?? ""));
+      } catch {
+        return String(value ?? "");
+      }
+    })();
+    return decoded.replace(/\\/g, "/").split("/").pop().trim().toLowerCase();
+  }
+
+  function guessMediaMimeType(fileName, fallbackType = "") {
+    const fallback = String(fallbackType || "").trim();
+    if (/^(image|audio)\//i.test(fallback)) {
+      return fallback;
+    }
+
+    const extension = String(fileName || "").split(".").pop()?.toLowerCase() || "";
+    const mimeTypes = {
+      avif: "image/avif",
+      gif: "image/gif",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      webp: "image/webp",
+      aac: "audio/aac",
+      m4a: "audio/mp4",
+      mp3: "audio/mpeg",
+      mpeg: "audio/mpeg",
+      oga: "audio/ogg",
+      ogg: "audio/ogg",
+      wav: "audio/wav",
+      webm: "audio/webm",
+    };
+    return mimeTypes[extension] || "";
+  }
+
+  function bytesToBase64(bytes) {
+    const array = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let index = 0; index < array.length; index += chunkSize) {
+      binary += String.fromCharCode(...array.subarray(index, index + chunkSize));
+    }
+    return globalScope.btoa(binary);
+  }
+
+  function addMediaLookupEntry(lookup, fileName, dataUri, alternatePath = "") {
+    if (!fileName || !dataUri) {
+      return;
+    }
+
+    lookup.set(String(fileName).trim(), dataUri);
+    lookup.set(normalizeMediaLookupKey(fileName), dataUri);
+    if (alternatePath) {
+      lookup.set(String(alternatePath).trim(), dataUri);
+      lookup.set(normalizeMediaLookupKey(alternatePath), dataUri);
+    }
+  }
+
+  async function addZipMediaEntries(lookup, file) {
+    const arrayBuffer =
+      typeof file?.arrayBuffer === "function" ? await file.arrayBuffer() : null;
+    if (!arrayBuffer) {
+      return;
+    }
+
+    const entries = unzipSync(new Uint8Array(arrayBuffer));
+    Object.entries(entries).forEach(([entryPath, bytes]) => {
+      const mimeType = guessMediaMimeType(entryPath);
+      if (!mimeType) {
+        return;
+      }
+
+      const dataUri = `data:${mimeType};base64,${bytesToBase64(bytes)}`;
+      addMediaLookupEntry(lookup, entryPath, dataUri);
+    });
+  }
+
+  async function buildMediaLookupFromFiles(files = []) {
+    const lookup = new Map();
+    const list = Array.from(files || []);
+    for (const file of list) {
+      const fileName = String(file?.name || "").trim();
+      if (!fileName) {
+        continue;
+      }
+
+      if (isZipFile(fileName)) {
+        await addZipMediaEntries(lookup, file);
+        continue;
+      }
+
+      const mimeType = guessMediaMimeType(fileName, file?.type);
+      if (!mimeType || typeof file?.arrayBuffer !== "function") {
+        continue;
+      }
+
+      const dataUri = `data:${mimeType};base64,${bytesToBase64(
+        new Uint8Array(await file.arrayBuffer()),
+      )}`;
+      addMediaLookupEntry(lookup, fileName, dataUri, file.webkitRelativePath || "");
+    }
+
+    return lookup;
+  }
+
   function toArrayBuffer(value) {
     if (value instanceof ArrayBuffer) {
       return value;
@@ -56,6 +172,7 @@ function toSafeArray(value) {
     onRender,
     onSetsRemoved,
     onSelectionChanged,
+    requestMediaFiles,
     getTopicSourceVisible,
     documentRef = globalScope.document,
     setTimeoutRef = globalScope.setTimeout?.bind(globalScope),
@@ -111,6 +228,8 @@ function toSafeArray(value) {
         : typeof parseApkgToSetRecordFromModule === "function"
           ? parseApkgToSetRecordFromModule
           : null;
+    const requestMediaFilesRef =
+      typeof requestMediaFiles === "function" ? requestMediaFiles : null;
     const getSelectedAnswersRef =
       typeof getSelectedAnswers === "function"
         ? getSelectedAnswers
@@ -461,6 +580,8 @@ function toSafeArray(value) {
 
     async function importFiles(files = [], options = {}) {
       const list = Array.isArray(files) ? files : [];
+      const importedSetIds = [];
+      const unresolvedMediaRefs = new Set();
       const resolveImportOptions =
         typeof options.resolveImportOptions === "function"
           ? options.resolveImportOptions
@@ -499,10 +620,40 @@ function toSafeArray(value) {
               importOptions,
             );
           }
-          selectedSets.add(setId);
+          if (setId) {
+            importedSetIds.push(setId);
+            collectRelativeMediaReferences(loadedSets[setId]).forEach((reference) => {
+              unresolvedMediaRefs.add(reference);
+            });
+          }
+          if (setId) {
+            selectedSets.add(setId);
+          }
         } catch (error) {
           logger.error("Set okuma hatası:", error);
           showAlert(`${file?.name || "Dosya"} okunamadı. Dosya formatı uyumlu değil.`);
+        }
+      }
+
+      if (
+        unresolvedMediaRefs.size > 0 &&
+        importedSetIds.length > 0 &&
+        typeof requestMediaFilesRef === "function"
+      ) {
+        try {
+          const mediaFiles = await requestMediaFilesRef([...unresolvedMediaRefs]);
+          const mediaLookup = await buildMediaLookupFromFiles(mediaFiles);
+          if (mediaLookup.size > 0) {
+            importedSetIds.forEach((setId) => {
+              const hydrated = hydrateSetRecordMedia(loadedSets[setId], mediaLookup);
+              if (!hydrated.changed) {
+                return;
+              }
+              persistLoadedRecord(hydrated.record);
+            });
+          }
+        } catch (error) {
+          logger.warn("Medya dosyaları eklenemedi:", error);
         }
       }
 

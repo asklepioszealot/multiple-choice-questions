@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const { test, expect } = require("playwright/test");
 const { zipSync } = require("fflate");
 const initSqlJs = require("sql.js/dist/sql-wasm.js");
@@ -1447,6 +1448,12 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#fullscreen-score-display")).toHaveText(
       "✅ 0 ❌ 0 📊 0/1 (%0) 🎯 %0",
     );
+    await page.press("body", "ArrowDown");
+    await page.press("body", "ArrowUp");
+    await expect(page.locator("#options-container .option.selected")).toHaveCount(0);
+    await expect(page.locator("#fullscreen-score-display")).toHaveText(
+      "✅ 0 ❌ 0 📊 0/1 (%0) 🎯 %0",
+    );
 
     await page.press("body", "Escape");
 
@@ -1459,6 +1466,42 @@ test.describe("MCQ smoke", () => {
         ),
       )
       .toBe(false);
+  });
+
+  test("export modal replaces print button and downloads markdown", async ({ page }) => {
+    await seedLocalSets(page, {
+      sets: {
+        demo: {
+          setName: "Export Demo",
+          fileName: "export-demo.json",
+          questions: [
+            {
+              q: "Export soru?",
+              options: ["A", "B", "C", "D"],
+              correct: 1,
+              subject: "Genel",
+              explanation: "Export açıklama",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["demo"],
+    });
+
+    await page.locator("#start-btn").click();
+    await page.getByRole("button", { name: /Dışa Aktar/ }).click();
+    await expect(page.locator("#export-modal")).toBeVisible();
+    await page.locator("#export-format").selectOption("markdown");
+    const downloadPromise = page.waitForEvent("download");
+    await page.locator("#export-submit-btn").click();
+    const download = await downloadPromise;
+    const downloadedPath = await download.path();
+    const downloadedText = fs.readFileSync(downloadedPath, "utf8");
+
+    expect(download.suggestedFilename()).toMatch(/\.md$/);
+    expect(downloadedText).toContain("Export soru?");
+    expect(downloadedText).toContain("Doğru Cevap: B");
+    await expect(page.locator("#export-modal")).toBeHidden();
   });
 
   test("reset only clears progress for active sets", async ({ page }) => {

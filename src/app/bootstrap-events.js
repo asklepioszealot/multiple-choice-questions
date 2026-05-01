@@ -2,6 +2,12 @@ function bindEvent(target, eventName, handler) {
   target?.addEventListener(eventName, handler);
 }
 
+function bindAll(rootRef, selector, eventName, handler) {
+  rootRef?.querySelectorAll(selector).forEach((target) => {
+    bindEvent(target, eventName, handler);
+  });
+}
+
 export function bindStaticEvents({
   documentRef,
   windowRef,
@@ -297,7 +303,16 @@ export function bindStaticEvents({
     handlers.retryWrongAnswers();
   });
   bindEvent(documentRef.getElementById("export-printable-btn"), "click", () => {
-    handlers.exportPrintable();
+    handlers.openExportModal();
+  });
+  bindEvent(documentRef.getElementById("export-format"), "change", () => {
+    handlers.toggleExportWarning();
+  });
+  bindEvent(documentRef.getElementById("export-submit-btn"), "click", () => {
+    void handlers.executeExport();
+  });
+  bindAll(documentRef, "[data-export-close]", "click", () => {
+    handlers.closeExportModal();
   });
   bindEvent(documentRef.getElementById("reset-quiz-btn"), "click", () => {
     handlers.resetQuiz();
@@ -347,15 +362,26 @@ export function bindStaticEvents({
       return;
     }
 
-    if (event.key === "ArrowLeft") {
+    if (handlers.getIsFullscreen() && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+      const content = documentRef.querySelector(
+        "#question-card.fullscreen-active .question-card-content",
+      );
+      if (content) {
+        event.preventDefault();
+        content.scrollBy({
+          top: event.key === "ArrowDown" ? 90 : -90,
+          behavior: "smooth",
+        });
+      }
+    } else if (event.key === "ArrowLeft") {
       handlers.previousQuestion();
     } else if (event.key === "ArrowRight") {
       handlers.nextQuestion();
     } else if (event.key === "s" || event.key === "S") {
       handlers.toggleSolution();
-    } else if (event.key >= "a" && event.key <= "e") {
+    } else if (/^[a-e]$/.test(event.key)) {
       handlers.selectOption(event.key.charCodeAt(0) - 97);
-    } else if (event.key >= "A" && event.key <= "E") {
+    } else if (/^[A-E]$/.test(event.key)) {
       handlers.selectOption(event.key.charCodeAt(0) - 65);
     }
   });

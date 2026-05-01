@@ -8,7 +8,15 @@ import {
   formatScoreSummaryHtml,
   shuffleQuestionOrder,
 } from "./study-actions.js";
-import { buildPrintableStudyHtml } from "./study-export.js";
+import {
+  buildPrintableStudyHtml,
+  downloadBlob,
+  generateApkg,
+  generateCsv,
+  generateHtml,
+  generateJson,
+  generateMarkdown,
+} from "./study-export.js";
 import {
   buildStudyQuestions,
   collectStudySubjects,
@@ -575,6 +583,140 @@ export function createStudyRunner({
     return printWindow;
   }
 
+  function slugifyFileName(value) {
+    return String(value || "mcq-export")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]+/gi, "-")
+      .replace(/^-+|-+$/g, "") || "mcq-export";
+  }
+
+  function getExportQuestions(scope = "all") {
+    const { allQuestions, filteredQuestions, questionOrder } = getContext();
+    if (scope === "filtered") {
+      return questionOrder
+        .map((questionIndex) => filteredQuestions[questionIndex])
+        .filter(Boolean);
+    }
+
+    return Array.isArray(allQuestions) ? allQuestions : [];
+  }
+
+  function openExportModal() {
+    const modal = documentRef?.getElementById("export-modal");
+    if (modal) {
+      modal.style.display = "block";
+    }
+    toggleExportWarning();
+  }
+
+  function closeExportModal() {
+    const modal = documentRef?.getElementById("export-modal");
+    if (modal) {
+      modal.style.display = "none";
+    }
+  }
+
+  function toggleExportWarning() {
+    const format = documentRef?.getElementById("export-format")?.value;
+    const warning = documentRef?.getElementById("export-warning");
+    if (warning) {
+      warning.style.display = format === "apkg" ? "block" : "none";
+    }
+  }
+
+  async function executeExport() {
+    const scope = documentRef?.getElementById("export-scope")?.value || "all";
+    const format = documentRef?.getElementById("export-format")?.value || "print";
+    const errorEl = documentRef?.getElementById("export-error");
+    const submitBtn = documentRef?.getElementById("export-submit-btn");
+    const questions = getExportQuestions(scope);
+    const title = scope === "filtered" ? "Filtreli Çoktan Seçmeli Test" : "Çoktan Seçmeli Test";
+
+    if (errorEl) {
+      errorEl.style.display = "none";
+      errorEl.textContent = "";
+    }
+    if (questions.length === 0) {
+      if (errorEl) {
+        errorEl.textContent = "Dışa aktarılacak soru bulunamadı.";
+        errorEl.style.display = "block";
+      }
+      return null;
+    }
+
+    const originalText = submitBtn?.textContent || "Dışa Aktar";
+    try {
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Hazırlanıyor...";
+      }
+
+      if (format === "print") {
+        const printWindow = windowRef?.open?.("", "_blank");
+        if (!printWindow) {
+          throw new Error("Yazdırma penceresi açılamadı.");
+        }
+        printWindow.document.write(
+          buildPrintableStudyHtml({
+            title,
+            questions,
+            getExplanationHtml,
+          }),
+        );
+        printWindow.document.close();
+        printWindow.print();
+        closeExportModal();
+        return printWindow;
+      }
+
+      const exportDate = new Date().toISOString().slice(0, 10);
+      const baseName = `${slugifyFileName(title)}-${exportDate}`;
+      const formatConfig = {
+        json: {
+          blob: generateJson(questions, title),
+          fileName: `${baseName}.json`,
+        },
+        markdown: {
+          blob: generateMarkdown(questions, title),
+          fileName: `${baseName}.md`,
+        },
+        csv: {
+          blob: generateCsv(questions),
+          fileName: `${baseName}.csv`,
+        },
+        html: {
+          blob: generateHtml(questions, title),
+          fileName: `${baseName}.html`,
+        },
+        apkg: {
+          blob: await generateApkg(questions, title),
+          fileName: `${baseName}.apkg`,
+        },
+      };
+      const exportPayload = formatConfig[format];
+      if (!exportPayload) {
+        throw new Error("Desteklenmeyen dışa aktarma formatı.");
+      }
+
+      downloadBlob(exportPayload.blob, exportPayload.fileName, documentRef);
+      closeExportModal();
+      return exportPayload;
+    } catch (error) {
+      if (errorEl) {
+        errorEl.textContent =
+          error?.message || "Dışa aktarma sırasında bir hata oluştu.";
+        errorEl.style.display = "block";
+      }
+      return null;
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    }
+  }
+
   function retryWrongAnswers() {
     const { allQuestions, selectedAnswers, solutionVisible } = getContext();
     const retriedState = createRetryWrongAnswersState({
@@ -669,11 +811,14 @@ export function createStudyRunner({
 
   return Object.freeze({
     checkDesktopUpdates,
+    closeExportModal,
     displayQuestion,
+    executeExport,
     exportPrintable,
     filterByTopic,
     jumpToQuestion,
     nextQuestion,
+    openExportModal,
     populateTopicFilter,
     previousQuestion,
     resetQuiz,
@@ -685,6 +830,7 @@ export function createStudyRunner({
     startStudy,
     syncManagerSettingsPanelState,
     syncThemeControlsUI,
+    toggleExportWarning,
     toggleManagerSettingsPanel,
     toggleSolution,
     updateScoreDisplay,

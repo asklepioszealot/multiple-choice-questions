@@ -2189,6 +2189,13 @@
           multiple
           hidden
         />
+        <input
+          type="file"
+          id="media-bundle-picker"
+          accept="image/png,image/jpeg,image/gif,image/webp,image/avif,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/webm,audio/aac,audio/mp4,.zip"
+          multiple
+          hidden
+        />
         <button class="btn btn-secondary" id="edit-btn" type="button" disabled>
           ✏ Düzenle
         </button>
@@ -2582,7 +2589,7 @@
               🔁 Yanlışları Çöz
             </button>
             <button class="btn-secondary btn btn-small" id="export-printable-btn" type="button">
-              🖨️ Yazdır
+              ⬇️ Dışa Aktar
             </button>
             <button
               class="btn-secondary btn btn-small"
@@ -2653,6 +2660,59 @@
           <button class="nav-btn" id="fullscreen-next-btn" type="button">
             Sonraki
           </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="export-modal"
+      class="modal"
+      style="display: none; position: fixed; z-index: 2500; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);"
+    >
+      <div
+        class="modal-content"
+        style="background-color: var(--color-bg-secondary); margin: 10% auto; padding: 24px; border: 1px solid var(--color-border); width: 90%; max-width: 480px; border-radius: 16px; position: relative; box-shadow: 0 20px 48px rgba(0,0,0,0.18);"
+      >
+        <button
+          class="close-btn"
+          data-export-close
+          type="button"
+          aria-label="Dışa aktarma penceresini kapat"
+          style="position:absolute; right:18px; top:14px; color: var(--color-text-secondary); border: 0; background: transparent; font-size: 28px; font-weight: bold; cursor: pointer;"
+        >
+          &times;
+        </button>
+        <h2 style="margin-top: 0; margin-bottom: 20px; color: var(--color-text-primary);">Dışa Aktar</h2>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 8px; color: var(--color-text-secondary); font-size: 14px; font-weight: 600;" for="export-scope">Kapsam:</label>
+          <select id="export-scope" style="width: 100%; padding: 10px; border-radius: 8px; background: var(--color-bg-primary); color: var(--color-text-primary); border: 1px solid var(--color-border);">
+            <option value="filtered">Sadece Göründüğü Gibi (Filtreli)</option>
+            <option value="all">Tüm Seçili Setler</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 8px; color: var(--color-text-secondary); font-size: 14px; font-weight: 600;" for="export-format">Format:</label>
+          <select id="export-format" style="width: 100%; padding: 10px; border-radius: 8px; background: var(--color-bg-primary); color: var(--color-text-primary); border: 1px solid var(--color-border);">
+            <option value="print">Yazdır / PDF</option>
+            <option value="json">JSON</option>
+            <option value="markdown">Markdown</option>
+            <option value="csv">CSV</option>
+            <option value="html">HTML</option>
+            <option value="apkg">APKG (Anki)</option>
+          </select>
+        </div>
+
+        <div id="export-warning" class="export-warning" style="display: none; color: #ef4444; font-size: 13px; margin-bottom: 16px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+          APKG aktarımında medya dosyaları gömülü pakete eklenmez; güvenli görseller HTML içinde korunur.
+        </div>
+
+        <div id="export-error" class="export-error" style="display: none; color: #ef4444; font-size: 13px; margin-bottom: 16px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;"></div>
+
+        <div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+          <button class="btn btn-secondary" data-export-close type="button">İptal</button>
+          <button class="btn" id="export-submit-btn" type="button">Dışa Aktar</button>
         </div>
       </div>
     </div>

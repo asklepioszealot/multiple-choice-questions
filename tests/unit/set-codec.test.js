@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSetRecord,
+  collectRelativeMediaReferences,
+  hydrateSetRecordMedia,
   htmlToEditableText,
   normalizeQuestions,
   normalizeSetRecord,
@@ -259,6 +261,31 @@ describe("set-codec", () => {
     expect(parsed.questions[0].q).toContain('alt="plörezi"');
     expect(parsed.questions[0].options).toHaveLength(5);
     expect(parsed.questions[0].correct).toBe(2);
+  });
+
+  it("hydrates unresolved Obsidian media references from a selected media lookup", () => {
+    const parsed = parseSetText(
+      [
+        "[11] Bu PA akciger grafisinde hangi bulgu mevcuttur?",
+        "![[plörezi.webp]]",
+        "a) Abse",
+        "b) Pnomoni",
+        "c) Plorezi",
+        "d) Pnomotoraks",
+        "e) Normal PA grafi",
+      ].join("\n"),
+      "final.md",
+    );
+    const references = collectRelativeMediaReferences(parsed);
+    const hydrated = hydrateSetRecordMedia(
+      parsed,
+      new Map([["plörezi.webp", "data:image/webp;base64,QUJD"]]),
+    );
+
+    expect(references).toEqual(["pl%C3%B6rezi.webp"]);
+    expect(hydrated.changed).toBe(true);
+    expect(hydrated.record.questions[0].q).toContain("data:image/webp;base64,QUJD");
+    expect(collectRelativeMediaReferences(hydrated.record)).toEqual([]);
   });
 
   it("drops unsafe media tokens from markdown parse and export surfaces", () => {
