@@ -195,6 +195,33 @@ describe("set-codec", () => {
     expect(parsed.questions[0].explanation).not.toContain("|Parametre|Deger|");
   });
 
+  it("renders explanation math and markdown links as rich inline content", () => {
+    const parsed = parseSetText(
+      [
+        "Soru 1: Duyarlilik nasil hesaplanir?",
+        "A) A",
+        "B) B",
+        "Doğru Cevap: A",
+        String.raw`Açıklama: Duyarlilik $Sensitive = \frac{TP}{TP + FN} = \frac{20}{40} = %50$ olarak hesaplanir ([2024 EULAR](https://rheumnow.com/news/updated-eular-recommendations-treatment-systemic-sclerosis).`,
+      ].join("\n"),
+      "math-link.md",
+    );
+
+    const explanation = parsed.questions[0].explanation;
+
+    expect(explanation).toContain('class="math-inline"');
+    expect(explanation).toContain('class="math-frac"');
+    expect(explanation).toContain('class="content-link-card"');
+    expect(explanation).toContain(
+      'href="https://rheumnow.com/news/updated-eular-recommendations-treatment-systemic-sclerosis"',
+    );
+    expect(explanation).toContain(">2024 EULAR</span>");
+    expect(htmlToEditableText(explanation)).toContain(
+      "[2024 EULAR](https://rheumnow.com/news/updated-eular-recommendations-treatment-systemic-sclerosis)",
+    );
+    expect(htmlToEditableText(explanation)).toContain(String.raw`\frac{TP}{TP + FN}`);
+  });
+
   it("roundtrips markdown source through parse and serialize", () => {
     const source = [
       "# Kardiyoloji",

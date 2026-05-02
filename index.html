@@ -663,6 +663,103 @@
         margin: 4px 0;
       }
 
+      .solution-content .content-link-card,
+      .editor-preview .content-link-card {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        max-width: 100%;
+        padding: 2px 9px;
+        margin: 0 2px;
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        background: var(--color-bg-secondary);
+        color: var(--color-accent);
+        font-size: 0.86em;
+        font-weight: 700;
+        line-height: 1.35;
+        text-decoration: none;
+        vertical-align: baseline;
+      }
+
+      .solution-content .content-link-card:hover,
+      .editor-preview .content-link-card:hover {
+        border-color: var(--color-accent);
+        background: var(--color-surface);
+      }
+
+      .solution-content .content-link-card__label,
+      .editor-preview .content-link-card__label {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .solution-content .math-inline,
+      .editor-preview .math-inline,
+      .solution-content .math-block,
+      .editor-preview .math-block {
+        color: var(--color-text-primary);
+        font-family: "Source Serif 4", Georgia, serif;
+        font-size: 0.98em;
+      }
+
+      .solution-content .math-inline,
+      .editor-preview .math-inline {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        vertical-align: middle;
+      }
+
+      .solution-content .math-block,
+      .editor-preview .math-block {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+        margin: 12px 0;
+        overflow-x: auto;
+      }
+
+      .solution-content .math-render,
+      .editor-preview .math-render {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.18em;
+        max-width: 100%;
+        white-space: nowrap;
+      }
+
+      .solution-content .math-frac,
+      .editor-preview .math-frac {
+        display: inline-grid;
+        grid-template-rows: auto auto;
+        align-items: center;
+        margin: 0 0.12em;
+        line-height: 1.08;
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      .solution-content .math-num,
+      .editor-preview .math-num {
+        display: block;
+        padding: 0 0.22em 0.08em;
+        border-bottom: 1px solid currentColor;
+      }
+
+      .solution-content .math-den,
+      .editor-preview .math-den {
+        display: block;
+        padding: 0.08em 0.22em 0;
+      }
+
+      .solution-content .math-text,
+      .editor-preview .math-text {
+        font-family: inherit;
+        font-style: normal;
+      }
+
       .solution-content strong {
         color: var(--color-emphasis-strong);
         font-weight: 700;

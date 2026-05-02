@@ -5,6 +5,38 @@ import { sanitizeMediaSource } from "./security.js";
 const EDITABLE_MEDIA_PATTERN = /!\[([^\]]*)\]\(([^)]+)\)/g;
 const OBSIDIAN_MEDIA_PATTERN = /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 const AUDIO_MEDIA_LABEL_PATTERN = /^(audio|ses)\s*:\s*/i;
+const MARKDOWN_LINK_PATTERN = /(?<!!)\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g;
+const MATH_SYMBOLS = new Map([
+  ["alpha", "α"],
+  ["beta", "β"],
+  ["gamma", "γ"],
+  ["delta", "δ"],
+  ["Delta", "Δ"],
+  ["epsilon", "ε"],
+  ["theta", "θ"],
+  ["lambda", "λ"],
+  ["mu", "μ"],
+  ["pi", "π"],
+  ["rho", "ρ"],
+  ["sigma", "σ"],
+  ["Sigma", "Σ"],
+  ["tau", "τ"],
+  ["phi", "φ"],
+  ["omega", "ω"],
+  ["Omega", "Ω"],
+  ["times", "×"],
+  ["cdot", "·"],
+  ["pm", "±"],
+  ["le", "≤"],
+  ["leq", "≤"],
+  ["ge", "≥"],
+  ["geq", "≥"],
+  ["neq", "≠"],
+  ["approx", "≈"],
+  ["to", "→"],
+  ["rightarrow", "→"],
+  ["leftarrow", "←"],
+]);
 
 function toSafeArray(value) {
     return Array.isArray(value) ? value : [];
@@ -26,6 +58,191 @@ function toSafeArray(value) {
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
+  }
+
+  function escapeHtmlText(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function stashHtmlToken(tokens, html) {
+    const placeholder = `__CONTENT_TOKEN_${tokens.length}__`;
+    tokens.push(html);
+    return placeholder;
+  }
+
+  function restoreHtmlTokens(value, tokens) {
+    let rendered = String(value ?? "");
+    tokens.forEach((token, index) => {
+      rendered = rendered.replace(`__CONTENT_TOKEN_${index}__`, token);
+    });
+    return rendered;
+  }
+
+  function sanitizeExternalLink(source) {
+    const normalizedSource = decodeHtmlEntities(source).trim();
+    if (!/^https?:\/\//i.test(normalizedSource)) {
+      return "";
+    }
+
+    try {
+      const url = new URL(normalizedSource);
+      return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function renderMarkdownLink(rawLabel, rawSource) {
+    const label = normalizeEditableMediaLabel(rawLabel, "Kaynak");
+    const safeSource = sanitizeExternalLink(rawSource);
+    if (!safeSource) {
+      return escapeHtmlText(label);
+    }
+
+    const safeLabel = escapeHtmlText(label);
+    const safeHref = escapeHtmlAttribute(safeSource);
+    return `<a class="content-link-card" href="${safeHref}" target="_blank" rel="noopener noreferrer"><span class="content-link-card__label">${safeLabel}</span></a>`;
+  }
+
+  function readBalancedMathGroup(source, startIndex) {
+    let index = startIndex;
+    while (source[index] === " ") {
+      index += 1;
+    }
+    if (source[index] !== "{") {
+      return null;
+    }
+
+    let depth = 0;
+    let value = "";
+    for (; index < source.length; index += 1) {
+      const character = source[index];
+      if (character === "{") {
+        depth += 1;
+        if (depth > 1) {
+          value += character;
+        }
+        continue;
+      }
+      if (character === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          return { endIndex: index + 1, value };
+        }
+        value += character;
+        continue;
+      }
+      value += character;
+    }
+
+    return null;
+  }
+
+  function readMathScriptValue(source, startIndex) {
+    const group = readBalancedMathGroup(source, startIndex);
+    if (group) {
+      return group;
+    }
+
+    const value = source[startIndex] || "";
+    return {
+      endIndex: Math.min(startIndex + 1, source.length),
+      value,
+    };
+  }
+
+  function renderMathExpression(source) {
+    const rawSource = String(source ?? "");
+    let html = "";
+    let index = 0;
+
+    while (index < rawSource.length) {
+      if (rawSource.startsWith("\\frac", index)) {
+        const numerator = readBalancedMathGroup(rawSource, index + 5);
+        const denominator = numerator
+          ? readBalancedMathGroup(rawSource, numerator.endIndex)
+          : null;
+        if (numerator && denominator) {
+          html += `<span class="math-frac"><span class="math-num">${renderMathExpression(numerator.value)}</span><span class="math-den">${renderMathExpression(denominator.value)}</span></span>`;
+          index = denominator.endIndex;
+          continue;
+        }
+      }
+
+      if (rawSource.startsWith("\\text", index)) {
+        const textGroup = readBalancedMathGroup(rawSource, index + 5);
+        if (textGroup) {
+          html += `<span class="math-text">${escapeHtmlText(textGroup.value)}</span>`;
+          index = textGroup.endIndex;
+          continue;
+        }
+      }
+
+      const character = rawSource[index];
+      if (character === "\\") {
+        const commandMatch = rawSource.slice(index + 1).match(/^[A-Za-z]+/);
+        if (commandMatch) {
+          const command = commandMatch[0];
+          html += escapeHtmlText(MATH_SYMBOLS.get(command) || command);
+          index += command.length + 1;
+          continue;
+        }
+        html += escapeHtmlText(rawSource[index + 1] || "");
+        index += 2;
+        continue;
+      }
+
+      if (character === "^" || character === "_") {
+        const script = readMathScriptValue(rawSource, index + 1);
+        const tagName = character === "^" ? "sup" : "sub";
+        html += `<${tagName}>${renderMathExpression(script.value)}</${tagName}>`;
+        index = script.endIndex;
+        continue;
+      }
+
+      const identifierMatch = rawSource.slice(index).match(/^[A-Za-z]+/);
+      if (identifierMatch) {
+        html += `<var>${escapeHtmlText(identifierMatch[0])}</var>`;
+        index += identifierMatch[0].length;
+        continue;
+      }
+
+      html += character.trim() ? escapeHtmlText(character) : " ";
+      index += 1;
+    }
+
+    return html.replace(/\s{2,}/g, " ");
+  }
+
+  function renderMathToken(rawSource, displayMode = "inline") {
+    const source = String(rawSource ?? "").trim();
+    if (!source) {
+      return "";
+    }
+
+    const safeSource = escapeHtmlAttribute(source);
+    const renderedExpression = renderMathExpression(source);
+    const modeClass = displayMode === "block" ? "math-block" : "math-inline";
+    return `<span class="${modeClass}" data-math-source="${safeSource}" aria-label="${safeSource}"><span class="math-render">${renderedExpression}</span></span>`;
+  }
+
+  function replaceMathTokens(value, tokens) {
+    return String(value ?? "")
+      .replace(/\$\$([^$]+)\$\$/g, (_, rawSource) =>
+        stashHtmlToken(tokens, renderMathToken(rawSource, "block")),
+      )
+      .replace(/\\\[([\s\S]+?)\\\]/g, (_, rawSource) =>
+        stashHtmlToken(tokens, renderMathToken(rawSource, "block")),
+      )
+      .replace(/\\\(([\s\S]+?)\\\)/g, (_, rawSource) =>
+        stashHtmlToken(tokens, renderMathToken(rawSource, "inline")),
+      )
+      .replace(/(^|[^\\])\$([^$\n]+)\$/g, (_, prefix, rawSource) =>
+        `${prefix}${stashHtmlToken(tokens, renderMathToken(rawSource, "inline"))}`,
+      );
   }
 
   function normalizeEditableMediaLabel(value, fallback = "") {
@@ -119,6 +336,29 @@ function toSafeArray(value) {
       if (!root) {
         return rawHtml;
       }
+
+      root.querySelectorAll(".math-block, .math-inline").forEach((mathElement) => {
+        const source =
+          mathElement.getAttribute("data-math-source") ||
+          mathElement.getAttribute("aria-label") ||
+          "";
+        const delimiter = mathElement.classList.contains("math-block") ? "$$" : "$";
+        mathElement.replaceWith(
+          documentNode.createTextNode(
+            source ? `${delimiter}${source}${delimiter}` : mathElement.textContent || "",
+          ),
+        );
+      });
+
+      root.querySelectorAll("a[href]").forEach((anchor) => {
+        const safeSource = sanitizeExternalLink(anchor.getAttribute("href"));
+        const label = normalizeEditableMediaLabel(anchor.textContent, "Kaynak");
+        anchor.replaceWith(
+          documentNode.createTextNode(
+            safeSource ? `[${label}](${safeSource})` : label,
+          ),
+        );
+      });
 
       root.querySelectorAll("figure").forEach((figure) => {
         const image = figure.querySelector("img");
@@ -344,7 +584,7 @@ function toSafeArray(value) {
   }
 
   function processFormatting(text) {
-    const mediaTokens = [];
+    const contentTokens = [];
     let rendered = String(text ?? "").replace(
       EDITABLE_MEDIA_PATTERN,
       (_, rawAltText, rawSource) => {
@@ -353,9 +593,7 @@ function toSafeArray(value) {
           return "";
         }
 
-        const placeholder = `__MEDIA_TOKEN_${mediaTokens.length}__`;
-        mediaTokens.push(mediaToken);
-        return placeholder;
+        return stashHtmlToken(contentTokens, mediaToken);
       },
     );
 
@@ -370,10 +608,14 @@ function toSafeArray(value) {
           return "";
         }
 
-        const placeholder = `__MEDIA_TOKEN_${mediaTokens.length}__`;
-        mediaTokens.push(mediaToken);
-        return placeholder;
+        return stashHtmlToken(contentTokens, mediaToken);
       },
+    );
+
+    rendered = replaceMathTokens(rendered, contentTokens);
+
+    rendered = rendered.replace(MARKDOWN_LINK_PATTERN, (_, rawLabel, rawSource) =>
+      stashHtmlToken(contentTokens, renderMarkdownLink(rawLabel, rawSource)),
     );
 
     rendered = rendered
@@ -382,11 +624,7 @@ function toSafeArray(value) {
       .replace(/\*([^*]+)\*/g, "<em>$1</em>")
       .replace(/^(?:> )?⚠️(.*)$/gm, '<span class="highlight-important">⚠️$1</span>');
 
-    mediaTokens.forEach((mediaToken, index) => {
-      rendered = rendered.replace(`__MEDIA_TOKEN_${index}__`, mediaToken);
-    });
-
-    return rendered;
+    return restoreHtmlTokens(rendered, contentTokens);
   }
 
   function parseMarkdownTableCells(line) {

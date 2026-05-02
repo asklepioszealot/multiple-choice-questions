@@ -61,6 +61,7 @@ const DEFAULT_SANITIZATION_CONFIG = {
     "thead",
     "tr",
     "ul",
+    "var",
   ],
   ALLOWED_ATTR: [
     "alt",

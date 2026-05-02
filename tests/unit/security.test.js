@@ -40,4 +40,15 @@ describe("security core module", () => {
     expect(output).not.toContain("autoplay");
     expect(output).not.toContain("javascript:");
   });
+
+  it("keeps rich math markup while stripping private math source attributes", () => {
+    const output = sanitizeHtml(
+      '<span class="math-inline" data-math-source="\\frac{TP}{FN}" aria-label="\\frac{TP}{FN}"><span class="math-render"><span class="math-frac"><span class="math-num"><var>TP</var></span><span class="math-den"><var>FN</var></span></span></span></span>',
+    );
+
+    expect(output).toContain("<var>TP</var>");
+    expect(output).toContain('class="math-frac"');
+    expect(output).toContain('aria-label="\\frac{TP}{FN}"');
+    expect(output).not.toContain("data-math-source");
+  });
 });
