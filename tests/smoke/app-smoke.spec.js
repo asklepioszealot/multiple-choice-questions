@@ -287,6 +287,39 @@ test.describe("MCQ smoke", () => {
     await expect(mainApp.locator(".kbd-hint")).toHaveCount(0);
   });
 
+  test("study explanation renders inline warning markers as callout blocks", async ({
+    page,
+  }) => {
+    await seedLocalSets(page, {
+      sets: {
+        callout: {
+          setName: "Callout Demo",
+          fileName: "callout-demo.md",
+          sourceFormat: "markdown",
+          questions: [
+            {
+              q: "Hematuri ayriminda en guvenilir ipucu nedir?",
+              options: ["Eritrosit silendirleri", "Pihti varligi"],
+              correct: 0,
+              subject: "Nefroloji",
+              explanation:
+                "Klinik tablo glomeruler kanamayla uyumludur. > ⚠️ Pihti beklenmez.",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["callout"],
+    });
+
+    await page.locator("#start-btn").click();
+    await page.locator("#show-solution-btn").click();
+
+    await expect(
+      page.locator("#solution-content blockquote.markdown-callout-warning"),
+    ).toContainText("Pihti beklenmez");
+    await expect(page.locator("#solution-content")).not.toContainText("> ⚠️");
+  });
+
   test("markdown wikilink media prompt does not block set import", async ({ page }) => {
     const markdown = [
       "[1] Bu grafide ne var?",

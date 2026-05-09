@@ -663,6 +663,25 @@
         margin: 4px 0;
       }
 
+      .solution-content .markdown-callout,
+      .editor-preview .markdown-callout {
+        margin: 14px 0;
+        padding: 12px 14px;
+        border: 1px solid var(--color-accent);
+        border-left-width: 4px;
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        color: var(--color-text-primary);
+        font-size: 0.95em;
+        line-height: 1.6;
+      }
+
+      .solution-content .markdown-callout-warning,
+      .editor-preview .markdown-callout-warning {
+        border-color: var(--color-emphasis);
+        background: color-mix(in srgb, var(--color-emphasis) 11%, transparent);
+      }
+
       .solution-content .content-link-card,
       .editor-preview .content-link-card {
         display: inline-flex;

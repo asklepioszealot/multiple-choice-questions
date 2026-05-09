@@ -53,6 +53,7 @@ export function createStudyRunner({
   renderSetList,
   getContext,
   setContext,
+  formatEditableText = (value) => String(value ?? ""),
   alertRef = windowRef?.alert?.bind(windowRef),
   confirmRef = windowRef?.confirm?.bind(windowRef),
 }) {
@@ -67,7 +68,7 @@ export function createStudyRunner({
       typeof question.explanation === "string" &&
       question.explanation.trim()
     ) {
-      return question.explanation;
+      return formatEditableText(question.explanation);
     }
     return '<span class="highlight-important">⚠️ Açıklama bulunamadı.</span>';
   }

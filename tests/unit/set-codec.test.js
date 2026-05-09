@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSetRecord,
   collectRelativeMediaReferences,
+  formatEditableText,
   hydrateSetRecordMedia,
   htmlToEditableText,
   normalizeQuestions,
@@ -220,6 +221,39 @@ describe("set-codec", () => {
       "[2024 EULAR](https://rheumnow.com/news/updated-eular-recommendations-treatment-systemic-sclerosis)",
     );
     expect(htmlToEditableText(explanation)).toContain(String.raw`\frac{TP}{TP + FN}`);
+  });
+
+  it("renders warning blockquotes as callout blocks and preserves the markdown marker", () => {
+    const parsed = parseSetText(
+      [
+        "Soru 1: Hematuri ayriminda en guvenilir ipucu nedir?",
+        "A) A",
+        "B) B",
+        "Doğru Cevap: A",
+        "Açıklama: Eritrosit silendirleri glomeruler kanamayi destekler.",
+        "> ⚠️ Pihti yoklugu ve eritrosit silendirleri birlikte degerlendirilmelidir.",
+      ].join("\n"),
+      "callout.md",
+    );
+
+    const explanation = parsed.questions[0].explanation;
+
+    expect(explanation).toContain('class="markdown-callout markdown-callout-warning"');
+    expect(explanation).toContain("Pihti yoklugu");
+    expect(explanation).not.toContain("&gt; ⚠️");
+    expect(htmlToEditableText(explanation)).toContain(
+      "> ⚠️ Pihti yoklugu ve eritrosit silendirleri birlikte degerlendirilmelidir.",
+    );
+  });
+
+  it("renders inline warning markers in editable text as callout blocks", () => {
+    const rendered = formatEditableText(
+      "Klinik tablo glomeruler kanamayla uyumludur. > ⚠️ Pihti beklenmez.",
+    );
+
+    expect(rendered).toContain("Klinik tablo glomeruler kanamayla uyumludur.");
+    expect(rendered).toContain('class="markdown-callout markdown-callout-warning"');
+    expect(rendered).not.toContain("&gt; ⚠️");
   });
 
   it("roundtrips markdown source through parse and serialize", () => {

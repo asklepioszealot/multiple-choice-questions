@@ -420,6 +420,7 @@ export async function startApp() {
     renderSetList: () => renderSetList(),
     getContext: getStudyContext,
     setContext: setStudyContext,
+    formatEditableText,
     alertRef: window.alert?.bind(window),
     confirmRef: window.confirm?.bind(window),
   });

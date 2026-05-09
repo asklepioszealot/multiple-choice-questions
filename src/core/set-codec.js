@@ -389,6 +389,16 @@ function toSafeArray(value) {
         audio.replaceWith(documentNode.createTextNode(audioToken));
       });
 
+      root.querySelectorAll("blockquote").forEach((blockquote) => {
+        const quoteLines = (blockquote.textContent || "")
+          .replace(/\r/g, "")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+        const quoteText = quoteLines.map((line) => `> ${line}`).join("\n");
+        blockquote.replaceWith(documentNode.createTextNode(quoteText));
+      });
+
       return root.innerHTML;
     } catch {
       return rawHtml;
@@ -673,13 +683,56 @@ function toSafeArray(value) {
     return ordered ? `<ol>${items}</ol>` : `<ul>${items}</ul>`;
   }
 
+  function expandInlineCalloutMarkers(line) {
+    const normalizedLine = String(line ?? "").trim();
+    const inlineWarningMatch = normalizedLine.match(/^(.*?)\s+(>\s*⚠️[\s\S]*)$/);
+    if (!inlineWarningMatch || !inlineWarningMatch[1].trim()) {
+      return [normalizedLine];
+    }
+
+    return [inlineWarningMatch[1].trim(), inlineWarningMatch[2].trim()];
+  }
+
+  function normalizeMarkdownBlockLines(lines) {
+    return toSafeArray(lines).flatMap(expandInlineCalloutMarkers);
+  }
+
+  function isMarkdownBlockquoteLine(line) {
+    return /^>\s?/.test(String(line ?? ""));
+  }
+
+  function renderMarkdownBlockquote(lines) {
+    const quoteLines = toSafeArray(lines)
+      .map((line) => String(line ?? "").replace(/^>\s?/, "").trim())
+      .filter(Boolean);
+    const quoteHtml = quoteLines.map((line) => processFormatting(line)).join("<br>");
+    const warningClass = quoteLines.some((line) => /^⚠️/.test(line))
+      ? " markdown-callout-warning"
+      : "";
+
+    return `<blockquote class="markdown-callout${warningClass}">${quoteHtml}</blockquote>`;
+  }
+
   function renderMarkdownLines(lines) {
     const rendered = [];
-    const sourceLines = toSafeArray(lines).map((line) => String(line ?? "").trim());
+    const sourceLines = normalizeMarkdownBlockLines(lines);
 
     for (let index = 0; index < sourceLines.length; index += 1) {
       const line = sourceLines[index];
       if (!line) continue;
+
+      if (isMarkdownBlockquoteLine(line)) {
+        const quoteLines = [line];
+        while (
+          index + 1 < sourceLines.length &&
+          isMarkdownBlockquoteLine(sourceLines[index + 1])
+        ) {
+          index += 1;
+          quoteLines.push(sourceLines[index]);
+        }
+        rendered.push(renderMarkdownBlockquote(quoteLines));
+        continue;
+      }
 
       if (
         index + 1 < sourceLines.length &&
@@ -744,10 +797,7 @@ function toSafeArray(value) {
       return "";
     }
 
-    return normalized
-      .split("\n")
-      .map((line) => processFormatting(line))
-      .join("<br>");
+    return renderMarkdownLines(normalized.split("\n"));
   }
 
   function htmlToEditableText(value) {
@@ -1090,7 +1140,7 @@ function toSafeArray(value) {
       const blockquoteMatch = line.match(/^>\s?(.*)$/);
       if (blockquoteMatch && currentQuestion) {
         capturingExplanation = true;
-        explanationLines.push(blockquoteMatch[1].trim());
+        explanationLines.push(line.trim());
         continue;
       }
 
