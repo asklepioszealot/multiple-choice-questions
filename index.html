@@ -28,12 +28,47 @@
         --color-accent-text: #ffffff;
         --color-emphasis: #047857; /* Emerald 700 */
         --color-emphasis-strong: #064e3b; /* Emerald 900 */
+        --color-emphasis-soft: rgba(4, 120, 87, 0.14);
         --color-border: rgba(15, 23, 42, 0.1);
         --color-correct: #34d399; /* Emerald 400 */
         --color-correct-hover: #10b981; /* Emerald 500 */
         --color-wrong: #f87171; /* Red 400 */
         --color-wrong-hover: #ef4444; /* Red 500 */
+        --color-card-front: #ffffff;
+        --color-card-back: #f1f5f9; /* Slate 100 */
         --color-focus-ring: rgba(16, 185, 129, 0.32);
+        --header-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+        --card-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        --screen-glow: rgba(16, 185, 129, 0.14);
+        --screen-wash: rgba(255, 255, 255, 0.4);
+        --auth-panel-glow: rgba(16, 185, 129, 0.22);
+        --auth-panel-start: rgba(15, 23, 42, 0.95);
+        --auth-panel-end: rgba(4, 120, 87, 0.85);
+        --shell-shadow: rgba(15, 23, 42, 0.12);
+        --editor-sidebar-outline: rgba(148, 163, 184, 0.2);
+        --editor-sidebar-glow: rgba(59, 130, 246, 0.08);
+        --editor-sidebar-base: rgba(255, 255, 255, 0.96);
+        --editor-sidebar-panel-outline: rgba(148, 163, 184, 0.18);
+        --editor-sidebar-panel-base: rgba(248, 250, 252, 0.94);
+        --editor-list-hover-border: rgba(59, 130, 246, 0.24);
+        --editor-list-hover-bg: rgba(59, 130, 246, 0.06);
+        --editor-list-active-border: rgba(59, 130, 246, 0.32);
+        --editor-detail-outline: rgba(148, 163, 184, 0.18);
+        --editor-detail-glow: rgba(59, 130, 246, 0.06);
+        --editor-detail-base: rgba(255, 255, 255, 0.94);
+        --editor-card-open-border: rgba(59, 130, 246, 0.2);
+        --editor-card-active-border: rgba(59, 130, 246, 0.14);
+        --editor-card-head-glow: rgba(59, 130, 246, 0.04);
+        --editor-card-head-glow-hover: rgba(59, 130, 246, 0.08);
+        --markdown-quote-bg: rgba(90, 116, 177, 0.08);
+        --markdown-table-head-bg: rgba(90, 116, 177, 0.12);
+        --markdown-warning-bg: rgba(244, 176, 62, 0.12);
+        --hl-yellow: rgba(240, 200, 0, 0.22);
+        --hl-green: rgba(34, 197, 94, 0.22);
+        --hl-red: rgba(239, 68, 68, 0.22);
+        --hl-blue: rgba(59, 130, 246, 0.22);
+        --hl-purple: rgba(168, 85, 247, 0.22);
+        --hl-default: rgba(148, 163, 184, 0.22);
         --mcq-font-question: 25px;
         --mcq-font-option: 17px;
         --mcq-font-question-fullscreen: 22px;
@@ -70,7 +105,10 @@
 
       body {
         font-family: var(--font-body);
-        background: var(--color-bg-primary);
+        background:
+          radial-gradient(circle at top right, var(--screen-glow), transparent 30%),
+          linear-gradient(180deg, var(--screen-wash), transparent),
+          var(--color-bg-primary);
         color: var(--color-text-primary);
         line-height: 1.6;
         padding: 20px;
@@ -125,7 +163,7 @@
         position: sticky;
         top: 20px;
         z-index: 100;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        box-shadow: var(--header-shadow);
       }
 
       .header-left {
@@ -374,13 +412,13 @@
       }
 
       .question-card {
-        background: var(--color-bg-secondary);
+        background: var(--color-card-front);
         border-radius: 20px;
         padding: 40px;
         margin: 0 auto 30px;
         max-width: none;
         width: 100%;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--card-shadow);
         border: 1px solid var(--color-border);
         position: relative;
       }
@@ -601,7 +639,7 @@
 
       .solution {
         display: none;
-        background: var(--color-bg-primary);
+        background: var(--color-card-back);
         border-radius: 12px;
         padding: 30px;
         border: 2px solid var(--color-accent);
@@ -649,7 +687,7 @@
       }
 
       .solution-content th {
-        background: var(--color-bg-secondary);
+        background: var(--markdown-table-head-bg);
         font-weight: 700;
       }
 
@@ -670,7 +708,7 @@
         border: 1px solid var(--color-accent);
         border-left-width: 4px;
         border-radius: 8px;
-        background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+        background: var(--markdown-quote-bg);
         color: var(--color-text-primary);
         font-size: 0.95em;
         line-height: 1.6;
@@ -679,7 +717,7 @@
       .solution-content .markdown-callout-warning,
       .editor-preview .markdown-callout-warning {
         border-color: var(--color-emphasis);
-        background: color-mix(in srgb, var(--color-emphasis) 11%, transparent);
+        background: var(--markdown-warning-bg);
       }
 
       .solution-content .content-link-card,
@@ -704,7 +742,7 @@
       .solution-content .content-link-card:hover,
       .editor-preview .content-link-card:hover {
         border-color: var(--color-accent);
-        background: var(--color-surface);
+        background: var(--color-card-front);
       }
 
       .solution-content .content-link-card__label,
@@ -792,6 +830,9 @@
       .highlight-critical {
         color: var(--color-emphasis-strong);
         font-weight: 700;
+        background: var(--color-emphasis-soft, rgba(4, 120, 87, 0.14));
+        padding: 0.04em 0.28em;
+        border-radius: 0.35em;
       }
 
       [data-color-scheme="dark"] .highlight-critical {
@@ -807,6 +848,37 @@
       [data-color-scheme="dark"] .highlight-important {
         color: var(--color-emphasis);
         font-weight: 400;
+      }
+
+      mark {
+        color: inherit;
+        background-color: var(--hl-default);
+        border-radius: 0.2em;
+        padding: 0 0.15em;
+      }
+
+      mark.hl-yellow {
+        background-color: var(--hl-yellow);
+      }
+
+      mark.hl-green {
+        background-color: var(--hl-green);
+      }
+
+      mark.hl-red {
+        background-color: var(--hl-red);
+      }
+
+      mark.hl-blue {
+        background-color: var(--hl-blue);
+      }
+
+      mark.hl-purple {
+        background-color: var(--hl-purple);
+      }
+
+      mark.hl-default {
+        background-color: var(--hl-default);
       }
 
       @media (max-width: 1280px) and (min-width: 769px) {
@@ -1372,7 +1444,7 @@
         background: var(--color-bg-secondary);
         border: 1px solid var(--color-border);
         border-radius: 18px;
-        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+        box-shadow: 0 20px 50px var(--shell-shadow);
         padding: 28px;
       }
       .sync-conflict-card h2 {
@@ -1416,7 +1488,7 @@
         background: color-mix(in srgb, var(--color-bg-secondary) 88%, var(--color-accent) 4%);
         border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--color-accent) 18%);
         border-radius: 24px;
-        box-shadow: 0 24px 46px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 24px 46px var(--shell-shadow);
         padding: 24px;
         min-width: 0;
         margin-bottom: 30px;
@@ -1516,8 +1588,11 @@
         overflow: hidden;
         padding: 16px;
         border-radius: 24px;
-        border: 1px solid color-mix(in srgb, var(--color-border) 80%, var(--color-accent) 12%);
-        background: color-mix(in srgb, var(--color-bg-secondary) 90%, var(--color-accent) 3%);
+        border: 1px solid var(--editor-sidebar-outline);
+        background:
+          radial-gradient(circle at top left, var(--editor-sidebar-glow), transparent 40%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 60%),
+          var(--editor-sidebar-base);
         box-shadow: 0 24px 44px rgba(15, 23, 42, 0.14);
       }
       .editor-list-handle {
@@ -1529,8 +1604,8 @@
         margin-bottom: 12px;
         padding: 12px 14px;
         border-radius: 16px;
-        border: 1px solid var(--color-border);
-        background: var(--color-bg-secondary);
+        border: 1px solid var(--editor-sidebar-outline);
+        background: var(--editor-sidebar-panel-base);
         color: var(--color-text-primary);
         font: inherit;
         font-size: 12px;
@@ -1544,8 +1619,10 @@
         gap: 14px;
         padding: 20px;
         border-radius: 22px;
-        border: 1px solid var(--color-border);
-        background: color-mix(in srgb, var(--color-bg-primary) 84%, var(--color-bg-secondary));
+        border: 1px solid var(--editor-sidebar-panel-outline);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 55%),
+          var(--editor-sidebar-panel-base);
       }
       .editor-list-header {
         display: flex;
@@ -1590,12 +1667,12 @@
         transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
       }
       .editor-question-item:hover {
-        border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
-        background: color-mix(in srgb, var(--color-accent-soft) 22%, var(--color-bg-secondary));
+        border-color: var(--editor-list-hover-border);
+        background: var(--editor-list-hover-bg);
         transform: translateY(-1px);
       }
       .editor-question-item.active {
-        border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+        border-color: var(--editor-list-active-border);
         background: color-mix(in srgb, var(--color-accent-soft) 48%, var(--color-bg-secondary));
         box-shadow: 0 16px 28px rgba(15, 23, 42, 0.12);
       }
@@ -1617,8 +1694,11 @@
         min-width: 0;
         padding: 24px;
         border-radius: 28px;
-        border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--color-accent) 10%);
-        background: color-mix(in srgb, var(--color-bg-secondary) 88%, var(--color-accent) 3%);
+        border: 1px solid var(--editor-detail-outline);
+        background:
+          radial-gradient(circle at top right, var(--editor-detail-glow), transparent 26%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 60%),
+          var(--editor-detail-base);
         box-shadow: 0 28px 48px rgba(15, 23, 42, 0.14);
       }
       .editor-main {
@@ -1631,7 +1711,11 @@
         overflow: hidden;
       }
       .editor-card.is-open {
+        border-color: var(--editor-card-open-border);
         box-shadow: 0 20px 36px rgba(15, 23, 42, 0.12);
+      }
+      .editor-card.is-active:not(.is-open) {
+        border-color: var(--editor-card-active-border);
       }
       .editor-card-head {
         display: flex;
@@ -1641,7 +1725,9 @@
         flex-wrap: wrap;
         padding: 18px;
         border-bottom: 1px solid var(--color-border);
-        background: color-mix(in srgb, var(--color-bg-primary) 82%, var(--color-bg-secondary));
+        background:
+          radial-gradient(circle at top right, var(--editor-card-head-glow), transparent 34%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
       }
       .editor-card-title {
         color: var(--color-text-secondary);
@@ -1670,6 +1756,9 @@
         font: inherit;
         font-weight: 800;
         outline: none;
+      }
+      .editor-subject-input::placeholder {
+        color: var(--color-text-muted, var(--color-text-secondary));
       }
       .editor-subject-preview {
         display: none;
@@ -1998,19 +2087,22 @@
         margin: 48px auto;
       }
       .auth-card {
-        background: var(--color-bg-secondary);
+        background:
+          radial-gradient(circle at top left, var(--auth-panel-glow), transparent 40%),
+          linear-gradient(135deg, var(--auth-panel-start), var(--auth-panel-end));
         border: 1px solid var(--color-border);
         border-radius: 18px;
         padding: 36px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 24px 80px var(--shell-shadow);
+        color: #f8fafc;
       }
       .auth-card h1 {
         font-size: 32px;
         margin-bottom: 12px;
-        color: var(--color-text-primary);
+        color: inherit;
       }
       .auth-card p {
-        color: var(--color-text-secondary);
+        color: rgba(248, 250, 252, 0.8);
         font-size: 16px;
       }
       .auth-actions {
@@ -2046,6 +2138,14 @@
         gap: 8px;
         font-size: 14px;
         color: var(--color-text-secondary);
+      }
+      .auth-card .auth-remember,
+      .auth-card .theme-control label {
+        color: rgba(248, 250, 252, 0.8);
+      }
+      .auth-card .auth-meta,
+      .auth-card .auth-status {
+        color: rgba(248, 250, 252, 0.75);
       }
       .auth-status {
         min-height: 20px;
