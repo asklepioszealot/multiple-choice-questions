@@ -13,12 +13,13 @@ describe("theme manager", () => {
   });
 
   it("registers the flashcards-style preset collection", () => {
-    expect(AVAILABLE_THEMES).toHaveLength(14);
+    expect(AVAILABLE_THEMES).toHaveLength(13);
     expect(getThemeLabel("light")).toBe("AYDINLIK");
     expect(getThemeLabel("midnight")).toBe("KARANLIK");
     expect(getThemeLabel("ember")).toBe("AMBER");
     expect(getThemeLabel("dark")).toBe("MAVI");
-    expect(getThemeLabel("midnight-galaxy")).toBe("MIDNIGHT GALAXY");
+    // midnight-galaxy kaldırıldı; bilinmeyen tema adları light'a düşer.
+    expect(getThemeLabel("midnight-galaxy")).toBe("AYDINLIK");
   });
 
   it("syncs select controls and applies preset attributes", () => {
@@ -29,7 +30,7 @@ describe("theme manager", () => {
 
     ThemeManager.renderThemeOptions(["theme-select-auth", "theme-select-manager"]);
 
-    expect(document.querySelectorAll("#theme-select-auth option")).toHaveLength(14);
+    expect(document.querySelectorAll("#theme-select-auth option")).toHaveLength(13);
 
     const appliedTheme = ThemeManager.setTheme({
       themeName: "ember",
