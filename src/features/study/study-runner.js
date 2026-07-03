@@ -35,6 +35,7 @@ import {
   readSavedSession,
   resolveQuestionKey as cardId,
 } from "../study-state/study-state.js";
+import { bindQuestionSwipe } from "./question-swipe.js";
 
 export function createStudyRunner({
   documentRef,
@@ -307,6 +308,15 @@ export function createStudyRunner({
     showScreen("study");
     populateTopicFilter();
     updateScoreDisplay();
+
+    const questionCard = documentRef?.querySelector(".question-card");
+    if (questionCard && !questionCard.dataset.swipeBound) {
+      questionCard.dataset.swipeBound = "true";
+      bindQuestionSwipe(questionCard, {
+        onSwipeLeft: () => nextQuestion(),
+        onSwipeRight: () => previousQuestion(),
+      });
+    }
 
     const { pendingSession } = getContext();
     const session =

@@ -425,6 +425,8 @@
         box-shadow: var(--card-shadow);
         border: 1px solid var(--color-border);
         position: relative;
+        /* MCQ-only placement: fc sets pan-y on .card-face */
+        touch-action: pan-y;
       }
 
       .question-card-content {
