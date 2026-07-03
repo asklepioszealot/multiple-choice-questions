@@ -1797,6 +1797,37 @@ test.describe("MCQ smoke", () => {
     expect(afterEntries).toHaveLength(2);
   });
 
+  test("narrow viewport study flow stays usable", async ({ page }) => {
+    const fixturePath = path.resolve(
+      process.cwd(),
+      "tests",
+      "fixtures",
+      "smoke-set.json",
+    );
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(appUrl());
+    await continueAsDemo(page);
+
+    await page.setInputFiles("#file-picker", fixturePath);
+    await expect(page.locator("#set-list .set-name", { hasText: "Smoke Test Set" })).toBeVisible();
+    await expect(page.locator("#start-btn")).toBeEnabled();
+
+    await page.locator("#start-btn").click();
+    await expect(page.locator("#main-app")).toBeVisible();
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+
+    const nextButton = page.locator("#next-btn");
+    await expect(nextButton).toBeVisible();
+    const nextBox = await nextButton.boundingBox();
+    expect(nextBox.height).toBeGreaterThanOrEqual(44);
+  });
+
   test("legacy answer keys migrate to set-based keys", async ({ page }) => {
     const questionText = "Legacy soru?";
     const subject = "Genel";
