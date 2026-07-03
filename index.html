@@ -909,8 +909,10 @@
           min-width: 48px;
           padding: 0;
           gap: 0;
-          /* MCQ-only: center panel is a tall column (fc's is a short row) — keep icon buttons square */
+          /* MCQ-only: center panel is a tall column (fc's is a short row) — keep icon buttons square.
+             align-self drops the bar's stretch, so restore the touch-target height fc gets from stretching. */
           align-self: center;
+          min-height: 48px;
         }
 
         .fullscreen-nav-bar .nav-btn-label {
