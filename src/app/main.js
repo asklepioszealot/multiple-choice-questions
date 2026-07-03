@@ -10,5 +10,12 @@ document.addEventListener("DOMContentLoaded", () => {
         Opps! Uygulama başlatılamadı.<br>${error.message}
       </div>`;
     }
+    document.body.classList.remove("app-booting");
+    const splash = document.getElementById("app-splash");
+    if (splash) {
+      const finalize = () => splash.classList.add("is-removed");
+      splash.addEventListener("transitionend", finalize, { once: true });
+      setTimeout(finalize, 800);
+    }
   });
 });
