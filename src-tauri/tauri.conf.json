@@ -14,10 +14,12 @@
     "windows": [
       {
         "title": "Çoktan Seçmeli Sorular",
-        "width": 800,
-        "height": 600,
+        "width": 1000,
+        "height": 700,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "decorations": false,
+        "transparent": false
       }
     ],
     "security": {
@@ -34,9 +36,34 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "fileAssociations": [
+      {
+        "ext": ["json"],
+        "name": "Çoktan Seçmeli Soru Seti",
+        "description": "Çoktan Seçmeli Çalışma Seti JSON Dosyası",
+        "role": "Viewer"
+      },
+      {
+        "ext": ["md"],
+        "name": "Çoktan Seçmeli Markdown Seti",
+        "description": "Çoktan Seçmeli Markdown Çalışma Seti",
+        "role": "Viewer"
+      },
+      {
+        "ext": ["apkg"],
+        "name": "Anki Paketi",
+        "description": "Anki Kart Paketi Dosyası (MCQ'ya dönüştürülerek içe aktarılır)",
+        "role": "Viewer"
+      }
     ]
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["mcq-app"]
+      }
+    },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgxRUVBMDRGRkQ4NjNFNTYKUldSV1BvYjlUNkR1Z2RpeURqSHFjY1IwY214WVdnUXIyb0FyUFJTR2wrSEZYdlZleEdqRlEzUEsK",
       "endpoints": [

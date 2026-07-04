@@ -8,6 +8,8 @@ use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
+#[cfg(desktop)]
+use tauri::Emitter;
 use tauri_plugin_dialog::DialogExt;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -292,12 +294,64 @@ fn flush_sync(app: tauri::AppHandle, user_id: String) -> Result<FlushSyncResult,
   flush_sync_file(&path)
 }
 
+#[tauri::command]
+fn get_startup_args() -> Vec<String> {
+  std::env::args().collect()
+}
+
+#[tauri::command]
+async fn read_native_file_by_path(path: String) -> Result<NativePickedFile, String> {
+  let path_buf = PathBuf::from(path);
+  read_native_file(&path_buf)
+}
+
+#[tauri::command]
+fn open_url(url: String) -> Result<(), String> {
+  #[cfg(target_os = "windows")]
+  {
+    std::process::Command::new("cmd")
+      .args(["/C", "start", "", &url])
+      .spawn()
+      .map_err(|e| e.to_string())?;
+  }
+  #[cfg(target_os = "macos")]
+  {
+    std::process::Command::new("open")
+      .arg(&url)
+      .spawn()
+      .map_err(|e| e.to_string())?;
+  }
+  #[cfg(target_os = "linux")]
+  {
+    std::process::Command::new("xdg-open")
+      .arg(&url)
+      .spawn()
+      .map_err(|e| e.to_string())?;
+  }
+  let _ = url;
+  Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
-    .setup(|app| {
+    .setup(|_app| {
       #[cfg(desktop)]
-      app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+      {
+        _app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+        _app.handle().plugin(tauri_plugin_process::init())?;
+        _app.handle().plugin(tauri_plugin_deep_link::init())?;
+
+        #[cfg(any(windows, target_os = "linux"))]
+        {
+          use tauri_plugin_deep_link::DeepLinkExt;
+          _app.deep_link().register("mcq-app")?;
+        }
+
+        _app.handle().plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+          let _ = app.emit("single-instance-args", args);
+        }))?;
+      }
       Ok(())
     })
     .plugin(
@@ -306,7 +360,6 @@ pub fn run() {
         .build(),
     )
     .plugin(tauri_plugin_dialog::init())
-    .plugin(tauri_plugin_process::init())
     .invoke_handler(tauri::generate_handler![
       list_local_sets,
       upsert_local_set,
@@ -314,7 +367,10 @@ pub fn run() {
       queue_sync,
       flush_sync,
       pick_native_set_files,
-      write_set_source_file
+      write_set_source_file,
+      get_startup_args,
+      read_native_file_by_path,
+      open_url
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
