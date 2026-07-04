@@ -303,6 +303,9 @@ export function createStudyChrome({
       isFullscreen: nextIsFullscreen,
     });
     questionCard.classList.toggle("fullscreen-active", nextIsFullscreen);
+    // Desktop chrome (titlebar/statusbar, z-index 9999) sits above the fullscreen
+    // card (z-index 2000); mirror the F11 path by hiding it via this body class.
+    documentRef?.body?.classList?.toggle("study-fullscreen", nextIsFullscreen);
     if (documentRef?.body?.style) {
       documentRef.body.style.overflow = fullscreenState.bodyOverflow;
     }

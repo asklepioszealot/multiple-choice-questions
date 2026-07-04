@@ -36,6 +36,7 @@ import { createStudyPersistence } from "../features/study/study-persistence.js";
 import { createStudyRunner } from "../features/study/study-runner.js";
 import { createStudyStateBridge } from "../features/study/study-state-bridge.js";
 import { resolveQuestionKey as cardId } from "../features/study-state/study-state.js";
+import { initDesktopIntegrations } from "../ui/desktop.js";
 import { ThemeManager } from "../ui/theme.js";
 import {
   DEFAULT_STUDY_TYPOGRAPHY,
@@ -580,6 +581,11 @@ export async function startApp() {
   async function initApp() {
     ThemeManager.renderThemeOptions(THEME_CONTROL_IDS);
     studyRunner.syncManagerSettingsPanelState();
+    initDesktopIntegrations({
+      getPlatformAdapter: () => platformAdapter,
+      onSyncNow: () => loadSyncedWorkspace(),
+      importNativeFiles: (files) => setManager.importNativeFiles(files),
+    });
     bindStaticEvents({
       documentRef: document,
       windowRef: window,
