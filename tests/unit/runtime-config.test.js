@@ -1,8 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getRuntimeConfig,
   hasDriveConfig,
   hasSupabaseConfig,
+  isAndroidRuntime,
+  isDesktopRuntime,
+  isTauriRuntime,
   resolveRuntimeConfig,
 } from "../../src/core/runtime-config.js";
 
@@ -38,5 +41,38 @@ describe("runtime config", () => {
     expect(config.driveAppId).toBe("build-app");
     expect(config.enableDemoAuth).toBe(true);
     expect(config.authMode).toBe("supabase");
+  });
+});
+
+describe("runtime ayrımı (desktop/android)", () => {
+  afterEach(() => {
+    delete window.__TAURI__;
+    vi.unstubAllGlobals();
+  });
+
+  it("Tauri yokken üçü de false", () => {
+    expect(isTauriRuntime()).toBe(false);
+    expect(isAndroidRuntime()).toBe(false);
+    expect(isDesktopRuntime()).toBe(false);
+  });
+
+  it("masaüstü Tauri'de desktop=true android=false", () => {
+    window.__TAURI__ = { core: { invoke: () => {} } };
+    vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" });
+    expect(isTauriRuntime()).toBe(true);
+    expect(isAndroidRuntime()).toBe(false);
+    expect(isDesktopRuntime()).toBe(true);
+  });
+
+  it("Android Tauri'de android=true desktop=false", () => {
+    window.__TAURI__ = { core: { invoke: () => {} } };
+    vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (Linux; Android 14) WebView" });
+    expect(isAndroidRuntime()).toBe(true);
+    expect(isDesktopRuntime()).toBe(false);
+  });
+
+  it("Android UA ama Tauri yoksa android=false", () => {
+    vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (Linux; Android 14)" });
+    expect(isAndroidRuntime()).toBe(false);
   });
 });
