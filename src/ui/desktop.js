@@ -6,8 +6,160 @@ import { isDesktopRuntime, isTauriRuntime } from "../core/runtime-config.js";
 // startApp'ten DI ile alır (test edilebilirlik + modüler yapı).
 let desktopDeps = {};
 
+// MCQ-only: fc şeması flashcards-app; MCQ şeması mcq-app (spec karar 1).
+const DEEP_LINK_SCHEME = "mcq-app://";
+
 function getTauri() {
   return window.__TAURI__ || null;
+}
+
+export function parseOAuthDeepLink(url) {
+  if (!url || typeof url !== "string") return null;
+  if (!url.startsWith(DEEP_LINK_SCHEME)) return null;
+  if (!url.includes("oauth-callback")) return null;
+
+  let paramStr = "";
+  if (url.includes("#")) {
+    paramStr = url.split("#")[1];
+  } else if (url.includes("?")) {
+    paramStr = url.split("?")[1];
+  }
+  if (!paramStr) return null;
+
+  const params = new URLSearchParams(paramStr);
+  const code = params.get("code");
+  if (code) {
+    return { kind: "pkce", code };
+  }
+  const accessToken = params.get("access_token");
+  if (accessToken) {
+    return {
+      kind: "implicit",
+      accessToken,
+      refreshToken: params.get("refresh_token") || "",
+    };
+  }
+  return null;
+}
+
+async function handleDesktopDeepLink(url) {
+  const parsed = parseOAuthDeepLink(url);
+  if (!parsed) return false;
+
+  const adapter = typeof desktopDeps.getPlatformAdapter === "function"
+    ? desktopDeps.getPlatformAdapter()
+    : null;
+
+  try {
+    if (parsed.kind === "pkce" && typeof adapter?.exchangeCodeForSession === "function") {
+      updateSyncIndicator("synced", "Google ile giriş yapılıyor...");
+      await adapter.exchangeCodeForSession(parsed.code);
+    } else if (parsed.kind === "implicit" && typeof adapter?.setSession === "function") {
+      updateSyncIndicator("synced", "Google ile giriş yapılıyor...");
+      await adapter.setSession({
+        access_token: parsed.accessToken,
+        refresh_token: parsed.refreshToken,
+      });
+    } else {
+      return false;
+    }
+
+    updateSyncIndicator("synced", "Giriş başarılı! Veriler yükleniyor...");
+    window.location.reload();
+    return true;
+  } catch (err) {
+    console.error("Deep link auth session restore failed:", err);
+    updateSyncIndicator("error", `Giriş başarısız: ${err?.message || err}`);
+    return false;
+  }
+}
+
+// MCQ-only: fc native dosyaları File-like mock'lara eşler (fc:393-468); MCQ'da
+// setManager.importNativeFiles native kayıtları ({path,name,contents}) doğrudan
+// kabul ettiği için ek bir eşleme katmanına gerek yok.
+async function importLocalFilesByPaths(paths) {
+  const adapter = typeof desktopDeps.getPlatformAdapter === "function"
+    ? desktopDeps.getPlatformAdapter()
+    : null;
+  if (
+    typeof adapter?.readNativeFilesByPaths !== "function" ||
+    typeof desktopDeps.importNativeFiles !== "function"
+  ) {
+    return;
+  }
+
+  try {
+    updateSyncIndicator("synced", `${paths.length} yerel dosya okunuyor...`);
+    const files = await adapter.readNativeFilesByPaths(paths);
+    if (files.length > 0) {
+      await desktopDeps.importNativeFiles(files);
+      updateSyncIndicator("synced", `${files.length} dosya içe aktarıldı.`);
+    }
+  } catch (err) {
+    console.error("Local file import failed:", err);
+    updateSyncIndicator("error", `Dosya okuma hatası: ${err?.message || err}`);
+  }
+}
+
+function setupDragAndDrop(tauri) {
+  const overlay = document.getElementById("desktop-dragdrop-zone");
+  if (!overlay) return;
+
+  const { listen } = tauri.event;
+  listen("tauri://drag-over", () => overlay.classList.add("active")).catch(console.error);
+  listen("tauri://drag-leave", () => overlay.classList.remove("active")).catch(console.error);
+  listen("tauri://drag-drop", async (event) => {
+    overlay.classList.remove("active");
+    const paths = event.payload?.paths;
+    if (Array.isArray(paths) && paths.length > 0) {
+      await importLocalFilesByPaths(paths);
+    }
+  }).catch(console.error);
+}
+
+// MCQ-only: fc arg-parsing mantığını single-instance-args ve get_startup_args
+// dinleyicilerinde iki kez tekrarlar; burada tek bir yardımcıda DRY tutulur.
+function extractLaunchPayload(args) {
+  const candidates = (Array.isArray(args) ? args : [])
+    .slice(1)
+    .filter((arg) => typeof arg === "string" && !arg.startsWith("-"));
+  return {
+    deepLinkUrl: candidates.find((arg) => arg.startsWith(DEEP_LINK_SCHEME)) || null,
+    filePaths: candidates.filter((arg) => !arg.startsWith(DEEP_LINK_SCHEME)),
+  };
+}
+
+function setupSingleInstanceArgs(tauri) {
+  const { listen } = tauri.event;
+
+  listen("single-instance-args", async (event) => {
+    const { deepLinkUrl, filePaths } = extractLaunchPayload(event.payload);
+    if (!deepLinkUrl && filePaths.length === 0) return;
+
+    const { getCurrentWindow } = tauri.window;
+    await getCurrentWindow().setFocus().catch(console.error);
+
+    if (deepLinkUrl && (await handleDesktopDeepLink(deepLinkUrl))) return;
+    if (filePaths.length > 0) {
+      await importLocalFilesByPaths(filePaths);
+    }
+  }).catch(console.error);
+
+  // Boot argümanları: splash geçişi bitene kadar bekle (fc:366-389 kalıbı).
+  setTimeout(async () => {
+    try {
+      const core = tauri.core;
+      if (!core || typeof core.invoke !== "function") return;
+      const args = await core.invoke("get_startup_args");
+      const { deepLinkUrl, filePaths } = extractLaunchPayload(args);
+      if (deepLinkUrl && (await handleDesktopDeepLink(deepLinkUrl))) return;
+      if (filePaths.length > 0) {
+        await importLocalFilesByPaths(filePaths);
+      }
+    } catch (err) {
+      console.warn("Could not read startup arguments:", err);
+    }
+  }, 1500);
 }
 
 export function initDesktopIntegrations(deps = {}) {
@@ -90,6 +242,8 @@ export function initDesktopIntegrations(deps = {}) {
   }
 
   setupSyncIndicators();
+  setupDragAndDrop(tauri);
+  setupSingleInstanceArgs(tauri);
 }
 
 export function updateSyncIndicator(status, text) {

@@ -675,4 +675,42 @@ describe("platform adapter", () => {
     expect(files[0].contents).toBeInstanceOf(ArrayBuffer);
     expect([...new Uint8Array(files[0].contents)]).toEqual([0x50, 0x4b, 0x03, 0x04]);
   });
+
+  describe("readNativeFilesByPaths", () => {
+    it("yolları read_native_file_by_path komutuna iletir ve sonucu normalize eder", async () => {
+      originalTauri = globalThis.__TAURI__;
+      const invoke = vi.fn(async (command, args) => {
+        expect(command).toBe("read_native_file_by_path");
+        return { path: args.path, name: "set.json", contents: "{}" };
+      });
+      globalThis.__TAURI__ = {
+        core: {
+          invoke,
+        },
+      };
+
+      const platformAdapter = createPlatformAdapter({
+        storage: createMemoryStorage(),
+      });
+
+      const files = await platformAdapter.readNativeFilesByPaths(["C:\\sets\\set.json"]);
+
+      expect(files).toHaveLength(1);
+      expect(files[0].name).toBe("set.json");
+      expect(invoke).toHaveBeenCalledTimes(1);
+      expect(invoke).toHaveBeenCalledWith("read_native_file_by_path", {
+        path: "C:\\sets\\set.json",
+      });
+    });
+
+    it("Tauri yokken boş dizi döner", async () => {
+      const platformAdapter = createPlatformAdapter({
+        storage: createMemoryStorage(),
+      });
+
+      const files = await platformAdapter.readNativeFilesByPaths(["C:\\sets\\set.json"]);
+
+      expect(files).toEqual([]);
+    });
+  });
 });

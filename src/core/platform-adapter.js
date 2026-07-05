@@ -143,6 +143,9 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
         async writeSetSourceFile() {
           throw new Error("Bu özellik sadece masaüstünde kullanılabilir.");
         },
+        async readNativeFilesByPaths() {
+          return [];
+        },
       });
     }
 
@@ -156,6 +159,14 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
           sourcePath,
           rawSource,
         });
+      },
+      async readNativeFilesByPaths(paths = []) {
+        const files = [];
+        for (const path of Array.isArray(paths) ? paths : []) {
+          const file = await invoke("read_native_file_by_path", { path });
+          if (file) files.push(file);
+        }
+        return normalizeNativePickedFiles(files);
       },
     });
   }
@@ -385,6 +396,9 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
       },
       async writeSetSourceFile(sourcePath, rawSource) {
         return nativeFileBridge.writeSetSourceFile(sourcePath, rawSource);
+      },
+      async readNativeFilesByPaths(paths) {
+        return nativeFileBridge.readNativeFilesByPaths(paths);
       },
     });
   }
@@ -683,6 +697,9 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
       },
       async writeSetSourceFile(sourcePath, rawSource) {
         return nativeFileBridge.writeSetSourceFile(sourcePath, rawSource);
+      },
+      async readNativeFilesByPaths(paths) {
+        return nativeFileBridge.readNativeFilesByPaths(paths);
       },
     });
   }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { initDesktopIntegrations, updateSyncIndicator } from "../../src/ui/desktop.js";
+import { initDesktopIntegrations, parseOAuthDeepLink, updateSyncIndicator } from "../../src/ui/desktop.js";
 
 function buildChromeDom() {
   document.body.innerHTML = `
@@ -165,5 +165,29 @@ describe("setupSyncIndicators (sync-now butonu)", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(syncBtn.disabled).toBe(false);
+  });
+});
+
+describe("parseOAuthDeepLink", () => {
+  it("PKCE code'unu çözer", () => {
+    expect(parseOAuthDeepLink("mcq-app://oauth-callback?code=abc123"))
+      .toEqual({ kind: "pkce", code: "abc123" });
+  });
+
+  it("implicit token'ları çözer", () => {
+    expect(parseOAuthDeepLink("mcq-app://oauth-callback#access_token=tok&refresh_token=ref"))
+      .toEqual({ kind: "implicit", accessToken: "tok", refreshToken: "ref" });
+  });
+
+  it("refresh token'sız implicit çözer", () => {
+    expect(parseOAuthDeepLink("mcq-app://oauth-callback#access_token=tok"))
+      .toEqual({ kind: "implicit", accessToken: "tok", refreshToken: "" });
+  });
+
+  it("farklı şemayı ve oauth-callback olmayan yolu reddeder", () => {
+    expect(parseOAuthDeepLink("flashcards-app://oauth-callback?code=x")).toBeNull();
+    expect(parseOAuthDeepLink("mcq-app://other?code=x")).toBeNull();
+    expect(parseOAuthDeepLink(null)).toBeNull();
+    expect(parseOAuthDeepLink("mcq-app://oauth-callback")).toBeNull();
   });
 });
