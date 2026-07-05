@@ -1887,4 +1887,84 @@ test.describe("MCQ smoke", () => {
     expect(migratedVisibility).toHaveLength(2);
     expect(migratedVisibility.map(([, value]) => value)).toEqual([true, true]);
   });
+
+  test("boot splash dismisses even when workspace sync stalls on a slow connection", async ({
+    page,
+  }) => {
+    // test:smoke her zaman FORCE_MOCK_AUTH=1 ile build aldigi icin dist/runtime-config.js
+    // supabaseUrl/AnonKey'i bos birakir (bkz. tools/run-smoke.js, vite.config.mjs
+    // makeRuntimeConfig). Bu testte gercek bir Supabase projesi olmadan
+    // isRemoteWorkspaceActive() = true yolunu tetiklemek icin window.APP_CONFIG,
+    // runtime-config.js calismadan once bir init script ile supabase moduna zorlanir;
+    // boylece hasSupabaseConfig()/isRemoteWorkspaceActive() gercek koddaki gibi
+    // supabase moduna gecer (bkz. src/core/runtime-config.js, src/features/auth/auth-shell.js
+    // isRemoteWorkspaceActive, src/core/platform-adapter.js createSupabaseAdapter).
+    const supabaseHost = "fake-project-ref.supabase.co";
+    const storageKey = `sb-${supabaseHost.split(".")[0]}-auth-token`;
+    const farFutureExpiry = Math.floor(Date.now() / 1000) + 3600;
+    const fakeSession = {
+      access_token: "smoke-test-access-token",
+      refresh_token: "smoke-test-refresh-token",
+      expires_at: farFutureExpiry,
+      expires_in: 3600,
+      token_type: "bearer",
+      user: {
+        id: "00000000-0000-4000-8000-000000000001",
+        email: "smoke-slow-sync@example.com",
+        user_metadata: {},
+        last_sign_in_at: new Date().toISOString(),
+      },
+    };
+
+    await page.addInitScript(
+      ({ key, session, host }) => {
+        localStorage.clear();
+        localStorage.setItem(key, JSON.stringify(session));
+        // runtime-config.js henuz calismadi; APP_CONFIG'i supabase moduna
+        // sabitleyip runtime-config.js'in (mock modunu) uzerine yazmasini engeller.
+        Object.defineProperty(window, "APP_CONFIG", {
+          configurable: true,
+          get() {
+            return window.__forcedAppConfig;
+          },
+          set() {
+            // runtime-config.js'in mock config atamasi kasitli olarak yok sayilir.
+          },
+        });
+        window.__forcedAppConfig = Object.freeze({
+          supabaseUrl: `https://${host}`,
+          supabaseAnonKey: "smoke-test-anon-key",
+          authMode: "supabase",
+          enableDemoAuth: true,
+          driveClientId: "",
+          driveApiKey: "",
+          driveAppId: "",
+        });
+      },
+      { key: storageKey, session: fakeSession, host: supabaseHost },
+    );
+
+    // Supabase REST cagrilarini (setler + kullanici durumu) sonsuza kadar askida
+    // birakip yavas/kopuk internet senaryosunu simule eder — istek hicbir zaman
+    // fulfill/abort edilmez.
+    await page.route(`https://${supabaseHost}/**`, () => {
+      // Kasitli olarak cevap verilmiyor: istek askida kalir.
+    });
+
+    await page.goto(appUrl());
+
+    await expect(page.locator("body")).not.toHaveClass(/app-booting/, {
+      timeout: 10_000,
+    });
+    await expect(page.locator("#app-splash")).toBeHidden({ timeout: 10_000 });
+
+    const visibleScreen = page.locator(
+      "#auth-screen:visible, #set-manager:visible",
+    );
+    await expect(visibleScreen.first()).toBeVisible();
+
+    await expect(page.locator("#sync-status")).toContainText(/eşitleniyor/i, {
+      timeout: 10_000,
+    });
+  });
 });

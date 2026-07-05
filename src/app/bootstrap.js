@@ -707,9 +707,17 @@ export async function startApp() {
       studyStateBridge.buildCurrentStudyStateSnapshot();
     await authFeature.loadAuthSession();
     if (isRemoteWorkspaceActive()) {
-      await loadSyncedWorkspace({
+      // MCQ-only: fc, oturum açık açılışlarda ilk çalışma alanı yüklemesini splash
+      // arkasında bekletir (fc src/features/auth/auth.js handleAuthStateChange →
+      // await loadUserWorkspace() → markAppReady()). MCQ bilinçli olarak ağı
+      // splash'i tutan bir kapı yapmaz: senkronizasyon arka planda sürer,
+      // durum çubuğundaki LED + retry çipi kullanıcıyı bilgilendirir; yavaş veya
+      // takılan bağlantı artık açılış ekranını sonsuza kadar dondurmaz.
+      loadSyncedWorkspace({
         fallbackWorkspace,
         fallbackStudySnapshot,
+      }).catch((error) => {
+        console.error("Background workspace sync failed", error);
       });
     } else {
       clearSyncConflictState();
