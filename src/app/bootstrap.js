@@ -24,6 +24,7 @@ import {
 } from "../features/analytics/analytics.js";
 import { createAuthHandlers } from "../features/auth/auth-handlers.js";
 import { createAuthFeature } from "../features/auth/auth-shell.js";
+import { maybeRedirectOAuthCallback } from "../features/auth/oauth-web-bridge.js";
 import { createDesktopUpdateFeature } from "../features/desktop-update/desktop-update.js";
 import { createEditorFeature } from "../features/editor/editor.js";
 import { createGoogleDriveFeature } from "../features/google-drive/google-drive.js";
@@ -46,6 +47,10 @@ import { renderAppVersionChip } from "./version-chip.js";
 import { BUILD_INFO } from "../generated/build-info.js";
 
 export async function startApp() {
+  if (maybeRedirectOAuthCallback({ windowRef: window, documentRef: document })) {
+    return;
+  }
+
   const defaults = Object.freeze({
     DEFAULT_QUESTION_FONT_SIZE: DEFAULT_STUDY_TYPOGRAPHY.questionFontSize,
     DEFAULT_OPTION_FONT_SIZE: DEFAULT_STUDY_TYPOGRAPHY.optionFontSize,
@@ -252,6 +257,7 @@ export async function startApp() {
     hasSupabaseConfig,
     showScreen,
     documentRef: document,
+    isDesktopRuntime,
   });
   const googleDrive = createGoogleDriveFeature({
     getRuntimeConfig,
@@ -618,6 +624,7 @@ export async function startApp() {
         toggleExportWarning: () => studyRunner.toggleExportWarning(),
         filterByTopic: (...args) => studyRunner.filterByTopic(...args),
         getIsFullscreen: () => getStudyContext().isFullscreen,
+        googleAuth: () => authHandlers.googleAuth(),
         handleFileSelect: (event) => setManager.handleFileSelect(event),
         handleMediaBundleSelect,
         hidePendingMediaPrompt,

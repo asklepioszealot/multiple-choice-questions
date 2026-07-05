@@ -328,6 +328,9 @@ fn open_url(url: String) -> Result<(), String> {
       .spawn()
       .map_err(|e| e.to_string())?;
   }
+  // TODO(phase-3): Android'de bu komut için henüz bir kol yok; buraya düşen url
+  // sessizce yok sayılır. Native Google auth (google_auth) Faz 3'te eklenene kadar
+  // JS tarafı Google giriş düğmesini yalnızca masaüstünde gösteriyor (isDesktopRuntime).
   let _ = url;
   Ok(())
 }

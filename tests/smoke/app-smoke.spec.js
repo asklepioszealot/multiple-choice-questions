@@ -259,6 +259,7 @@ test.describe("MCQ smoke", () => {
     await expect(driveButton).toBeVisible();
     await expect(driveButton).toHaveClass(/btn-secondary/);
     await expect(page.locator("#check-updates-btn")).toBeHidden();
+    await expect(page.locator("#auth-google-btn")).toBeHidden();
     await expect(page.locator("#manager-settings-panel")).toBeHidden();
     await page.click("#manager-settings-toggle-btn");
     await expect(page.locator("#manager-settings-panel")).toBeVisible();

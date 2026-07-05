@@ -31,6 +31,9 @@ export function bindStaticEvents({
   bindEvent(documentRef.getElementById("demo-auth-btn"), "click", () => {
     handlers.continueAsDemoAuth();
   });
+  bindEvent(documentRef.getElementById("auth-google-btn"), "click", () => {
+    void handlers.googleAuth();
+  });
   bindEvent(documentRef.getElementById("sync-retry-btn"), "click", () => {
     void handlers.retryCloudSync();
   });

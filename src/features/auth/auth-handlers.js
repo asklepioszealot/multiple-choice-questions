@@ -55,6 +55,10 @@ export function createAuthHandlers({
     return session;
   }
 
+  async function googleAuth() {
+    return authFeature.attemptGoogleAuth();
+  }
+
   async function signOutAuth() {
     if (
       !confirmEditorNavigation(
@@ -83,6 +87,7 @@ export function createAuthHandlers({
 
   return Object.freeze({
     continueAsDemoAuth,
+    googleAuth,
     signInAuth,
     signOutAuth,
     signUpAuth,

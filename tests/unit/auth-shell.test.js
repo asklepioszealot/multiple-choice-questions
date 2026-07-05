@@ -44,6 +44,7 @@ function renderAuthDom() {
       <input id="auth-remember-me" type="checkbox" />
       <button id="auth-signin-btn">Giris yap</button>
       <button id="auth-signup-btn">Kayit ol</button>
+      <button id="auth-google-btn">Google ile Giriş</button>
       <button id="demo-auth-btn">Demo ile devam et</button>
       <p id="auth-screen-message"></p>
       <p id="auth-status"></p>
@@ -220,5 +221,113 @@ describe("auth shell feature", () => {
     expect(document.getElementById("auth-status-badge").textContent).toContain(
       "doctor@example.com",
     );
+  });
+
+  describe("attemptGoogleAuth", () => {
+    it("supabase yapılandırması yokken hata durumu yazar", async () => {
+      renderAuthDom();
+      const auth = createAuthFeature({
+        storage: createMemoryStorage(),
+        getRuntimeConfig() {
+          return { enableDemoAuth: true };
+        },
+        hasSupabaseConfig() {
+          return false;
+        },
+        showScreen() {},
+        documentRef: document,
+      });
+
+      const result = await auth.attemptGoogleAuth();
+
+      expect(result).toBeNull();
+      expect(document.getElementById("auth-status").textContent).toContain(
+        "desteklenmiyor",
+      );
+    });
+
+    it("adapter.signInWithGoogle'ı rememberMe ile çağırır", async () => {
+      renderAuthDom();
+      const signInWithGoogle = vi.fn().mockResolvedValue(null);
+      const auth = createAuthFeature({
+        storage: createMemoryStorage(),
+        platformAdapter: {
+          type: "supabase-web",
+          supportsPasswordAuth: true,
+          signInWithGoogle,
+          getRememberMePreference: () => true,
+          setRememberMePreference: (v) => v,
+        },
+        getRuntimeConfig() {
+          return { enableDemoAuth: false };
+        },
+        hasSupabaseConfig() {
+          return true;
+        },
+        showScreen() {},
+        documentRef: document,
+      });
+
+      auth.syncAuthUi();
+      await auth.attemptGoogleAuth();
+
+      expect(signInWithGoogle).toHaveBeenCalledWith({ rememberMe: true });
+    });
+
+    it("masaüstü dışı runtime'larda Google düğmesini gizli tutar (Android dahil)", () => {
+      renderAuthDom();
+      const auth = createAuthFeature({
+        storage: createMemoryStorage(),
+        platformAdapter: {
+          type: "supabase-web",
+          supportsPasswordAuth: true,
+          signInWithGoogle: vi.fn(),
+          getRememberMePreference: () => true,
+          setRememberMePreference: (v) => v,
+        },
+        getRuntimeConfig() {
+          return { enableDemoAuth: false };
+        },
+        hasSupabaseConfig() {
+          return true;
+        },
+        showScreen() {},
+        documentRef: document,
+        isDesktopRuntime: () => false,
+      });
+
+      auth.syncAuthUi();
+
+      expect(document.getElementById("auth-google-btn").style.display).toBe("none");
+    });
+
+    it("masaüstü runtime'da Google düğmesini gösterir", () => {
+      renderAuthDom();
+      const auth = createAuthFeature({
+        storage: createMemoryStorage(),
+        platformAdapter: {
+          type: "supabase-web",
+          supportsPasswordAuth: true,
+          signInWithGoogle: vi.fn(),
+          getRememberMePreference: () => true,
+          setRememberMePreference: (v) => v,
+        },
+        getRuntimeConfig() {
+          return { enableDemoAuth: false };
+        },
+        hasSupabaseConfig() {
+          return true;
+        },
+        showScreen() {},
+        documentRef: document,
+        isDesktopRuntime: () => true,
+      });
+
+      auth.syncAuthUi();
+
+      expect(document.getElementById("auth-google-btn").style.display).toBe(
+        "inline-flex",
+      );
+    });
   });
 });

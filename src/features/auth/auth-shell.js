@@ -14,6 +14,7 @@ const AUTH_SESSION_KEY = "mc_auth_session";
     hasSupabaseConfig,
     showScreen,
     documentRef = globalScope.document,
+    isDesktopRuntime,
   }) {
     const storageRef =
       storage ||
@@ -64,6 +65,12 @@ const AUTH_SESSION_KEY = "mc_auth_session";
       typeof showScreen === "function"
         ? showScreen
         : function fallbackShowScreen() {};
+    const isDesktopRuntimeRef =
+      typeof isDesktopRuntime === "function"
+        ? isDesktopRuntime
+        : function fallbackIsDesktopRuntime() {
+            return false;
+          };
 
     let authSession = null;
     let statusMessage = "";
@@ -279,6 +286,17 @@ const AUTH_SESSION_KEY = "mc_auth_session";
         rememberMeLabel.style.display = passwordAuthEnabled ? "inline-flex" : "none";
       }
 
+      const googleButton = documentRef?.getElementById("auth-google-btn");
+      if (googleButton) {
+        // MCQ-only: fc (bootstrap.js:389) isTauriRuntime kullanır çünkü fc'nin Android
+        // tarafında native google_auth yolu var. MCQ'da Faz 3'e kadar native yol yok;
+        // masaüstü open_url komutu Android'de sessizce no-op'tur, bu yüzden buton
+        // şimdilik yalnızca masaüstünde gösterilir. Faz 3'te native yol gelince
+        // isDesktopRuntime → isTauriRuntime olarak genişletilecek.
+        googleButton.style.display =
+          passwordAuthEnabled && isDesktopRuntimeRef() ? "inline-flex" : "none";
+      }
+
       if (rememberMeInput) {
         rememberMeInput.checked = getRememberMePreference();
       }
@@ -390,6 +408,30 @@ const AUTH_SESSION_KEY = "mc_auth_session";
       }
     }
 
+    async function attemptGoogleAuth() {
+      if (
+        !isPasswordAuthEnabled() ||
+        typeof platformAdapterRef.signInWithGoogle !== "function"
+      ) {
+        setStatus("Google girişi bu yapılandırmada desteklenmiyor.", "error");
+        return null;
+      }
+
+      const rememberMe = readRememberMeFromForm();
+      setRememberMePreference(rememberMe);
+
+      try {
+        setStatus("Google hesabıyla giriş yapılıyor...");
+        await platformAdapterRef.signInWithGoogle({ rememberMe });
+        // Masaüstünde oturum deep link + reload ile tamamlanır; burada beklemeyiz.
+        setStatus("Tarayıcıda Google girişini tamamla; uygulama otomatik devam edecek.");
+        return null;
+      } catch (error) {
+        setStatus(error?.message || "Google girişi başarısız oldu.", "error");
+        return null;
+      }
+    }
+
     async function signOut() {
       if (authSession?.mode === "supabase") {
         await platformAdapterRef.signOut();
@@ -428,8 +470,9 @@ const AUTH_SESSION_KEY = "mc_auth_session";
     }
 
     return Object.freeze({
-      continueAsDemo,
+      attemptGoogleAuth,
       attemptPasswordAuth,
+      continueAsDemo,
       getAuthSession,
       hasActiveSession,
       loadAuthSession,
