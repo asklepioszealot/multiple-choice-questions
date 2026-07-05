@@ -593,6 +593,25 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
         currentUser = null;
         return null;
       },
+      async signInWithOAuth(params) {
+        return client.auth.signInWithOAuth(params);
+      },
+      async setSession(sessionData) {
+        const { data, error } = await client.auth.setSession(sessionData);
+        if (error) {
+          throw error;
+        }
+        currentUser = data?.user || null;
+        return currentUser;
+      },
+      async exchangeCodeForSession(code) {
+        const { data, error } = await client.auth.exchangeCodeForSession(code);
+        if (error) {
+          throw error;
+        }
+        currentUser = data?.user || null;
+        return currentUser;
+      },
       async loadSets() {
         const user = await getUserOrThrow();
         const { data, error } = await client
@@ -1018,6 +1037,44 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
       },
       async writeSetSourceFile(sourcePath, rawSource) {
         return bridge.writeSetSourceFile(sourcePath, rawSource);
+      },
+      async signInWithGoogle() {
+        const { data, error } = await remoteAdapter.signInWithOAuth({
+          provider: "google",
+          options: {
+            // MCQ-only: fc asklepioszealot.me'ye yönlendirir; MCQ Pages URL'i (spec karar 6).
+            redirectTo: "https://asklepioszealot.github.io/multiple-choice-questions/",
+            skipBrowserRedirect: true,
+          },
+        });
+        if (error) {
+          throw error;
+        }
+
+        const authUrl = data?.url;
+        if (!authUrl) {
+          throw new Error("Google OAuth URL alınamadı.");
+        }
+
+        const invoke = globalScope.__TAURI__?.core?.invoke;
+        if (typeof invoke === "function") {
+          await invoke("open_url", { url: authUrl });
+        } else if (typeof globalScope.open === "function") {
+          globalScope.open(authUrl, "_blank");
+        }
+        return null;
+      },
+      async setSession(sessionData) {
+        return remoteAdapter.setSession(sessionData);
+      },
+      async exchangeCodeForSession(code) {
+        if (typeof remoteAdapter.exchangeCodeForSession === "function") {
+          return remoteAdapter.exchangeCodeForSession(code);
+        }
+        throw new Error("exchangeCodeForSession bu adaptörde desteklenmiyor.");
+      },
+      async signInWithOAuth(params) {
+        return remoteAdapter.signInWithOAuth(params);
       },
     });
   }

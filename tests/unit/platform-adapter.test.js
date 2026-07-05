@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AUTH_REMEMBER_ME_KEY,
   createAuthSessionStorage,
+  createDesktopAdapter,
   createPlatformAdapter,
 } from "../../src/core/platform-adapter.js";
 
@@ -674,6 +675,126 @@ describe("platform adapter", () => {
     expect(files[0].name).toBe("demo.apkg");
     expect(files[0].contents).toBeInstanceOf(ArrayBuffer);
     expect([...new Uint8Array(files[0].contents)]).toEqual([0x50, 0x4b, 0x03, 0x04]);
+  });
+
+  describe("OAuth session köprüsü (supabase adapter)", () => {
+    function createSupabaseAdapterForOAuth(fakeAuth) {
+      const createClient = vi.fn(() => ({
+        auth: {
+          getSession: vi.fn(async () => ({
+            data: { session: null },
+            error: null,
+          })),
+          onAuthStateChange: vi.fn(() => ({
+            data: {
+              subscription: {
+                unsubscribe: vi.fn(),
+              },
+            },
+          })),
+          signInWithPassword: vi.fn(),
+          signUp: vi.fn(),
+          signOut: vi.fn(async () => ({ error: null })),
+          ...fakeAuth,
+        },
+      }));
+
+      return createPlatformAdapter({
+        storage: createMemoryStorage(),
+        getRuntimeConfig() {
+          return {
+            supabaseUrl: "https://example.supabase.co",
+            supabaseAnonKey: "anon-key",
+          };
+        },
+        createClientRef: createClient,
+      });
+    }
+
+    it("signInWithOAuth client'a geçer", async () => {
+      const fakeAuth = {
+        signInWithOAuth: vi.fn().mockResolvedValue({ data: { url: "https://x" }, error: null }),
+      };
+      const adapter = createSupabaseAdapterForOAuth(fakeAuth);
+      const result = await adapter.signInWithOAuth({ provider: "google" });
+      expect(fakeAuth.signInWithOAuth).toHaveBeenCalledWith({ provider: "google" });
+      expect(result.data.url).toBe("https://x");
+    });
+
+    it("setSession kullanıcıyı günceller, hatayı iletir", async () => {
+      const fakeAuth = {
+        setSession: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } }, error: null }),
+      };
+      const adapter = createSupabaseAdapterForOAuth(fakeAuth);
+      const user = await adapter.setSession({ access_token: "t", refresh_token: "r" });
+      expect(fakeAuth.setSession).toHaveBeenCalledWith({ access_token: "t", refresh_token: "r" });
+      expect(user).toEqual({ id: "u1" });
+    });
+
+    it("setSession hata durumunda fırlatır", async () => {
+      const fakeAuth = {
+        setSession: vi.fn().mockResolvedValue({ data: null, error: new Error("bad token") }),
+      };
+      const adapter = createSupabaseAdapterForOAuth(fakeAuth);
+      await expect(adapter.setSession({ access_token: "x", refresh_token: "" })).rejects.toThrow(
+        "bad token",
+      );
+    });
+
+    it("exchangeCodeForSession kod ile oturum kurar", async () => {
+      const fakeAuth = {
+        exchangeCodeForSession: vi
+          .fn()
+          .mockResolvedValue({ data: { user: { id: "u2" } }, error: null }),
+      };
+      const adapter = createSupabaseAdapterForOAuth(fakeAuth);
+      const user = await adapter.exchangeCodeForSession("abc");
+      expect(fakeAuth.exchangeCodeForSession).toHaveBeenCalledWith("abc");
+      expect(user).toEqual({ id: "u2" });
+    });
+  });
+
+  describe("desktop adapter signInWithGoogle", () => {
+    it("skipBrowserRedirect ile OAuth URL alır ve open_url komutuyla açar", async () => {
+      originalTauri = globalThis.__TAURI__;
+      const invoke = vi.fn().mockResolvedValue(undefined);
+      globalThis.__TAURI__ = { core: { invoke } };
+
+      const remoteAdapter = {
+        supportsRemoteSync: true,
+        signInWithOAuth: vi.fn().mockResolvedValue({
+          data: { url: "https://accounts.google.com/auth" },
+          error: null,
+        }),
+        getCurrentUser: vi.fn(),
+      };
+      const desktopAdapter = createDesktopAdapter(remoteAdapter);
+      await desktopAdapter.signInWithGoogle();
+
+      expect(remoteAdapter.signInWithOAuth).toHaveBeenCalledWith({
+        provider: "google",
+        options: {
+          redirectTo: "https://asklepioszealot.github.io/multiple-choice-questions/",
+          skipBrowserRedirect: true,
+        },
+      });
+      expect(invoke).toHaveBeenCalledWith("open_url", {
+        url: "https://accounts.google.com/auth",
+      });
+    });
+
+    it("URL gelmezse hata fırlatır", async () => {
+      originalTauri = globalThis.__TAURI__;
+      globalThis.__TAURI__ = { core: { invoke: vi.fn() } };
+
+      const remoteAdapter = {
+        supportsRemoteSync: true,
+        signInWithOAuth: vi.fn().mockResolvedValue({ data: {}, error: null }),
+        getCurrentUser: vi.fn(),
+      };
+      const desktopAdapter = createDesktopAdapter(remoteAdapter);
+      await expect(desktopAdapter.signInWithGoogle()).rejects.toThrow();
+    });
   });
 
   describe("readNativeFilesByPaths", () => {
