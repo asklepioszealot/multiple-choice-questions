@@ -2614,6 +2614,58 @@
       html.tauri-desktop-html body {
         background: var(--color-bg-primary) !important;
       }
+
+      /* App version chips. The fixed chip covers web/Android; desktop also
+         mirrors the same value inside the statusbar for reliable visibility. */
+      .app-version-chip {
+        position: fixed;
+        left: 14px;
+        bottom: 10px;
+        z-index: 10000;
+        display: inline-flex;
+        align-items: center;
+        min-height: 20px;
+        padding: 2px 8px;
+        border: 1px solid var(--color-border);
+        border-radius: 999px;
+        background: var(--build-meta-bg, var(--color-bg-secondary));
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        opacity: 0.92;
+        letter-spacing: 0;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .statusbar-version-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 18px;
+        padding: 1px 7px;
+        border: 1px solid var(--color-border);
+        border-radius: 999px;
+        background: var(--build-meta-bg, var(--color-bg-secondary));
+        color: var(--color-text-primary);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      /* MCQ-only: ekran-bazlı gizleme yok; chip her ekranda görünür */
+      body.study-fullscreen .app-version-chip {
+        display: none;
+      }
+
+      body.tauri-desktop .app-version-chip {
+        display: none;
+      }
+
+      /* Boot splash (z-index 9999) üstünde chip (z-index 10000) belirmesin */
+      body.app-booting .app-version-chip {
+        display: none;
+      }
     </style>
   </head>
   <body class="app-booting">
@@ -3417,6 +3469,8 @@
         <div class="app-splash-byline">by Ahmet Kara</div>
       </div>
     </div>
+
+    <span class="app-version-chip" id="app-version-chip" aria-hidden="true"></span>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>

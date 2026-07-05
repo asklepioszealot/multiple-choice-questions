@@ -42,6 +42,8 @@ import {
   DEFAULT_STUDY_TYPOGRAPHY,
   THEME_CONTROL_IDS,
 } from "../shared/constants.js";
+import { renderAppVersionChip } from "./version-chip.js";
+import { BUILD_INFO } from "../generated/build-info.js";
 
 export async function startApp() {
   const defaults = Object.freeze({
@@ -586,6 +588,7 @@ export async function startApp() {
       onSyncNow: () => loadSyncedWorkspace(),
       importNativeFiles: (files) => setManager.importNativeFiles(files),
     });
+    renderAppVersionChip(BUILD_INFO);
     bindStaticEvents({
       documentRef: document,
       windowRef: window,

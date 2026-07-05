@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { initDesktopIntegrations } from "../../src/ui/desktop.js";
+import { initDesktopIntegrations, updateSyncIndicator } from "../../src/ui/desktop.js";
 
 function buildChromeDom() {
   document.body.innerHTML = `
@@ -114,5 +114,56 @@ describe("initDesktopIntegrations", () => {
     expect(document.body.classList.contains("tauri-desktop")).toBe(true);
     document.getElementById("titlebar-minimize").click();
     expect(fakeWindow.minimize).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateSyncIndicator", () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <span id="sync-indicator-led" class="statusbar-indicator"></span>
+      <span id="sync-status-text"></span>`;
+  });
+
+  it("synced/offline/error durum class'larını uygular", () => {
+    updateSyncIndicator("synced", "Eşitlendi.");
+    expect(document.getElementById("sync-indicator-led").className)
+      .toBe("statusbar-indicator status-synced");
+    expect(document.getElementById("sync-status-text").textContent).toBe("Eşitlendi.");
+
+    updateSyncIndicator("offline");
+    expect(document.getElementById("sync-indicator-led").className)
+      .toBe("statusbar-indicator status-offline");
+
+    updateSyncIndicator("error", "Hata");
+    expect(document.getElementById("sync-indicator-led").className)
+      .toBe("statusbar-indicator status-error");
+  });
+});
+
+describe("setupSyncIndicators (sync-now butonu)", () => {
+  afterEach(() => {
+    delete window.__TAURI__;
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("onSyncNow deps ile çağrılır, buton busy durumuna girer-çıkar", async () => {
+    buildChromeDom();
+    const fakeWindow = buildFakeWindow();
+    installFakeTauri(fakeWindow);
+    vi.stubGlobal("navigator", { userAgent: "Windows NT 10.0" });
+    let resolveSync;
+    const onSyncNow = vi.fn(() => new Promise((resolve) => { resolveSync = resolve; }));
+
+    initDesktopIntegrations({ onSyncNow });
+    const syncBtn = document.getElementById("sync-now-btn");
+    syncBtn.click();
+    await Promise.resolve();
+    expect(onSyncNow).toHaveBeenCalled();
+    expect(syncBtn.disabled).toBe(true);
+    resolveSync();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(syncBtn.disabled).toBe(false);
   });
 });

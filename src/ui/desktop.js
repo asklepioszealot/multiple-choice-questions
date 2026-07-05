@@ -88,6 +88,70 @@ export function initDesktopIntegrations(deps = {}) {
   } catch (err) {
     console.error("onResized wire-up failed:", err);
   }
+
+  setupSyncIndicators();
+}
+
+export function updateSyncIndicator(status, text) {
+  const led = document.getElementById("sync-indicator-led");
+  const label = document.getElementById("sync-status-text");
+  if (!led || !label) return;
+
+  led.className = "statusbar-indicator";
+  if (status === "synced") {
+    led.classList.add("status-synced");
+  } else if (status === "offline") {
+    led.classList.add("status-offline");
+  } else {
+    led.classList.add("status-error");
+  }
+
+  if (text) {
+    label.textContent = text;
+  }
+}
+
+function setupSyncIndicators() {
+  const syncBtn = document.getElementById("sync-now-btn");
+  if (!syncBtn) return;
+
+  syncBtn.addEventListener("click", async () => {
+    // MCQ-only: fc study-state'ten loadUserWorkspace import eder; MCQ sync
+    // orkestrasyonunun loadSyncedWorkspace'i DI ile gelir.
+    if (typeof desktopDeps.onSyncNow !== "function") {
+      updateSyncIndicator("error", "Senkronizasyon köprüsü hazır değil.");
+      return;
+    }
+
+    syncBtn.disabled = true;
+    const originalText = syncBtn.textContent;
+    syncBtn.textContent = "Senkronize ediliyor...";
+    updateSyncIndicator("synced", "Bulut senkronizasyonu başlatıldı...");
+
+    try {
+      await desktopDeps.onSyncNow();
+      updateSyncIndicator("synced", "Bulut senkronizasyonu tamamlandı.");
+    } catch (err) {
+      console.error("Sync failed:", err);
+      updateSyncIndicator("error", `Senkronizasyon hatası: ${err?.message || "Bilinmeyen hata"}`);
+    } finally {
+      syncBtn.disabled = false;
+      syncBtn.textContent = originalText;
+    }
+  });
+
+  window.addEventListener("online", () => {
+    updateSyncIndicator("synced", "İnternet bağlantısı sağlandı. Eşitleniyor...");
+    syncBtn.click();
+  });
+
+  window.addEventListener("offline", () => {
+    updateSyncIndicator("offline", "Çevrimdışı çalışılıyor. Değişiklikler yerel olarak kaydedilecek.");
+  });
+
+  if (!navigator.onLine) {
+    updateSyncIndicator("offline", "Çevrimdışı çalışılıyor. Değişiklikler yerel olarak kaydedilecek.");
+  }
 }
 
 function setupTitlebarDragAndMaximize(appWindow, toggleWindowMaximize) {
