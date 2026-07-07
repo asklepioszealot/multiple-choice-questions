@@ -31,6 +31,7 @@ function buildFakeWindow() {
     startDragging: vi.fn().mockResolvedValue(undefined),
     onResized: vi.fn().mockResolvedValue(() => {}),
     setFocus: vi.fn().mockResolvedValue(undefined),
+    unminimize: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -103,6 +104,47 @@ describe("initDesktopIntegrations", () => {
       .dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
     await Promise.resolve();
     expect(fakeWindow.toggleMaximize).toHaveBeenCalled();
+  });
+
+  it("single-instance dosya forwarding pencereyi öne getirir ve gerçek import sonucunu raporlar", async () => {
+    const fakeWindow = buildFakeWindow();
+    installFakeTauri(fakeWindow);
+    vi.stubGlobal("navigator", { userAgent: "Windows NT 10.0" });
+
+    const readNativeFilesByPaths = vi.fn().mockResolvedValue([
+      { name: "a.json", path: "C:\\f\\a.json", contents: "{}" },
+      { name: "b.apkg", path: "C:\\f\\b.apkg" },
+    ]);
+    // Yalnız 1/2 dosya import edilebildi: mesaj error durumuna düşmeli.
+    const importNativeFiles = vi.fn().mockResolvedValue(["a"]);
+
+    initDesktopIntegrations({
+      getPlatformAdapter: () => ({ readNativeFilesByPaths }),
+      importNativeFiles,
+    });
+
+    const listenCalls = window.__TAURI__.event.listen.mock.calls;
+    const handler = listenCalls.find(([name]) => name === "single-instance-args")?.[1];
+    expect(typeof handler).toBe("function");
+
+    await handler({ payload: ["app.exe", "C:\\f\\a.json", "C:\\f\\b.apkg"] });
+
+    expect(fakeWindow.unminimize).toHaveBeenCalled();
+    expect(fakeWindow.setFocus).toHaveBeenCalled();
+    expect(importNativeFiles).toHaveBeenCalledWith([
+      { name: "a.json", path: "C:\\f\\a.json", contents: "{}" },
+      { name: "b.apkg", path: "C:\\f\\b.apkg" },
+    ]);
+    expect(document.getElementById("sync-status-text").textContent).toBe(
+      "2 dosyadan 1 tanesi içe aktarıldı.",
+    );
+
+    // Tam başarı: standart mesaj korunur.
+    importNativeFiles.mockResolvedValue(["a", "b"]);
+    await handler({ payload: ["app.exe", "C:\\f\\a.json", "C:\\f\\b.apkg"] });
+    expect(document.getElementById("sync-status-text").textContent).toBe(
+      "2 dosya içe aktarıldı.",
+    );
   });
 
   it("Android UA'da pencere kontrolleri bağlanmaz", () => {

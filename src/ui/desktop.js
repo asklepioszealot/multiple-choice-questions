@@ -92,8 +92,18 @@ async function importLocalFilesByPaths(paths) {
     updateSyncIndicator("synced", `${paths.length} yerel dosya okunuyor...`);
     const files = await adapter.readNativeFilesByPaths(paths);
     if (files.length > 0) {
-      await desktopDeps.importNativeFiles(files);
-      updateSyncIndicator("synced", `${files.length} dosya içe aktarıldı.`);
+      // MCQ-only: fc okunan dosya sayısını koşulsuz "içe aktarıldı" diye raporlar;
+      // burada mesaj gerçek import sonucuna (dönen set id listesi) bağlanır.
+      const importedSetIds = await desktopDeps.importNativeFiles(files);
+      const importedCount = Array.isArray(importedSetIds) ? importedSetIds.length : 0;
+      if (importedCount >= files.length) {
+        updateSyncIndicator("synced", `${importedCount} dosya içe aktarıldı.`);
+      } else {
+        updateSyncIndicator(
+          "error",
+          `${files.length} dosyadan ${importedCount} tanesi içe aktarıldı.`,
+        );
+      }
     }
   } catch (err) {
     console.error("Local file import failed:", err);
@@ -136,8 +146,13 @@ function setupSingleInstanceArgs(tauri) {
     const { deepLinkUrl, filePaths } = extractLaunchPayload(event.payload);
     if (!deepLinkUrl && filePaths.length === 0) return;
 
-    const { getCurrentWindow } = tauri.window;
-    await getCurrentWindow().setFocus().catch(console.error);
+    // MCQ-only: fc bu noktada yalnız setFocus çağırır ve ACL'de izin olmadığı
+    // için sessizce düşer (pencere öne gelmez). Burada ACL izinleri verildi;
+    // simge durumundaki pencere için setFocus tek başına yetmediğinden önce
+    // unminimize gerekir.
+    const appWindow = tauri.window.getCurrentWindow();
+    await appWindow.unminimize().catch(console.error);
+    await appWindow.setFocus().catch(console.error);
 
     if (deepLinkUrl && (await handleDesktopDeepLink(deepLinkUrl))) return;
     if (filePaths.length > 0) {

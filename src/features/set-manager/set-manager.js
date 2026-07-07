@@ -686,6 +686,7 @@ function toSafeArray(value) {
       }
 
       renderSetList();
+      return importedSetIds;
     }
 
     async function hydratePendingMedia(files = []) {

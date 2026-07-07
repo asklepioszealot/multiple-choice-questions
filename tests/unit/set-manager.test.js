@@ -289,7 +289,7 @@ describe("set-manager controller", () => {
     });
 
     const binary = new Uint8Array([1, 2, 3]).buffer;
-    await setManager.importNativeFiles([
+    const importedSetIds = await setManager.importNativeFiles([
       {
         name: "anki-demo.apkg",
         path: "C:\\sets\\anki-demo.apkg",
@@ -299,12 +299,60 @@ describe("set-manager controller", () => {
       },
     ]);
 
+    expect(importedSetIds).toEqual(["anki-demo"]);
     expect(parseApkgToSetRecord).toHaveBeenCalledWith(binary, "anki-demo.apkg");
     expect(setManager.getLoadedSets()["anki-demo"]).toMatchObject({
       fileName: "anki-demo.json",
       sourcePath: "C:\\sets\\anki-demo.apkg",
     });
     expect(setManager.getSelectedSetIds()).toEqual(["anki-demo"]);
+  });
+
+  it("reports failed imports by omitting them from the returned set ids", async () => {
+    renderManagerDom();
+    const storage = createMemoryStorage();
+    const alertRef = vi.fn();
+    const parseApkgToSetRecord = vi.fn().mockRejectedValue(new Error("CSP blocked wasm"));
+
+    const setManager = createSetManager({
+      storage,
+      normalizeQuestions(data) {
+        return data.questions;
+      },
+      parseSetText,
+      parseApkgToSetRecord,
+      alertRef,
+      getSelectedAnswers() {
+        return {};
+      },
+      resolveQuestionKey(question, setId, index) {
+        return `${setId}:${index}:${question.q}`;
+      },
+      documentRef: document,
+      setTimeoutRef() {
+        return 1;
+      },
+      clearTimeoutRef() {},
+    });
+
+    const importedSetIds = await setManager.importNativeFiles([
+      {
+        name: "broken.apkg",
+        path: "C:\\sets\\broken.apkg",
+        async arrayBuffer() {
+          return new Uint8Array([9]).buffer;
+        },
+      },
+      {
+        name: "ok.md",
+        path: "C:\\sets\\ok.md",
+        contents: ["[1] Soru?", "A) A", "B) B", "Doğru Cevap: A"].join("\n"),
+      },
+    ]);
+
+    expect(importedSetIds).toEqual(["ok"]);
+    expect(alertRef).toHaveBeenCalledTimes(1);
+    expect(setManager.getLoadedSets()["broken"]).toBeUndefined();
   });
 
   it("loads markdown immediately and exposes pending media hydration", async () => {
