@@ -309,9 +309,9 @@ async fn read_native_file_by_path(path: String) -> Result<NativePickedFile, Stri
 fn open_url(url: String) -> Result<(), String> {
   #[cfg(target_os = "windows")]
   {
-    // MCQ-only: fc'deki `cmd /C start` kalıbı tırnaklanmayan URL'de `&` sonrasını
-    // cmd'ye yediriyor (OAuth redirect_to kaybı). rundll32 kabuk yorumlaması
-    // yapmadan ShellExecute çağırır; `&` ve `%` bozulmadan geçer.
+    // `cmd /C start` kalıbı tırnaklanmayan URL'de `&` sonrasını cmd'ye yediriyor
+    // (OAuth redirect_to kaybı). rundll32 kabuk yorumlaması yapmadan ShellExecute
+    // çağırır; `&` ve `%` bozulmadan geçer.
     std::process::Command::new("rundll32")
       .args(["url.dll,FileProtocolHandler", &url])
       .spawn()

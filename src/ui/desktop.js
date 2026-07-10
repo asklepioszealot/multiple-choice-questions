@@ -146,10 +146,7 @@ function setupSingleInstanceArgs(tauri) {
     const { deepLinkUrl, filePaths } = extractLaunchPayload(event.payload);
     if (!deepLinkUrl && filePaths.length === 0) return;
 
-    // MCQ-only: fc bu noktada yalnız setFocus çağırır ve ACL'de izin olmadığı
-    // için sessizce düşer (pencere öne gelmez). Burada ACL izinleri verildi;
-    // simge durumundaki pencere için setFocus tek başına yetmediğinden önce
-    // unminimize gerekir.
+    // Simge durumundaki pencere için setFocus tek başına yetmez; önce unminimize gerekir.
     const appWindow = tauri.window.getCurrentWindow();
     await appWindow.unminimize().catch(console.error);
     await appWindow.setFocus().catch(console.error);
