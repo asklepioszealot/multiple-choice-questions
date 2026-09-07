@@ -21,6 +21,9 @@ const DEFAULT_BUTTON_LABEL = "Guncellemeleri Kontrol Et";
     return scope?.__TAURI__?.core || null;
   }
 
+  // MCQ-only: fc Android'de "Güncellemeleri Kontrol Et" butonunu gösterir
+  // (kendi APK updater'ına bağlı). MCQ'nun Android updater'ı Faz 3'te
+  // geleceği için buton desktop-gated kalır ve Android'de gizlidir.
   function isWindowsDesktopClient({
     isDesktopRuntimeRef = globalScope.AppRuntimeConfig?.isDesktopRuntime,
     navigatorRef = globalScope.navigator,

@@ -11,6 +11,8 @@
     "serve:dist": "npm run preview -- --host 127.0.0.1 --port 4173 --strictPort",
     "tauri": "node ./tools/tauri-cli.mjs",
     "build:desktop": "node ./tools/build-desktop.mjs",
+    "build:android": "node ./tools/tauri-cli.mjs android build --apk --target aarch64",
+    "build:android:all": "node ./tools/tauri-cli.mjs android build --apk",
     "release": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy",
     "release:no-legacy": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy",
     "release:dry-run": "node ./tools/run-pwsh-script.mjs ./tools/build-release.ps1 -NoLegacyCopy -DryRun",
