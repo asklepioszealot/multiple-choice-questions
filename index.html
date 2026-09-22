@@ -2212,7 +2212,7 @@
         align-items: center;
         justify-content: center;
         opacity: 1;
-        transition: opacity 280ms ease-out;
+        transition: opacity 120ms ease-out;
       }
 
       body:not(.app-booting) #app-splash {
@@ -2236,7 +2236,7 @@
         height: 128px;
         border-radius: 28px;
         box-shadow: 0 20px 48px rgba(15, 23, 42, 0.22);
-        animation: app-splash-grow 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        animation: app-splash-grow 220ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
       }
 
       .app-splash-name {
@@ -2247,7 +2247,7 @@
         color: var(--color-text-primary, #0f172a);
         text-transform: uppercase;
         margin-bottom: -8px;
-        animation: app-splash-fade-in 400ms ease-out 500ms both;
+        animation: app-splash-fade-in 160ms ease-out 70ms both;
       }
 
       .app-splash-byline {
@@ -2257,7 +2257,7 @@
         letter-spacing: 0.04em;
         color: var(--color-text-secondary, #475569);
         font-style: italic;
-        animation: app-splash-fade-in 400ms ease-out 700ms both;
+        animation: app-splash-fade-in 160ms ease-out 120ms both;
       }
 
       @keyframes app-splash-grow {
@@ -2684,7 +2684,7 @@
     <!-- Masaüstü (Tauri) özel titlebar — yalnız body.tauri-desktop'ta görünür -->
     <div id="desktop-titlebar" class="desktop-titlebar">
       <div class="titlebar-drag-region">
-        <img src="/app-icon.png" class="titlebar-icon" alt="" />
+        <img src="./app-icon.png" class="titlebar-icon" alt="" />
         <span class="titlebar-title">Çoktan Seçmeli Sorular</span>
       </div>
       <div class="titlebar-controls">
@@ -3480,7 +3480,7 @@
 
     <div id="app-splash" aria-hidden="true">
       <div class="app-splash-inner">
-        <img src="/app-icon.png" alt="" class="app-splash-logo" width="128" height="128" />
+        <img src="./app-icon.png" alt="" class="app-splash-logo" width="128" height="128" />
         <div class="app-splash-name">Çoktan Seçmeli</div>
         <div class="app-splash-byline">by Ahmet Kara</div>
       </div>

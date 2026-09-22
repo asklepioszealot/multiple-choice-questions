@@ -1888,6 +1888,79 @@ test.describe("MCQ smoke", () => {
     expect(migratedVisibility.map(([, value]) => value)).toEqual([true, true]);
   });
 
+  test("boot splash renders the branded logo with short motion", async ({
+    page,
+  }) => {
+    await page.goto(appUrl());
+
+    const splashMetrics = await page.locator("#app-splash").evaluate((splash) => {
+      const parseTime = (value) => {
+        const normalized = String(value || "").trim();
+        if (normalized.endsWith("ms")) return Number.parseFloat(normalized);
+        if (normalized.endsWith("s")) return Number.parseFloat(normalized) * 1000;
+        return 0;
+      };
+      const longestMotion = (element) => {
+        const style = getComputedStyle(element);
+        const durations = style.animationDuration.split(",").map(parseTime);
+        const delays = style.animationDelay.split(",").map(parseTime);
+        return Math.max(
+          0,
+          ...durations.map(
+            (duration, index) => duration + (delays[index] ?? delays[0] ?? 0),
+          ),
+        );
+      };
+      const logo = splash.querySelector(".app-splash-logo");
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      const context = canvas.getContext("2d");
+      context.drawImage(
+        logo,
+        0,
+        0,
+        logo.naturalWidth,
+        logo.naturalHeight,
+        0,
+        0,
+        1,
+        1,
+      );
+      const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+      const motionElements = [
+        logo,
+        splash.querySelector(".app-splash-name"),
+        splash.querySelector(".app-splash-byline"),
+      ];
+      const nestedBase = document.createElement("base");
+      nestedBase.href = "/multiple-choice-questions/";
+      document.head.prepend(nestedBase);
+
+      return {
+        logoLoaded: logo.complete && logo.naturalWidth > 0,
+        nestedBaseLogoPath: new URL(
+          logo.getAttribute("src"),
+          document.baseURI,
+        ).pathname,
+        logoAverageColor: { red, green, blue, alpha },
+        longestMotionMs: Math.max(...motionElements.map(longestMotion)),
+        fadeMs: parseTime(getComputedStyle(splash).transitionDuration),
+      };
+    });
+
+    expect(splashMetrics.logoLoaded).toBe(true);
+    expect(splashMetrics.nestedBaseLogoPath).toBe(
+      "/multiple-choice-questions/app-icon.png",
+    );
+    expect(splashMetrics.logoAverageColor.alpha).toBeGreaterThan(240);
+    expect(splashMetrics.logoAverageColor.blue).toBeGreaterThan(
+      splashMetrics.logoAverageColor.red + 40,
+    );
+    expect(splashMetrics.longestMotionMs).toBeLessThanOrEqual(400);
+    expect(splashMetrics.fadeMs).toBeLessThanOrEqual(150);
+  });
+
   test("boot splash dismisses even when workspace sync stalls on a slow connection", async ({
     page,
   }) => {

@@ -730,7 +730,7 @@ export async function startApp() {
     if (splash) {
       const finalize = () => splash.classList.add("is-removed");
       splash.addEventListener("transitionend", finalize, { once: true });
-      setTimeout(finalize, 800);
+      setTimeout(finalize, 300);
     }
     renderSetList();
     desktopUpdateFeature.syncButtonState();
