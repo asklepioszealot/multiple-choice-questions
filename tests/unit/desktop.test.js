@@ -147,13 +147,14 @@ describe("initDesktopIntegrations", () => {
     );
   });
 
-  it("Android UA'da pencere kontrolleri bağlanmaz", () => {
+  it("Android UA'da masaüstü sınıfları eklenmez ve pencere kontrolleri bağlanmaz", () => {
     const fakeWindow = buildFakeWindow();
     installFakeTauri(fakeWindow);
     vi.stubGlobal("navigator", { userAgent: "Linux; Android 14" });
 
     initDesktopIntegrations();
-    expect(document.body.classList.contains("tauri-desktop")).toBe(true);
+    expect(document.documentElement.classList.contains("tauri-desktop-html")).toBe(false);
+    expect(document.body.classList.contains("tauri-desktop")).toBe(false);
     document.getElementById("titlebar-minimize").click();
     expect(fakeWindow.minimize).not.toHaveBeenCalled();
   });

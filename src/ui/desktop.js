@@ -180,13 +180,16 @@ export function initDesktopIntegrations(deps = {}) {
   }
   desktopDeps = deps || {};
 
-  document.documentElement.classList.add("tauri-desktop-html");
-  document.body.classList.add("tauri-desktop");
-
   if (!isDesktopRuntime()) {
+    // MCQ-only: Android web gibi görünür; masaüstü sınıfları (titlebar, statusbar,
+    // splash/padding ofsetleri) yalnız masaüstünde eklenir. fc bunları Android'de de
+    // ekliyor ve masaüstü pencere çubukları telefonda görünüyor.
     // Android kurulumları Faz 3'te ayrıca ele alınacak.
     return;
   }
+
+  document.documentElement.classList.add("tauri-desktop-html");
+  document.body.classList.add("tauri-desktop");
 
   const tauri = getTauri();
   if (!tauri || !tauri.window || typeof tauri.window.getCurrentWindow !== "function") {
