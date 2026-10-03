@@ -1815,6 +1815,11 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#set-list .set-name", { hasText: "Smoke Test Set" })).toBeVisible();
     await expect(page.locator("#start-btn")).toBeEnabled();
 
+    const managerOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(managerOverflow).toBeLessThanOrEqual(0);
+
     await page.locator("#start-btn").click();
     await expect(page.locator("#main-app")).toBeVisible();
 
@@ -1822,6 +1827,20 @@ test.describe("MCQ smoke", () => {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
+
+    const headerLayout = await page.evaluate(() => {
+      const header = document.querySelector("#main-app .header");
+      const controls = header.querySelector(".header-controls");
+      const rows = [...controls.children].filter((row) => row.getBoundingClientRect().height > 0);
+      const contentHeight =
+        rows[rows.length - 1].getBoundingClientRect().bottom - rows[0].getBoundingClientRect().top;
+      return {
+        position: getComputedStyle(header).position,
+        slack: controls.getBoundingClientRect().height - contentHeight,
+      };
+    });
+    expect(headerLayout.position).toBe("static");
+    expect(headerLayout.slack).toBeLessThanOrEqual(1);
 
     const nextButton = page.locator("#next-btn");
     await expect(nextButton).toBeVisible();
