@@ -678,7 +678,11 @@ test.describe("MCQ smoke", () => {
       listEl.scrollTop = 120;
       listEl.dispatchEvent(new Event("scroll"));
     });
-    await page.click('#editor-question-list [data-editor-question-index="6"]');
+    // dispatchEvent: page.click once 6. ogeyi 80px'lik pencereye otomatik kaydirir; o scroll
+    // olayinin yeniden cizimden once mi sonra mi islendigi kaydedilen scrollTop'u belirliyordu.
+    await page
+      .locator('#editor-question-list [data-editor-question-index="6"]')
+      .dispatchEvent("click");
     await expect(page.locator("#editor-question-text")).toHaveValue(/\*\*Kalin\*\* soru/);
     await expect(page.locator("#editor-question-list")).toHaveJSProperty("scrollTop", 120);
 
