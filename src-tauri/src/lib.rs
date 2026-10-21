@@ -17,17 +17,6 @@ use tauri_plugin_dialog::DialogExt;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-struct QuestionRecord {
-  id: String,
-  q: String,
-  options: Vec<String>,
-  correct: i32,
-  explanation: Option<String>,
-  subject: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
 struct SetRecord {
   id: String,
   slug: String,
@@ -37,7 +26,9 @@ struct SetRecord {
   #[serde(default)]
   source_path: String,
   raw_source: String,
-  questions: Vec<QuestionRecord>,
+  // Questions are stored as-is: set-codec emits `id: null` (or numeric ids)
+  // and extra fields, which a typed struct would reject or drop.
+  questions: Vec<serde_json::Value>,
   updated_at: String,
 }
 
@@ -401,16 +392,41 @@ mod tests {
       source_format: "json".to_string(),
       source_path: String::new(),
       raw_source: "{\"setName\":\"Set 1\",\"questions\":[]}".to_string(),
-      questions: vec![QuestionRecord {
-        id: "q1".to_string(),
-        q: "Question".to_string(),
-        options: vec!["A".to_string(), "B".to_string()],
-        correct: 0,
-        explanation: Some("Explanation".to_string()),
-        subject: Some("General".to_string()),
-      }],
+      questions: vec![serde_json::json!({
+        "id": "q1",
+        "q": "Question",
+        "options": ["A", "B"],
+        "correct": 0,
+        "explanation": "Explanation",
+        "subject": "General",
+      })],
       updated_at: "2026-04-23T00:00:00.000Z".to_string(),
     }
+  }
+
+  #[test]
+  fn set_record_keeps_imported_question_shapes() {
+    let payload = serde_json::json!({
+      "id": "demo",
+      "slug": "demo",
+      "setName": "Demo",
+      "fileName": "demo.json",
+      "sourceFormat": "json",
+      "sourcePath": "",
+      "rawSource": "",
+      "questions": [
+        { "id": null, "q": "Soru?", "options": ["A", "B"], "correct": 1, "explanation": null },
+        { "id": 7, "q": "Soru 2", "options": ["A", "B"], "correct": 0, "image": "a.png" }
+      ],
+      "updatedAt": "2026-10-21T00:00:00.000Z"
+    });
+
+    let record: SetRecord =
+      serde_json::from_value(payload.clone()).expect("imported question shapes should deserialize");
+    assert_eq!(
+      serde_json::to_value(&record).expect("record should serialize"),
+      payload
+    );
   }
 
   fn unique_queue_path() -> PathBuf {
