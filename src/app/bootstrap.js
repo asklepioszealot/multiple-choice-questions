@@ -27,6 +27,7 @@ import {
 import { createAuthHandlers } from "../features/auth/auth-handlers.js";
 import { createAuthFeature } from "../features/auth/auth-shell.js";
 import { maybeRedirectOAuthCallback } from "../features/auth/oauth-web-bridge.js";
+import { createAndroidUpdateFeature } from "../features/android-update/android-update.js";
 import { createDesktopUpdateFeature } from "../features/desktop-update/desktop-update.js";
 import { createEditorFeature } from "../features/editor/editor.js";
 import { createGoogleDriveFeature } from "../features/google-drive/google-drive.js";
@@ -304,15 +305,26 @@ export async function startApp() {
     },
     confirmRef: window.confirm?.bind(window),
   });
-  const desktopUpdateFeature = createDesktopUpdateFeature({
-    stateRef: window.AppState,
-    isDesktopRuntimeRef: isDesktopRuntime,
-    documentRef: document,
-    windowRef: window,
-    alertRef: window.alert?.bind(window),
-    confirmRef: window.confirm?.bind(window),
-    consoleRef: window.console,
-  });
+  // Güncelleme düğmeleri: Android'de APK güncelleyici, diğer durumlarda masaüstü
+  // updater'ı; ikisi aynı arayüzü sunduğu için çağıranlar fark gözetmez.
+  const desktopUpdateFeature = isAndroidRuntime()
+    ? createAndroidUpdateFeature({
+        getCurrentVersion: () => BUILD_INFO.version,
+        documentRef: document,
+        windowRef: window,
+        alertRef: window.alert?.bind(window),
+        confirmRef: window.confirm?.bind(window),
+        consoleRef: window.console,
+      })
+    : createDesktopUpdateFeature({
+        stateRef: window.AppState,
+        isDesktopRuntimeRef: isDesktopRuntime,
+        documentRef: document,
+        windowRef: window,
+        alertRef: window.alert?.bind(window),
+        confirmRef: window.confirm?.bind(window),
+        consoleRef: window.console,
+      });
 
   syncOrch = createSyncOrchestration({
     storage,

@@ -21,9 +21,7 @@ const DEFAULT_BUTTON_LABEL = "Guncellemeleri Kontrol Et";
     return scope?.__TAURI__?.core || null;
   }
 
-  // MCQ-only: fc Android'de "Güncellemeleri Kontrol Et" butonunu gösterir
-  // (kendi APK updater'ına bağlı). MCQ'nun Android updater'ı Faz 3'te
-  // geleceği için buton desktop-gated kalır ve Android'de gizlidir.
+  // Android'deki güncelleme düğmeleri features/android-update tarafından yönetilir.
   function isWindowsDesktopClient({
     isDesktopRuntimeRef = globalScope.AppRuntimeConfig?.isDesktopRuntime,
     navigatorRef = globalScope.navigator,
@@ -87,31 +85,30 @@ const DEFAULT_BUTTON_LABEL = "Guncellemeleri Kontrol Et";
   } = {}) {
     const desktopUpdateState = getSharedDesktopUpdateState(stateRef);
 
-    function getButton() {
-      return documentRef?.getElementById?.("check-updates-btn") ?? null;
+    function getButtons() {
+      return ["check-updates-btn", "auth-check-updates-btn"]
+        .map((id) => documentRef?.getElementById?.(id) ?? null)
+        .filter(Boolean);
     }
 
     function syncButtonState() {
-      const button = getButton();
-      if (!button) {
-        return;
-      }
+      const isWindowsClient = isWindowsDesktopClient({
+        isDesktopRuntimeRef,
+        navigatorRef: windowRef?.navigator,
+        scope: windowRef,
+      });
 
-      if (
-        !isWindowsDesktopClient({
-          isDesktopRuntimeRef,
-          navigatorRef: windowRef?.navigator,
-          scope: windowRef,
-        })
-      ) {
-        button.hidden = true;
-        button.disabled = true;
-        return;
-      }
+      getButtons().forEach((button) => {
+        if (!isWindowsClient) {
+          button.hidden = true;
+          button.disabled = true;
+          return;
+        }
 
-      button.hidden = false;
-      button.disabled = desktopUpdateState.isChecking || desktopUpdateState.isInstalling;
-      button.textContent = desktopUpdateState.buttonLabel || DEFAULT_BUTTON_LABEL;
+        button.hidden = false;
+        button.disabled = desktopUpdateState.isChecking || desktopUpdateState.isInstalling;
+        button.textContent = desktopUpdateState.buttonLabel || DEFAULT_BUTTON_LABEL;
+      });
     }
 
     function setButtonLabel(label = DEFAULT_BUTTON_LABEL) {

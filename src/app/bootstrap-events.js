@@ -40,6 +40,9 @@ export function bindStaticEvents({
   bindEvent(documentRef.getElementById("check-updates-btn"), "click", () => {
     void handlers.checkDesktopUpdates();
   });
+  bindEvent(documentRef.getElementById("auth-check-updates-btn"), "click", () => {
+    void handlers.checkDesktopUpdates();
+  });
   bindEvent(documentRef.getElementById("auth-logout-btn"), "click", () => {
     void handlers.signOutAuth();
   });
