@@ -274,6 +274,68 @@ describe("auth shell feature", () => {
       expect(signInWithGoogle).toHaveBeenCalledWith({ rememberMe: true });
     });
 
+    it("Android'de dönen kullanıcıyla oturumu açar ve set ekranına geçer", async () => {
+      renderAuthDom();
+      const showScreen = vi.fn();
+      const storage = createMemoryStorage();
+      const auth = createAuthFeature({
+        storage,
+        platformAdapter: {
+          type: "supabase-web",
+          supportsPasswordAuth: true,
+          signInWithGoogle: vi.fn().mockResolvedValue({ id: "google-user", email: "a@b.c" }),
+          getRememberMePreference: () => true,
+          setRememberMePreference: (v) => v,
+        },
+        getRuntimeConfig() {
+          return { enableDemoAuth: false };
+        },
+        hasSupabaseConfig() {
+          return true;
+        },
+        showScreen,
+        documentRef: document,
+      });
+
+      const session = await auth.attemptGoogleAuth();
+
+      expect(session).toMatchObject({ mode: "supabase", userId: "google-user", email: "a@b.c" });
+      expect(auth.getAuthSession()).toMatchObject({ userId: "google-user" });
+      expect(showScreen).toHaveBeenCalledWith("manager");
+    });
+
+    it.each([
+      ["Web Client ID varsa gösterir", "web.apps.googleusercontent.com", "inline-flex"],
+      ["Web Client ID yoksa gizler", "", "none"],
+    ])("Android'de Google düğmesini %s", (_label, clientId, expected) => {
+      renderAuthDom();
+      const auth = createAuthFeature({
+        storage: createMemoryStorage(),
+        platformAdapter: {
+          type: "supabase-web",
+          supportsPasswordAuth: true,
+          signInWithGoogle: vi.fn(),
+          getRememberMePreference: () => true,
+          setRememberMePreference: (v) => v,
+        },
+        getRuntimeConfig() {
+          return { enableDemoAuth: false };
+        },
+        hasSupabaseConfig() {
+          return true;
+        },
+        showScreen() {},
+        documentRef: document,
+        isDesktopRuntime: () => false,
+        isAndroidRuntime: () => true,
+        getGoogleWebClientId: () => clientId,
+      });
+
+      auth.syncAuthUi();
+
+      expect(document.getElementById("auth-google-btn").style.display).toBe(expected);
+    });
+
     it("masaüstü dışı runtime'larda Google düğmesini gizli tutar (Android dahil)", () => {
       renderAuthDom();
       const auth = createAuthFeature({

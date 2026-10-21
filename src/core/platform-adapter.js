@@ -596,6 +596,15 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
       async signInWithOAuth(params) {
         return client.auth.signInWithOAuth(params);
       },
+      async signInWithIdToken({ provider = "google", token, rememberMe } = {}) {
+        authSessionStorage.setRememberMePreference(rememberMe);
+        const { data, error } = await client.auth.signInWithIdToken({ provider, token });
+        if (error) {
+          throw error;
+        }
+        currentUser = data?.user || null;
+        return currentUser;
+      },
       async setSession(sessionData) {
         const { data, error } = await client.auth.setSession(sessionData);
         if (error) {
@@ -776,6 +785,9 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
     }
 
     return Object.freeze({
+      async signInWithGoogle(webClientId) {
+        return invoke("sign_in_with_google", { webClientId });
+      },
       async listLocalSets(userId) {
         return invoke("list_local_sets", {
           userId,
@@ -886,10 +898,46 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
     return [...result.values()].map((record) => normalizeSetRecord(record));
   }
 
-  function createDesktopAdapter(remoteAdapter) {
+  function isAndroidUserAgent() {
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    return /android/i.test(String(userAgent || ""));
+  }
+
+  function createDesktopAdapter(remoteAdapter, { googleWebClientId = "" } = {}) {
     const bridge = createTauriBridge();
     if (!bridge || remoteAdapter?.supportsRemoteSync !== true) {
       return remoteAdapter;
+    }
+
+    // Android: Credential Manager'dan ID token alınır, Supabase'e signInWithIdToken
+    // ile verilir (fc paritesi). Masaüstü aşağıdaki tarayıcı + deep link yolunu kullanır.
+    async function signInWithGoogleNative(options = {}) {
+      const webClientId = String(googleWebClientId || "").trim();
+      if (!webClientId) {
+        throw new Error("Google girişi için Web Client ID yapılandırılmamış.");
+      }
+      if (typeof remoteAdapter.signInWithIdToken !== "function") {
+        throw new Error("Google girişi bu yapılandırmada desteklenmiyor.");
+      }
+
+      let response;
+      try {
+        response = await bridge.signInWithGoogle(webClientId);
+      } catch (error) {
+        // Kotlin reject'leri string olarak gelir; gerçek mesajı göster.
+        throw error instanceof Error ? error : new Error(String(error));
+      }
+
+      const idToken = response?.idToken;
+      if (!idToken) {
+        throw new Error("Google ID token alınamadı.");
+      }
+
+      return remoteAdapter.signInWithIdToken({
+        provider: "google",
+        token: idToken,
+        rememberMe: options.rememberMe,
+      });
     }
 
     async function getUserOrThrow() {
@@ -1038,7 +1086,11 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
       async writeSetSourceFile(sourcePath, rawSource) {
         return bridge.writeSetSourceFile(sourcePath, rawSource);
       },
-      async signInWithGoogle() {
+      async signInWithGoogle(options = {}) {
+        if (isAndroidUserAgent()) {
+          return signInWithGoogleNative(options);
+        }
+
         const { data, error } = await remoteAdapter.signInWithOAuth({
           provider: "google",
           options: {
@@ -1114,7 +1166,9 @@ export const AUTH_REMEMBER_ME_KEY = "mc_auth_remember_me";
       }
     }
 
-    return createDesktopAdapter(baseAdapter);
+    return createDesktopAdapter(baseAdapter, {
+      googleWebClientId: runtimeConfig?.googleWebClientId,
+    });
   }
 
   const AppPlatformAdapter = Object.freeze({

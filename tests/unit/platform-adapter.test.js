@@ -741,6 +741,21 @@ describe("platform adapter", () => {
       );
     });
 
+    it("signInWithIdToken Google ID token ile oturum kurar", async () => {
+      const fakeAuth = {
+        signInWithIdToken: vi
+          .fn()
+          .mockResolvedValue({ data: { user: { id: "u3" } }, error: null }),
+      };
+      const adapter = createSupabaseAdapterForOAuth(fakeAuth);
+      const user = await adapter.signInWithIdToken({ token: "id-token", rememberMe: true });
+      expect(fakeAuth.signInWithIdToken).toHaveBeenCalledWith({
+        provider: "google",
+        token: "id-token",
+      });
+      expect(user).toEqual({ id: "u3" });
+    });
+
     it("exchangeCodeForSession kod ile oturum kurar", async () => {
       const fakeAuth = {
         exchangeCodeForSession: vi
@@ -794,6 +809,80 @@ describe("platform adapter", () => {
       };
       const desktopAdapter = createDesktopAdapter(remoteAdapter);
       await expect(desktopAdapter.signInWithGoogle()).rejects.toThrow();
+    });
+
+    describe("Android", () => {
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      function setupAndroid(invoke) {
+        originalTauri = globalThis.__TAURI__;
+        globalThis.__TAURI__ = { core: { invoke } };
+        vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (Linux; Android 15; wv)" });
+      }
+
+      function createRemote() {
+        return {
+          supportsRemoteSync: true,
+          signInWithOAuth: vi.fn(),
+          signInWithIdToken: vi.fn().mockResolvedValue({ id: "android-user" }),
+          getCurrentUser: vi.fn(),
+        };
+      }
+
+      it("Credential Manager ID token'ını Supabase'e verir, tarayıcı açmaz", async () => {
+        const invoke = vi.fn().mockResolvedValue({ idToken: "google-id-token" });
+        setupAndroid(invoke);
+        const remoteAdapter = createRemote();
+        const adapter = createDesktopAdapter(remoteAdapter, {
+          googleWebClientId: " web.apps.googleusercontent.com ",
+        });
+
+        const user = await adapter.signInWithGoogle({ rememberMe: true });
+
+        expect(invoke).toHaveBeenCalledWith("sign_in_with_google", {
+          webClientId: "web.apps.googleusercontent.com",
+        });
+        expect(remoteAdapter.signInWithIdToken).toHaveBeenCalledWith({
+          provider: "google",
+          token: "google-id-token",
+          rememberMe: true,
+        });
+        expect(remoteAdapter.signInWithOAuth).not.toHaveBeenCalled();
+        expect(user).toEqual({ id: "android-user" });
+      });
+
+      it("Web Client ID yoksa native çağrı yapmadan hata verir", async () => {
+        const invoke = vi.fn();
+        setupAndroid(invoke);
+        const adapter = createDesktopAdapter(createRemote());
+
+        await expect(adapter.signInWithGoogle()).rejects.toThrow("Web Client ID");
+        expect(invoke).not.toHaveBeenCalled();
+      });
+
+      it("Kotlin tarafının string hatasını mesajıyla iletir", async () => {
+        setupAndroid(vi.fn().mockRejectedValue("Credential Manager hatası: iptal edildi"));
+        const adapter = createDesktopAdapter(createRemote(), {
+          googleWebClientId: "web.apps.googleusercontent.com",
+        });
+
+        await expect(adapter.signInWithGoogle()).rejects.toThrow(
+          "Credential Manager hatası: iptal edildi",
+        );
+      });
+
+      it("ID token gelmezse hata verir", async () => {
+        setupAndroid(vi.fn().mockResolvedValue({}));
+        const remoteAdapter = createRemote();
+        const adapter = createDesktopAdapter(remoteAdapter, {
+          googleWebClientId: "web.apps.googleusercontent.com",
+        });
+
+        await expect(adapter.signInWithGoogle()).rejects.toThrow("ID token");
+        expect(remoteAdapter.signInWithIdToken).not.toHaveBeenCalled();
+      });
     });
   });
 

@@ -1,3 +1,5 @@
+mod google_auth;
+
 use std::{
   fs,
   path::{Path, PathBuf},
@@ -331,9 +333,8 @@ fn open_url(url: String) -> Result<(), String> {
       .spawn()
       .map_err(|e| e.to_string())?;
   }
-  // TODO(phase-3): Android'de bu komut için henüz bir kol yok; buraya düşen url
-  // sessizce yok sayılır. Native Google auth (google_auth) Faz 3'te eklenene kadar
-  // JS tarafı Google giriş düğmesini yalnızca masaüstünde gösteriyor (isDesktopRuntime).
+  // Android'de bu komutun kolu yok; Google girişi orada native `google_auth`
+  // (Credential Manager) yolunu kullanır, JS bu komutu Android'de çağırmaz.
   let _ = url;
   Ok(())
 }
@@ -366,6 +367,7 @@ pub fn run() {
         .build(),
     )
     .plugin(tauri_plugin_dialog::init())
+    .plugin(google_auth::init())
     .invoke_handler(tauri::generate_handler![
       list_local_sets,
       upsert_local_set,
@@ -374,6 +376,7 @@ pub fn run() {
       flush_sync,
       pick_native_set_files,
       write_set_source_file,
+      google_auth::sign_in_with_google,
       get_startup_args,
       read_native_file_by_path,
       open_url

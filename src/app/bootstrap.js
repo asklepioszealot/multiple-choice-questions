@@ -13,9 +13,11 @@ import {
 } from "../core/set-codec.js";
 import { createPlatformAdapter } from "../core/platform-adapter.js";
 import {
+  getGoogleWebClientId,
   getRuntimeConfig,
   hasDriveConfig,
   hasSupabaseConfig,
+  isAndroidRuntime,
   isDesktopRuntime,
 } from "../core/runtime-config.js";
 import {
@@ -258,6 +260,8 @@ export async function startApp() {
     showScreen,
     documentRef: document,
     isDesktopRuntime,
+    isAndroidRuntime,
+    getGoogleWebClientId,
   });
   const googleDrive = createGoogleDriveFeature({
     getRuntimeConfig,

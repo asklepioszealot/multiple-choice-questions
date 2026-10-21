@@ -27,10 +27,10 @@ export function createAuthHandlers({
     return authFeature.continueAsDemo();
   }
 
-  async function signInAuth() {
+  async function runSignInAttempt(attempt) {
     const fallbackWorkspace = captureWorkspaceSeed();
     const fallbackStudySnapshot = buildCurrentStudyStateSnapshot();
-    const session = await authFeature.attemptPasswordAuth("signin");
+    const session = await attempt();
     if (session) {
       await loadSyncedWorkspace({
         fallbackWorkspace,
@@ -39,24 +39,19 @@ export function createAuthHandlers({
       renderSetList();
     }
     return session;
+  }
+
+  async function signInAuth() {
+    return runSignInAttempt(() => authFeature.attemptPasswordAuth("signin"));
   }
 
   async function signUpAuth() {
-    const fallbackWorkspace = captureWorkspaceSeed();
-    const fallbackStudySnapshot = buildCurrentStudyStateSnapshot();
-    const session = await authFeature.attemptPasswordAuth("signup");
-    if (session) {
-      await loadSyncedWorkspace({
-        fallbackWorkspace,
-        fallbackStudySnapshot,
-      });
-      renderSetList();
-    }
-    return session;
+    return runSignInAttempt(() => authFeature.attemptPasswordAuth("signup"));
   }
 
   async function googleAuth() {
-    return authFeature.attemptGoogleAuth();
+    // Masaüstünde null döner (oturum deep link ile gelir); Android'de oturum hemen açılır.
+    return runSignInAttempt(() => authFeature.attemptGoogleAuth());
   }
 
   async function signOutAuth() {

@@ -15,6 +15,8 @@ const AUTH_SESSION_KEY = "mc_auth_session";
     showScreen,
     documentRef = globalScope.document,
     isDesktopRuntime,
+    isAndroidRuntime,
+    getGoogleWebClientId,
   }) {
     const storageRef =
       storage ||
@@ -70,6 +72,18 @@ const AUTH_SESSION_KEY = "mc_auth_session";
         ? isDesktopRuntime
         : function fallbackIsDesktopRuntime() {
             return false;
+          };
+    const isAndroidRuntimeRef =
+      typeof isAndroidRuntime === "function"
+        ? isAndroidRuntime
+        : function fallbackIsAndroidRuntime() {
+            return false;
+          };
+    const getGoogleWebClientIdRef =
+      typeof getGoogleWebClientId === "function"
+        ? getGoogleWebClientId
+        : function fallbackGetGoogleWebClientId() {
+            return "";
           };
 
     let authSession = null;
@@ -288,13 +302,13 @@ const AUTH_SESSION_KEY = "mc_auth_session";
 
       const googleButton = documentRef?.getElementById("auth-google-btn");
       if (googleButton) {
-        // MCQ-only: fc (bootstrap.js:389) isTauriRuntime kullanır çünkü fc'nin Android
-        // tarafında native google_auth yolu var. MCQ'da Faz 3'e kadar native yol yok;
-        // masaüstü open_url komutu Android'de sessizce no-op'tur, bu yüzden buton
-        // şimdilik yalnızca masaüstünde gösterilir. Faz 3'te native yol gelince
-        // isDesktopRuntime → isTauriRuntime olarak genişletilecek.
+        // MCQ-only: fc (bootstrap.js:389) tüm Tauri runtime'larında gösterir. MCQ
+        // Android'de yalnız Web Client ID yapılandırılmışsa gösterir; aksi halde
+        // native giriş hata vereceği için düğme hiç çıkmaz.
+        const googleAvailable =
+          isDesktopRuntimeRef() || (isAndroidRuntimeRef() && Boolean(getGoogleWebClientIdRef()));
         googleButton.style.display =
-          passwordAuthEnabled && isDesktopRuntimeRef() ? "inline-flex" : "none";
+          passwordAuthEnabled && googleAvailable ? "inline-flex" : "none";
       }
 
       if (rememberMeInput) {
@@ -422,7 +436,18 @@ const AUTH_SESSION_KEY = "mc_auth_session";
 
       try {
         setStatus("Google hesabıyla giriş yapılıyor...");
-        await platformAdapterRef.signInWithGoogle({ rememberMe });
+        const user = await platformAdapterRef.signInWithGoogle({ rememberMe });
+        if (user) {
+          // Android: native giriş kullanıcıyı doğrudan döndürür.
+          const signedInSession = createSupabaseSession(user);
+          if (!signedInSession) {
+            throw new Error("Giriş oturumu başlatılamadı.");
+          }
+          persistAuthSession(signedInSession);
+          setStatus("", "");
+          showScreenRef("manager");
+          return signedInSession;
+        }
         // Masaüstünde oturum deep link + reload ile tamamlanır; burada beklemeyiz.
         setStatus("Tarayıcıda Google girişini tamamla; uygulama otomatik devam edecek.");
         return null;
