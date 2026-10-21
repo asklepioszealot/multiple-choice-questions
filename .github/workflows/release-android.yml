@@ -129,6 +129,18 @@ jobs:
             exit 1
           fi
 
+      # Without it the Android build silently hides Google sign-in.
+      - name: Verify required variables exist
+        shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$GOOGLE_WEB_CLIENT_ID" ]]; then
+            echo "Missing repository variable: GOOGLE_WEB_CLIENT_ID" >&2
+            exit 1
+          fi
+
       - name: Restore release keystore
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -188,6 +200,7 @@ jobs:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
           ENABLE_DEMO_AUTH: ${{ vars.ENABLE_DEMO_AUTH }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
         run: npm run build:android
 
       - name: Ensure release exists and upload APK
