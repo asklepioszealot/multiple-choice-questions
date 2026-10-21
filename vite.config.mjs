@@ -169,6 +169,7 @@ export function makeRuntimeConfig(env = process.env) {
       driveClientId: "",
       driveApiKey: "",
       driveAppId: "",
+      googleWebClientId: "",
     };
   }
 
@@ -192,6 +193,12 @@ export function makeRuntimeConfig(env = process.env) {
   const driveClientId = env.DRIVE_CLIENT_ID || localRuntimeConfig.driveClientId || "";
   const driveApiKey = env.DRIVE_API_KEY || localRuntimeConfig.driveApiKey || "";
   const driveAppId = env.DRIVE_APP_ID || localRuntimeConfig.driveAppId || "";
+  // Android native Google girişi (Credential Manager) için Supabase Google
+  // provider'ının Web client ID'si; ID token'ın audience değeri olur.
+  const googleWebClientId =
+    readEnvValue(env, ["GOOGLE_WEB_CLIENT_ID"])
+    || localRuntimeConfig.googleWebClientId
+    || "";
 
   return {
     supabaseUrl,
@@ -201,6 +208,7 @@ export function makeRuntimeConfig(env = process.env) {
     driveClientId,
     driveApiKey,
     driveAppId,
+    googleWebClientId,
   };
 }
 
@@ -286,12 +294,19 @@ export default defineConfig(({ mode }) => {
     ...loadEnv(mode, repoRoot, ""),
   };
   const runtimeConfig = makeRuntimeConfig(env);
+  // `tauri android dev` cihazdan erişilebilen host'u TAURI_DEV_HOST ile verir.
+  const tauriDevHost = process.env.TAURI_DEV_HOST;
 
   return {
     base: "./",
     server: {
       port: 1420,
       strictPort: true,
+      host: tauriDevHost || false,
+      hmr: tauriDevHost
+        ? { protocol: "ws", host: tauriDevHost, port: 1421 }
+        : undefined,
+      watch: { ignored: ["**/src-tauri/**"] },
     },
     build: {
       outDir: "dist",

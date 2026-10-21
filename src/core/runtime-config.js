@@ -16,6 +16,7 @@ const DEFAULT_CONFIG = Object.freeze({
   driveClientId: "",
   driveApiKey: "",
   driveAppId: "",
+  googleWebClientId: "",
 });
 
 export function getRuntimeConfig() {
@@ -57,6 +58,11 @@ export function hasSupabaseConfig() {
   return Boolean(config.supabaseUrl && config.supabaseAnonKey);
 }
 
+export function getGoogleWebClientId() {
+  const value = getRuntimeConfig().googleWebClientId;
+  return typeof value === "string" ? value.trim() : "";
+}
+
 export function hasDriveConfig() {
   const config = getDriveConfig();
   return Boolean(config.driveClientId && config.driveApiKey && config.driveAppId);
@@ -78,6 +84,7 @@ export function isDesktopRuntime() {
 
 export const AppRuntimeConfig = Object.freeze({
   getDriveConfig,
+  getGoogleWebClientId,
   getRuntimeConfig,
   hasDriveConfig,
   hasSupabaseConfig,

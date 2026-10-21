@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  getGoogleWebClientId,
   getRuntimeConfig,
   hasDriveConfig,
   hasSupabaseConfig,
@@ -41,6 +42,17 @@ describe("runtime config", () => {
     expect(config.driveAppId).toBe("build-app");
     expect(config.enableDemoAuth).toBe(true);
     expect(config.authMode).toBe("supabase");
+  });
+
+  it("exposes the Google web client ID trimmed, empty by default", () => {
+    expect(getGoogleWebClientId()).toBe("");
+
+    window.APP_CONFIG = { googleWebClientId: "  web-client.apps.googleusercontent.com " };
+    try {
+      expect(getGoogleWebClientId()).toBe("web-client.apps.googleusercontent.com");
+    } finally {
+      delete window.APP_CONFIG;
+    }
   });
 });
 

@@ -65,4 +65,17 @@ describe("vite runtime config bridge", () => {
       authMode: "supabase",
     });
   });
+
+  it("reads the Google web client ID from env and blanks it in mock auth", () => {
+    expect(
+      makeRuntimeConfig({ GOOGLE_WEB_CLIENT_ID: " web-client.apps.googleusercontent.com " })
+        .googleWebClientId,
+    ).toBe("web-client.apps.googleusercontent.com");
+    expect(
+      makeRuntimeConfig({
+        FORCE_MOCK_AUTH: "1",
+        GOOGLE_WEB_CLIENT_ID: "web-client.apps.googleusercontent.com",
+      }).googleWebClientId,
+    ).toBe("");
+  });
 });
