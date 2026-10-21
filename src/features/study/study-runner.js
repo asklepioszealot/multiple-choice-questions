@@ -616,7 +616,8 @@ export function createStudyRunner({
   function openExportModal() {
     const modal = documentRef?.getElementById("export-modal");
     if (modal) {
-      modal.style.display = "block";
+      modal.classList.add("is-open");
+      documentRef.body.style.overflow = "hidden";
     }
     toggleExportWarning();
   }
@@ -624,7 +625,8 @@ export function createStudyRunner({
   function closeExportModal() {
     const modal = documentRef?.getElementById("export-modal");
     if (modal) {
-      modal.style.display = "none";
+      modal.classList.remove("is-open");
+      documentRef.body.style.overflow = "";
     }
   }
 

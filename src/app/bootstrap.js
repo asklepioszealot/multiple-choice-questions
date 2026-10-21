@@ -198,13 +198,15 @@ export async function startApp() {
       copy.textContent =
         `Bu set ${count} yerel görsel/ses bağlantısı içeriyor. İlgili dosyaları veya bir .zip paketini seçebilirsin.`;
     }
-    modal.hidden = false;
+    modal.classList.add("is-open");
+    document.body.style.overflow = "hidden";
   }
 
   function hidePendingMediaPrompt() {
     const modal = document.getElementById("media-prompt-modal");
     if (modal) {
-      modal.hidden = true;
+      modal.classList.remove("is-open");
+      document.body.style.overflow = "";
     }
   }
 

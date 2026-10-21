@@ -1581,6 +1581,60 @@ test.describe("MCQ smoke", () => {
     await expect(page.locator("#export-modal")).toBeHidden();
   });
 
+  test("export modal opens as a bottom sheet on narrow screens", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await seedLocalSets(page, {
+      sets: {
+        demo: {
+          setName: "Export Demo",
+          fileName: "export-demo.json",
+          questions: [
+            {
+              q: "Export soru?",
+              options: ["A", "B", "C", "D"],
+              correct: 1,
+              subject: "Genel",
+              explanation: "Export açıklama",
+            },
+          ],
+        },
+      },
+      selectedSetIds: ["demo"],
+    });
+
+    await page.locator("#start-btn").click();
+    await page.locator("#export-printable-btn").click();
+    const modal = page.locator("#export-modal");
+    await expect(modal).toBeVisible();
+
+    const layout = await page.evaluate(() => {
+      const overlay = document.getElementById("export-modal").getBoundingClientRect();
+      const content = document
+        .querySelector("#export-modal > .modal-content")
+        .getBoundingClientRect();
+      return {
+        overlayTop: overlay.top,
+        overlayHeight: overlay.height,
+        contentBottom: content.bottom,
+        contentWidth: content.width,
+        viewportHeight: window.innerHeight,
+        viewportWidth: document.documentElement.clientWidth,
+        bodyOverflow: document.body.style.overflow,
+      };
+    });
+    expect(layout.overlayTop).toBe(0);
+    expect(layout.overlayHeight).toBe(layout.viewportHeight);
+    expect(Math.abs(layout.contentBottom - layout.viewportHeight)).toBeLessThanOrEqual(1);
+    expect(layout.contentWidth).toBe(layout.viewportWidth);
+    expect(layout.bodyOverflow).toBe("hidden");
+    await expect(page.locator("#app-version-chip")).toBeHidden();
+
+    await page.locator("#export-modal [data-export-close]").first().click();
+    await expect(modal).toBeHidden();
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+    await expect(page.locator("#app-version-chip")).toBeVisible();
+  });
+
   test("reset only clears progress for active sets", async ({ page }) => {
     await seedLocalSets(page, {
       sets: {
