@@ -755,6 +755,17 @@ export async function startApp() {
     googleDrive.initGoogleDrive();
   }
 
+  // Uygulama arka plana atılınca (Android'de süreç askıya alınabilir) bekleyen
+  // ilerlemeyi 600 ms'lik debounce'u beklemeden gönder (fc 6940e79 paritesi).
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "hidden") {
+      return;
+    }
+    syncOrch.flushPendingRemoteStudyStateSync().catch((error) => {
+      console.error("[visibilitychange] study-state flush failed", error);
+    });
+  });
+
   window.AppSyncConflict = Object.freeze({
     detectSyncConflict,
   });

@@ -335,6 +335,13 @@ export function createSyncOrchestration(deps) {
     }
   }
 
+  // Debounce'u beklemeden bekleyen ilerlemeyi gönderir (uygulama arka plana
+  // atılırken çağrılır; Android süreci askıya alabilir).
+  function flushPendingRemoteStudyStateSync() {
+    clearRemoteStudyStateSyncTimer();
+    return flushRemoteStudyStateSync();
+  }
+
   function scheduleRemoteStudyStateSync(snapshot = getCurrentStudyStateSnapshot()) {
     if (
       !isRemoteWorkspaceActive() ||
@@ -436,6 +443,9 @@ export function createSyncOrchestration(deps) {
 
     setManager.loadStoredSets(userPrefix);
     loadLocalStudyState(userPrefix);
+    // Ağ yanıtını beklemeden kullanıcının yerel setlerini göster; liste
+    // aşağıda bulut verisiyle yeniden çizilir (fc b7f3033'ün MCQ karşılığı).
+    renderSetList();
 
     const userScopedWorkspace = captureWorkspaceSeed();
     const userScopedSnapshot = hasMeaningfulStudyStateSnapshot(
@@ -808,6 +818,7 @@ export function createSyncOrchestration(deps) {
     saveRemoteSetRecord,
     deleteRemoteSetRecords,
     scheduleRemoteStudyStateSync,
+    flushPendingRemoteStudyStateSync,
     clearRemoteStudyStateSyncTimer,
     handleSelectionChanged,
     loadSyncedWorkspace,
